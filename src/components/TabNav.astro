@@ -1,24 +1,4 @@
 ---
-/**
- * TabNav.astro - Automatic data-driven navigation component
- * 
- * This component generates navigation tabs based on the src/pages directory structure.
- * Tabs are derived from top-level folders, with dropdowns showing all pages in each category.
- * 
- * CUSTOMIZATION TIPS:
- * - To change the appearance, modify the CSS styles below
- * - To adjust tab behavior, update the JavaScript in the <script> section
- * - To change which pages appear, modify EXCLUDED_PATHS in src/utils/generateNav.js
- * - Add 'navCategory' to page frontmatter to override auto-detected category
- * 
- * FEATURES:
- * - Automatic navigation generation from filesystem
- * - Responsive mobile menu
- * - Dropdown menus for page categories
- * - Accessibility support (ARIA labels, keyboard navigation)
- * - Active page highlighting
- */
-
 import { getNavigation } from '../utils/generateNav';
 
 // Generate navigation at build time
