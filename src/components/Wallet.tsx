@@ -48,16 +48,16 @@ const Wallet = () => {
 
       try {
         const { BrowserProvider } = await import('ethers');
-        const ethersProvider = new BrowserProvider(walletProvider)
+        const ethersProvider = new BrowserProvider(walletProvider as any)
         setProvider(ethersProvider)
-
+        
         // Ensure we're on the correct network
-        await ensureEthereum()
-
+        await ensureEthereum() // Ensure we're on the correct network (Polygon)
+        
         await fetchBalance(ethersProvider, address)
       } catch (err) {
         console.error('Error setting up wallet:', err)
-        setError(err && err.message ? err.message : 'Failed to set up wallet connection.')
+        setError(err.message || 'Failed to set up wallet connection.')
       }
     }
 
@@ -75,9 +75,19 @@ const Wallet = () => {
     }
 
     try {
-      const { BrowserProvider } = await import('ethers');
-      const ethersProvider = new BrowserProvider(walletProvider)
-      setProvider(ethersProvider)
+      const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: MTX.address,
+            symbol: MTX.symbol,
+            decimals: MTX.decimals,
+            // Optional: add image URL when available
+            // image: 'https://matrix-hub.org/mtx-logo.png',
+          },
+        },
+      });
 
       if (wasAdded) {
         console.log('MTX token successfully added to wallet');
