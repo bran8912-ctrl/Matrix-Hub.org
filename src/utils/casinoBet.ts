@@ -33,7 +33,7 @@ export async function placeCasinoBet(walletProvider: Eip1193Provider, betAmount:
   const network = await provider.getNetwork();
   if (network.chainId !== POLYGON_CHAIN_ID) throw new Error('Connected wallet is not on Polygon network');
 
-  const mtxContract = new Contract(MTX.address, mtxAbi, provider);
+  const mtxContract = new Contract(MTX.address, mtxAbi, provider) as any;
 
   const decimals = await mtxContract.decimals();
   const amountWei = parseUnits(betAmount.toString(), decimals);

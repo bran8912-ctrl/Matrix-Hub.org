@@ -48,16 +48,16 @@ const Wallet = () => {
 
       try {
         const { BrowserProvider } = await import('ethers');
-        const ethersProvider = new BrowserProvider(walletProvider as any)
+        const ethersProvider = new BrowserProvider(walletProvider)
         setProvider(ethersProvider)
-        
+
         // Ensure we're on the correct network
-        await ensureEthereum() // Ensure we're on the correct network (Polygon)
-        
+        await ensureEthereum()
+
         await fetchBalance(ethersProvider, address)
       } catch (err) {
         console.error('Error setting up wallet:', err)
-        setError(err.message || 'Failed to set up wallet connection.')
+        setError(err && err.message ? err.message : 'Failed to set up wallet connection.')
       }
     }
 
