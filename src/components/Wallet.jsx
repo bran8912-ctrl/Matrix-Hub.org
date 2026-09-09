@@ -21,3 +21,5 @@ const Wallet = () => {
 
   // ... rest of component ...
 }
+
+export default Wallet;
