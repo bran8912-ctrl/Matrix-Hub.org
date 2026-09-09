@@ -1,7 +1,7 @@
 const Wallet = () => {
   // ... existing code ...
 
-  const setupWallet = async (walletProvider: EIP1193Provider, address: string) => {
+  const setupWallet = async (walletProvider, address) => {
     if (!walletProvider) return;
 
     try {
