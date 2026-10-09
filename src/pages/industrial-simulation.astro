@@ -152,7 +152,12 @@ export const navCategory = 'academy';
   document.querySelector<HTMLButtonElement>('#mock-start')?.addEventListener('click', () => {
     mockIndex = 0;
     checklist.forEach((item) => delete item.dataset.complete);
-    document.querySelector<HTMLButtonElement>('#mock-next')?.removeAttribute('hidden');
+    const nextButton = document.querySelector<HTMLButtonElement>('#mock-next');
+    nextButton?.removeAttribute('hidden');
+    if (nextButton) {
+      nextButton.disabled = false;
+      nextButton.textContent = 'Run next mock action';
+    }
     const instruction = document.querySelector<HTMLElement>('#mock-instruction');
     if (instruction) instruction.textContent = 'Mock started. Run the next action to walk the checklist in order.';
     document.querySelector<HTMLButtonElement>('#mock-next')?.focus();
