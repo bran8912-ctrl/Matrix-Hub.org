@@ -53,9 +53,18 @@ export const navCategory = 'academy';
           <form class="academy-challenge-form" id="tool-challenge">
             <fieldset>
               <legend>Choose tools: transfer the 125 mm baseline offset, check squareness and root gap, then hold the stiffener.</legend>
-              {['Tape measure', 'Combination square', 'Level', 'Gap gauge', 'Grinder', 'Chipping hammer', 'Clamps', 'Dividers'].map((tool) => {
-                const id = tool.toLowerCase().replaceAll(' ', '-');
-                return <label class="challenge-choice"><input type="checkbox" value={id} /><span>{tool}</span></label>;
+              {[
+                ['tape', 'Tape measure'],
+                ['square', 'Combination square'],
+                ['level', 'Level'],
+                ['gap-gauge', 'Gap gauge'],
+                ['grinder', 'Grinder'],
+                ['chipping-hammer', 'Chipping hammer'],
+                ['clamps', 'Clamps'],
+                ['dividers', 'Dividers'],
+              ].map(([id, label]) => (
+                <label class="challenge-choice"><input type="checkbox" value={id} /><span>{label}</span></label>
+              ))}
               })}
             </fieldset>
             <button class="academy-button" type="submit">Check tool plan</button>
