@@ -1,5 +1,4 @@
-export const prerender = false;
-
+// Server-only handler: not routed in the static build. Mount under src/pages/api/ with `export const prerender = false;` and a Node adapter to enable.
 import type { APIRoute } from 'astro';
 
 const webhookUrl = process.env.N8N_WEBHOOK_URL || import.meta.env.PUBLIC_N8N_WEBHOOK_URL || '';
