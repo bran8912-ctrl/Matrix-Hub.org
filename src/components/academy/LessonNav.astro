@@ -21,7 +21,7 @@ const { lessons, activeId } = Astro.props;
         >
           <span class="lesson-nav-number">{String(index + 1).padStart(2, '0')}</span>
           <span>{lesson.title}</span>
-          <span class="lesson-done" aria-hidden="true"></span>
+          <span class="lesson-done" role="img" aria-label="Not completed"></span>
         </a>
       </li>
     ))}
