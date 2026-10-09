@@ -1,0 +1,191 @@
+---
+import Layout from '../components/Layout.astro';
+import { lessons } from '../data/academy/lessons';
+import '../styles/academy.css';
+
+export const prerender = true;
+export const title = 'Industrial Fit-Up Simulation';
+export const navCategory = 'academy';
+---
+
+<Layout title="Industrial Simulation | Matrix Hub Academy">
+  <div class="academy-shell">
+    <header class="academy-hero">
+      <p class="academy-eyebrow">Level 8 · Shipyard job simulation</p>
+      <h1>Inspect. Lay out. Fit. Verify.</h1>
+      <p>Interpret the drawing, mark the reference lines, choose a preparation, fit and align the stiffener, then complete a virtual inspection and explain your decisions.</p>
+      <p class="academy-disclaimer"><strong>Training, not qualification.</strong> This simulator teaches recognition, planning, and measurement. It does not certify welders or replace supervised practice, approved procedures, required testing, or qualified inspection. Do not use schematic values as job instructions.</p>
+    </header>
+
+    <section class="simulation-layout" aria-label="Industrial simulator and task checklist">
+      <div>
+        <div class="simulator-frame-wrap">
+          <iframe
+            id="factory-simulator"
+            src="/simulations/factory/index.html"
+            title="Shipfitter steel plate and stiffener training simulator"
+            sandbox="allow-scripts allow-same-origin"
+            allow="fullscreen; pointer-lock"
+            loading="eager"
+          ></iframe>
+        </div>
+        <p class="simulator-status" id="simulator-status" role="status" aria-live="polite">Loading simulator preview…</p>
+        <a class="academy-inline-link" href="/simulations/factory/index.html" target="_blank" rel="noopener noreferrer">Open full simulator in a new tab ↗</a>
+        <section class="academy-card" aria-labelledby="mock-heading">
+          <h2 id="mock-heading">Demo the checklist without the Cocos build</h2>
+          <p>The mock runs locally in this page and emits the same validated events as the simulator. Each step is an example, not a measurement record.</p>
+          <div class="mock-controls">
+            <button class="academy-button" type="button" id="mock-start">Start mock simulator demo</button>
+            <p id="mock-instruction" aria-live="polite">The full Cocos build has not been deployed; use the mock to walk through the job sequence.</p>
+            <button class="academy-button secondary" type="button" id="mock-next" hidden>Run next mock action</button>
+          </div>
+        </section>
+      </div>
+
+      <aside class="academy-card">
+        <p class="academy-eyebrow">Student task checklist</p>
+        <h2>From drawing to verified fit-up</h2>
+        <ol class="simulation-checklist">
+          <li data-sim-task="inspect">Inspect the plate and confirm its part mark</li>
+          <li data-sim-task="joint">Identify joint preparation defects</li>
+          <li data-sim-task="reference">Establish the drawing datum and baseline</li>
+          <li data-sim-task="position">Measure and position the stiffener</li>
+          <li data-sim-task="alignment">Check squareness, plumb, gap, offset, and mismatch</li>
+          <li data-sim-task="correct">Correct any out-of-tolerance condition</li>
+          <li data-sim-task="verify">Verify the final fit and review the challenge</li>
+        </ol>
+        <p id="simulator-feedback" aria-live="polite">Checklist updates from validated simulator events or the local mock.</p>
+        <label for="inspection-rationale">Virtual inspection rationale: identify the datum, measurements checked, and any correction or hold point.</label>
+        <textarea id="inspection-rationale" rows="5" maxlength="500" placeholder="Example: I checked the stiffener offset from datum B, then rechecked the gap and squareness after repositioning."></textarea>
+        <p class="academy-eyebrow">Your rationale stays in this page and is not submitted or saved.</p>
+        <h3>Matching academy lessons</h3>
+        <ul>
+          {lessons.slice(1).map((lesson) => (
+            <li><a href={`/academy/shipyard-fitup#${lesson.id}`}>{lesson.title}</a></li>
+          ))}
+          <li><a href="/academy/shipyard-fitup#hands-on">Hands-on practice and workflow review</a></li>
+        </ul>
+        <a class="academy-inline-link" href="/academy">Back to the Academy hub →</a>
+      </aside>
+    </section>
+  </div>
+</Layout>
+
+<script>
+  import { mockSimulatorEvents } from '../lib/academy/mockSimulator';
+  import { isSimulatorEvent } from '../lib/academy/postMessage';
+
+  const frame = document.querySelector<HTMLIFrameElement>('#factory-simulator');
+  const status = document.querySelector<HTMLElement>('#simulator-status');
+  const feedback = document.querySelector<HTMLElement>('#simulator-feedback');
+  const checklist = document.querySelectorAll<HTMLElement>('[data-sim-task]');
+  let mockIndex = 0;
+
+  const applyEvent = (message: unknown) => {
+    if (!isSimulatorEvent(message)) return;
+    switch (message.type) {
+      case 'tool-selected':
+        if (feedback) feedback.textContent = `Tool selected: ${message.payload.toolId}. Confirm it matches the drawing task.`;
+        break;
+      case 'inspect-complete':
+        checklist.forEach((item) => item.dataset.simTask === 'inspect' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = 'Plate inspection recorded. Confirm part mark and surface condition.';
+        break;
+      case 'joint-prep-flagged':
+        checklist.forEach((item) => item.dataset.simTask === 'joint' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = `Joint-prep review recorded: ${message.payload.defectIds.length} defect(s) flagged.`;
+        break;
+      case 'reference-established':
+        checklist.forEach((item) => item.dataset.simTask === 'reference' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = `Reference recorded: datum ${message.payload.datum}, baseline ${message.payload.baseline}.`;
+        break;
+      case 'part-positioned':
+        checklist.forEach((item) => item.dataset.simTask === 'position' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = `${message.payload.partId} positioned at ${message.payload.offsetMm} mm; compare with the current drawing tolerance.`;
+        break;
+      case 'alignment-checked': {
+        const allPassed = message.payload.checks.every(({ passed }) => passed);
+        if (allPassed) checklist.forEach((item) => item.dataset.simTask === 'alignment' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = allPassed
+          ? 'All reported alignment checks passed.'
+          : 'One or more alignment checks failed. Correct the cause and check again.';
+        break;
+      }
+      case 'correction-applied':
+        checklist.forEach((item) => item.dataset.simTask === 'correct' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = `Correction recorded: ${message.payload.issue}.`;
+        break;
+      case 'verification-complete':
+        checklist.forEach((item) => item.dataset.simTask === 'verify' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = `Final verification recorded: ${message.payload.summary}.`;
+        break;
+      case 'challenge-complete':
+        if (message.payload.verified) checklist.forEach((item) => item.dataset.simTask === 'verify' && (item.dataset.complete = 'true'));
+        if (feedback) feedback.textContent = `Challenge score ${message.payload.score}/100. ${message.payload.verified ? 'Verification complete.' : 'Complete verification before closing the challenge.'}`;
+        break;
+    }
+  };
+
+  frame?.addEventListener('load', () => {
+    if (status) {
+      const bodyText = frame.contentDocument?.body?.innerText ?? '';
+      status.textContent = bodyText.includes('build not yet deployed')
+        ? 'Preview ready: Cocos simulator build not yet deployed. The local mock is available below.'
+        : 'Simulator frame loaded. Use the checklist to complete the fit-up challenge.';
+    }
+  });
+  frame?.addEventListener('error', () => {
+    if (status) status.textContent = 'Simulator failed to load. You can still complete the checklist with the local mock below.';
+  });
+  const frameTimeout = window.setTimeout(() => {
+    if (status?.textContent?.startsWith('Loading')) {
+      status.textContent = 'Simulator is taking longer than expected. You can still complete the checklist with the local mock below.';
+    }
+  }, 8000);
+  frame?.addEventListener('load', () => window.clearTimeout(frameTimeout), { once: true });
+
+  window.addEventListener('message', (event: MessageEvent<unknown>) => {
+    if (event.origin !== window.location.origin || event.source !== frame?.contentWindow) return;
+    applyEvent(event.data);
+  });
+
+  document.querySelector<HTMLButtonElement>('#mock-start')?.addEventListener('click', () => {
+    mockIndex = 0;
+    checklist.forEach((item) => delete item.dataset.complete);
+    const nextButton = document.querySelector<HTMLButtonElement>('#mock-next');
+    nextButton?.removeAttribute('hidden');
+    if (nextButton) {
+      nextButton.disabled = false;
+      nextButton.textContent = 'Run next mock action';
+    }
+    const instruction = document.querySelector<HTMLElement>('#mock-instruction');
+    if (instruction) instruction.textContent = 'Mock started. Run the next action to walk the checklist in order.';
+    document.querySelector<HTMLButtonElement>('#mock-next')?.focus();
+  });
+
+  document.querySelector<HTMLButtonElement>('#mock-next')?.addEventListener('click', (event) => {
+    const button = event.currentTarget as HTMLButtonElement;
+    const instruction = document.querySelector<HTMLElement>('#mock-instruction');
+    const action = mockSimulatorEvents[mockIndex];
+    if (!action) {
+      if (instruction) instruction.textContent = 'Mock complete. Review the checklist and the academy workflow before starting another run.';
+      button.disabled = true;
+      return;
+    }
+    applyEvent(action);
+    const actionLabels: Record<string, string> = {
+      'tool-selected': 'Choose the tape measure',
+      'inspect-complete': 'Inspect the base plate',
+      'joint-prep-flagged': 'Flag the preparation defects',
+      'reference-established': 'Establish datum and baseline',
+      'part-positioned': 'Position the stiffener',
+      'alignment-checked': 'Check alignment',
+      'correction-applied': 'Correct the simulated issue',
+      'verification-complete': 'Verify the final fit',
+      'challenge-complete': 'Review challenge results',
+    };
+    if (instruction) instruction.textContent = actionLabels[action.type];
+    mockIndex++;
+    if (mockIndex === mockSimulatorEvents.length) button.textContent = 'Finish mock demo';
+  });
+</script>
