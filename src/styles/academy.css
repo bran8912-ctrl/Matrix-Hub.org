@@ -327,6 +327,59 @@
   border: 1px solid rgba(101, 255, 208, .2);
 }
 
+.joint-prep-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: .6rem;
+}
+
+.joint-prep-option {
+  margin: 0;
+  padding: .5rem;
+  border: 1px solid rgba(101, 255, 208, .18);
+  background: rgba(3, 12, 18, .6);
+}
+
+.joint-prep-option svg {
+  display: block;
+  width: 100%;
+}
+
+.joint-prep-option figcaption {
+  display: grid;
+  gap: .2rem;
+  color: var(--academy-muted);
+  font-size: .8rem;
+}
+
+.joint-prep-option figcaption strong {
+  color: var(--academy-blue);
+}
+
+.prep-steel {
+  fill: #326e78;
+  stroke: #a4e9d9;
+  stroke-width: 1.5;
+}
+
+.prep-root {
+  stroke: #a4e9d9;
+  stroke-width: 2;
+}
+
+.prep-bad {
+  fill: none;
+  stroke: #ff927c;
+  stroke-width: 3;
+}
+
+.prep-contamination {
+  fill: none;
+  stroke: #ffc46b;
+  stroke-width: 3;
+  stroke-dasharray: 2 2;
+}
+
 .challenge-choice {
   display: flex;
   gap: .6rem;
@@ -336,6 +389,17 @@
 .academy-challenge-form input[type="number"] {
   width: min(100%, 13rem);
   padding: .55rem;
+  border: 1px solid rgba(101, 255, 208, .4);
+  border-radius: 4px;
+  color: var(--academy-ink);
+  background: #071318;
+  font: inherit;
+}
+
+.academy-shell textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: .65rem;
   border: 1px solid rgba(101, 255, 208, .4);
   border-radius: 4px;
   color: var(--academy-ink);

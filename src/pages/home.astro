@@ -24,6 +24,19 @@ export const navCategory = "home";
 
   <section class="n8n-cta">
     <div class="n8n-cta-card">
+      <div class="n8n-cta-badge">Industrial Academy · Static training</div>
+      <h2>From Blueprint to Fit-Up</h2>
+      <p>Learn drawing interpretation, measurement transfer, joint preparation, and fit-up checks. Practice the sequence from reference to verification.</p>
+      <div class="academy-home-links">
+        <a class="n8n-cta-link" href="/academy">Explore the Academy</a>
+        <a class="n8n-cta-link" href="/industrial-simulation">Open the industrial simulation</a>
+      </div>
+      <p class="academy-home-note">Training only—not welder qualification or a substitute for supervised hands-on practice.</p>
+    </div>
+  </section>
+
+  <section class="n8n-cta">
+    <div class="n8n-cta-card">
       <div class="n8n-cta-badge">AI Automation</div>
       <h2>Bring n8n into your Matrix Hub workflow</h2>
       <p>
@@ -147,6 +160,17 @@ export const navCategory = "home";
     border: 1px solid var(--theme-primary, #00ff99);
     color: var(--theme-primary, #00ff99);
     font-weight: 700;
+  }
+
+  .academy-home-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .academy-home-note {
+    font-size: .85rem;
+    opacity: .8;
   }
 
   .stats-widget-container {

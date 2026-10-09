@@ -33,6 +33,31 @@ const svgDescId = `drawing-desc-${id}`;
       <text x="323" y="92" class="drawing-note">FLANGE</text>
       <text x="85" y="157" class="drawing-note">BASELINE / DATUM</text>
       <text x="321" y="58" class="drawing-note">CENTERLINE</text>
+      {id === 'dimensions' && (
+        <g>
+          <text x="65" y="40" class="drawing-label">CHAIN: 600 + 600 mm</text>
+          <path d="M65 48 H260 M65 45 V53 M162 45 V53 M260 45 V53" class="drawing-dimension" />
+          <text x="65" y="68" class="drawing-label">BASELINE: 1200 mm · TOL ±2 mm</text>
+        </g>
+      )}
+      {id === 'weld-symbols' && (
+        <g>
+          <text x="365" y="38" class="drawing-label">WELD SYMBOL · SCHEMATIC</text>
+          <path d="M367 52 H535 M383 91 L417 52 M521 52 l12 -12 M521 52 l12 12" class="drawing-dimension" />
+          <path d="M416 52 L427 42 L438 52 Z" fill="none" stroke="#ffe288" stroke-width="1.5" />
+          <circle cx="535" cy="52" r="6" fill="none" stroke="#ffe288" stroke-width="1.5" />
+          <text x="369" y="108" class="drawing-note">ARROW SIDE · ALL-AROUND</text>
+          <text x="369" y="122" class="drawing-note">READ SIZE / LENGTH / PITCH / TAIL</text>
+        </g>
+      )}
+      {id === 'views' && (
+        <g>
+          <text x="65" y="43" class="drawing-label">PLAN</text>
+          <text x="160" y="43" class="drawing-label">ELEVATION</text>
+          <text x="260" y="43" class="drawing-label">SECTION A–A</text>
+          <text x="390" y="43" class="drawing-label">DETAIL B · NOT TO SCALE</text>
+        </g>
+      )}
       {callouts.map(({ label }, index) => {
         const x = [113, 438, 509][index % 3];
         const y = [62, 76, 135][index % 3];

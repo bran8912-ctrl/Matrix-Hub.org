@@ -14,7 +14,7 @@ export function checkToolSelection(
   const wrong = [...selectedSet].filter((tool) => !expectedSet.has(tool));
   const missing = [...expectedSet].filter((tool) => !selectedSet.has(tool));
   const feedback = [
-    ...wrong.map((tool) => coaching[tool] ?? `That tool is not needed for this task; select tools that perform the stated checks.`),
+    ...wrong.map((tool) => `${coaching[tool] ?? `That tool is not needed for this task; select tools that perform the stated checks.`} You selected an unnecessary tool.`),
     ...missing.map((tool) => coaching[tool] ?? `Add the required tool: ${tool}.`),
   ];
   return { passed: feedback.length === 0, score: Math.max(0, expectedSet.size - missing.length - wrong.length), feedback };

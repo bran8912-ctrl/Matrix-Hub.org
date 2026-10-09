@@ -13,6 +13,8 @@ import {
   jointDefects,
   workflowSteps,
 } from '../src/data/academy/challenges.ts';
+import { isSimulatorEvent, simulatorSource, simulatorVersion } from '../src/lib/academy/postMessage.ts';
+import { mockSimulatorEvents } from '../src/lib/academy/mockSimulator.ts';
 
 describe('academy challenge engine', () => {
   it('reports missing and irrelevant tools with specific coaching', () => {
@@ -56,5 +58,27 @@ describe('academy challenge engine', () => {
     const first = recordWorkflowAction('read-drawing', 0, workflowSteps);
     assert.equal(first.accepted, true);
     assert.equal(first.score, 1);
+  });
+
+  it('accepts only known, well-formed same-version simulator event shapes', () => {
+    for (const event of mockSimulatorEvents) assert.equal(isSimulatorEvent(event), true);
+    assert.equal(isSimulatorEvent({
+      source: simulatorSource,
+      version: simulatorVersion,
+      type: 'part-positioned',
+      payload: { partId: 'ST-01', offsetMm: Number.NaN },
+    }), false);
+    assert.equal(isSimulatorEvent({
+      source: 'untrusted-frame',
+      version: simulatorVersion,
+      type: 'challenge-complete',
+      payload: { score: 100, verified: true },
+    }), false);
+    assert.equal(isSimulatorEvent({
+      source: simulatorSource,
+      version: simulatorVersion + 1,
+      type: 'challenge-complete',
+      payload: { score: 100, verified: true },
+    }), false);
   });
 });

@@ -21,8 +21,12 @@ export const chooseToolsChallenge = {
   coaching: {
     tape: 'Use a tape or steel rule to transfer the stated linear offset.',
     square: 'A combination square checks the part’s 90° relationship to the plate.',
+    level: 'A level checks plumb or level; this task asks you to check squareness with a combination square.',
     'gap-gauge': 'A gap gauge checks the specified root opening.',
+    grinder: 'A grinder is not needed to measure the offset, inspect the gap, or hold the part; only use it for preparation when the approved procedure requires it.',
+    'chipping-hammer': 'A chipping hammer does not measure the offset or hold the fit; use it only for appropriate cleaning work under site controls.',
     clamps: 'Clamps hold parts in position while you verify fit-up.',
+    dividers: 'Dividers lay out arcs or repeated marks; use the tape/rule for this stated linear offset.',
   },
 };
 

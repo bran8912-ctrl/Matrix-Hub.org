@@ -1,0 +1,31 @@
+---
+const defects = [
+  { id: 'bevel-angle', label: 'Bevel angle mismatch', description: 'The two bevel faces have different angles.' },
+  { id: 'no-root-gap', label: 'No root gap', description: 'The beveled edges meet with no root opening.' },
+  { id: 'excessive-gap', label: 'Excessive root gap', description: 'The root opening is wider than the schematic target.' },
+  { id: 'missing-root-face', label: 'Missing root face', description: 'The bevels taper to the root instead of leaving a land.' },
+  { id: 'contamination', label: 'Surface contamination', description: 'A marked surface shows scale, rust, or oil contamination.' },
+  { id: 'burrs', label: 'Burred cut edge', description: 'Irregular projections remain on the cut edge.' },
+];
+---
+
+<div class="joint-prep-options" aria-label="Schematic joint preparation cross-sections">
+  {defects.map((defect) => (
+    <figure class="joint-prep-option">
+      <svg viewBox="0 0 150 72" role="img" aria-labelledby={`prep-title-${defect.id} prep-desc-${defect.id}`}>
+        <title id={`prep-title-${defect.id}`}>{defect.label} cross-section</title>
+        <desc id={`prep-desc-${defect.id}`}>{defect.description} Schematic, not to scale.</desc>
+        <path class="prep-steel" d="M8 5 H68 V23 L57 49 H8 Z" />
+        <path class="prep-steel" d="M142 5 H82 V23 L93 49 H142 Z" />
+        <path class="prep-root" d="M8 50 H142" />
+        {defect.id === 'bevel-angle' && <path class="prep-bad" d="M68 23 L54 49" />}
+        {defect.id === 'no-root-gap' && <path class="prep-steel" d="M8 5 H75 V49 H8 Z M142 5 H76 V49 H142 Z" />}
+        {defect.id === 'excessive-gap' && <path class="prep-bad" d="M57 49 H93" />}
+        {defect.id === 'missing-root-face' && <path class="prep-bad" d="M68 23 L75 49 M82 23 L75 49" />}
+        {defect.id === 'contamination' && <path class="prep-contamination" d="M65 24 q4 -7 8 0 t8 0 M57 47 q4 -7 8 0" />}
+        {defect.id === 'burrs' && <path class="prep-bad" d="M8 50 l5 -6 4 7 5 -6 M137 50 l-5 -6 -4 7 -5 -6" />}
+      </svg>
+      <figcaption><strong>{defect.label}</strong><span>{defect.description}</span></figcaption>
+    </figure>
+  ))}
+</div>
