@@ -1,0 +1,52 @@
+---
+import type { Lesson } from '../../data/academy/lessons';
+
+interface Props {
+  lessons: Lesson[];
+  activeId?: string;
+}
+
+const { lessons, activeId } = Astro.props;
+---
+
+<nav class="academy-card lesson-nav" aria-label="Shipfitter lesson modules">
+  <h2>Prototype 01 · Lesson path</h2>
+  <ol>
+    {lessons.map((lesson, index) => (
+      <li>
+        <a
+          href={`/academy/shipyard-fitup#${lesson.id}`}
+          aria-current={activeId === lesson.id ? 'location' : undefined}
+          data-lesson-link={lesson.id}
+        >
+          <span class="lesson-nav-number">{String(index + 1).padStart(2, '0')}</span>
+          <span>{lesson.title}</span>
+          <span class="lesson-done" aria-hidden="true"></span>
+        </a>
+      </li>
+    ))}
+  </ol>
+  <a class="academy-inline-link" href="/industrial-simulation">Open job simulation →</a>
+</nav>
+
+<script>
+  const storageKey = 'matrixhub-academy-lessons-v1';
+  const refreshLessonNav = () => {
+    let completed: string[] = [];
+    try {
+      completed = JSON.parse(localStorage.getItem(storageKey) ?? '[]');
+      if (!Array.isArray(completed)) completed = [];
+    } catch {
+      completed = [];
+    }
+    document.querySelectorAll<HTMLAnchorElement>('[data-lesson-link]').forEach((link) => {
+      link.classList.toggle('is-complete', completed.includes(link.dataset.lessonLink ?? ''));
+      link.querySelector('.lesson-done')?.setAttribute(
+        'aria-label',
+        completed.includes(link.dataset.lessonLink ?? '') ? 'Completed' : 'Not completed',
+      );
+    });
+  };
+  refreshLessonNav();
+  window.addEventListener('academy-progress-updated', refreshLessonNav);
+</script>

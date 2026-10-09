@@ -1,0 +1,71 @@
+---
+import type { Lesson } from '../../data/academy/lessons';
+
+interface Props {
+  lesson: Lesson;
+}
+
+const { lesson } = Astro.props;
+---
+
+<section class="academy-card quiz-block" data-quiz={lesson.id} aria-labelledby={`quiz-title-${lesson.id}`}>
+  <fieldset>
+    <legend id={`quiz-title-${lesson.id}`}>{lesson.question}</legend>
+    {lesson.answers.map((answer, index) => (
+      <label class="quiz-answer">
+        <input
+          type="radio"
+          name={`answer-${lesson.id}`}
+          value={index}
+          data-correct={answer.correct ? 'true' : 'false'}
+          data-feedback={answer.feedback}
+        />
+        <span>{answer.text}</span>
+      </label>
+    ))}
+  </fieldset>
+  <button class="academy-button quiz-check" type="button">Check answer</button>
+  <p class="quiz-feedback" aria-live="polite"></p>
+</section>
+
+<script>
+  const quizStorageKey = 'matrixhub-academy-quizzes-v1';
+  document.querySelectorAll<HTMLElement>('[data-quiz]').forEach((quiz) => {
+    const id = quiz.dataset.quiz;
+    if (!id) return;
+    const feedback = quiz.querySelector<HTMLElement>('.quiz-feedback');
+    const submit = quiz.querySelector<HTMLButtonElement>('.quiz-check');
+    const saved = (() => {
+      try {
+        const parsed: unknown = JSON.parse(localStorage.getItem(quizStorageKey) ?? '{}');
+        return parsed && typeof parsed === 'object' && id in parsed
+          ? (parsed as Record<string, number>)[id]
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    })();
+    if (typeof saved === 'number') {
+      const restored = quiz.querySelector<HTMLInputElement>(`input[value="${saved}"]`);
+      if (restored) restored.checked = true;
+    }
+    submit?.addEventListener('click', () => {
+      const selected = quiz.querySelector<HTMLInputElement>('input[type="radio"]:checked');
+      if (!selected) {
+        if (feedback) feedback.textContent = 'Choose an answer first, then check it.';
+        return;
+      }
+      if (feedback) {
+        feedback.textContent = selected.dataset.feedback ?? 'Review the drawing and try again.';
+        feedback.dataset.correct = selected.dataset.correct ?? 'false';
+      }
+      try {
+        const current = JSON.parse(localStorage.getItem(quizStorageKey) ?? '{}');
+        const answers = current && typeof current === 'object' ? current : {};
+        localStorage.setItem(quizStorageKey, JSON.stringify({ ...answers, [id]: Number(selected.value) }));
+      } catch {
+        // Quizzes continue to work when browser storage is unavailable.
+      }
+    });
+  });
+</script>

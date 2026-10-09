@@ -1,0 +1,250 @@
+---
+import Layout from '../../components/Layout.astro';
+import LessonNav from '../../components/academy/LessonNav.astro';
+import GlossaryCard from '../../components/academy/GlossaryCard.astro';
+import DrawingViewer from '../../components/academy/DrawingViewer.astro';
+import QuizBlock from '../../components/academy/QuizBlock.astro';
+import { lessons } from '../../data/academy/lessons';
+import { shipyardGlossary } from '../../data/academy/glossary';
+import '../../styles/academy.css';
+
+export const prerender = true;
+export const title = 'From Blueprint to Fit-Up';
+export const navCategory = 'academy';
+---
+
+<Layout title="From Blueprint to Fit-Up | Matrix Hub Academy">
+  <main class="academy-shell">
+    <header class="academy-hero">
+      <p class="academy-eyebrow">Level 1–8 · Shipyard job simulation track</p>
+      <h1>From Blueprint to Fit-Up</h1>
+      <p>Read the controlled drawing. Establish the datum. Transfer measurements. Fit, check, correct, and verify—never guess.</p>
+      <p class="academy-disclaimer"><strong>Training, not qualification:</strong> this visual practice does not certify a welder or replace supervised hands-on work, an approved WPS, required testing, or qualified inspection.</p>
+      <a class="academy-link-button" href="/industrial-simulation">Continue to the virtual assembly →</a>
+    </header>
+
+    <div class="academy-grid">
+      <div class="academy-content">
+        {lessons.map((lesson, index) => (
+          <article class="academy-card academy-module" id={lesson.id}>
+            <p class="academy-eyebrow">Module {String(index + 1).padStart(2, '0')} · {lesson.level}</p>
+            <h2>{lesson.title}</h2>
+            <p>{lesson.explanation}</p>
+            <DrawingViewer
+              id={lesson.id}
+              title={lesson.title}
+              exercise={lesson.exercise}
+              callouts={lesson.callouts}
+            />
+            {index === 0 && <GlossaryCard terms={shipyardGlossary} />}
+            <QuizBlock lesson={lesson} />
+            <div class="academy-module-actions">
+              <button class="academy-button secondary" type="button" data-complete-lesson={lesson.id}>Mark module complete</button>
+              <p data-completion-label={lesson.id} aria-live="polite">Not yet marked complete.</p>
+            </div>
+          </article>
+        ))}
+
+        <section class="academy-card academy-module" id="hands-on">
+          <p class="academy-eyebrow">Practice engine · browser only</p>
+          <h2>Virtual hands-on checks</h2>
+          <p>Try the tool selection, joint preparation, position, and alignment checks before moving to the integrated challenge. Feedback explains the likely source of an error.</p>
+          <form class="academy-challenge-form" id="tool-challenge">
+            <fieldset>
+              <legend>Choose tools: transfer the 125 mm baseline offset, check squareness and root gap, then hold the stiffener.</legend>
+              {['Tape measure', 'Combination square', 'Level', 'Gap gauge', 'Grinder', 'Chipping hammer', 'Clamps', 'Dividers'].map((tool) => {
+                const id = tool.toLowerCase().replaceAll(' ', '-');
+                return <label class="challenge-choice"><input type="checkbox" value={id} /><span>{tool}</span></label>;
+              })}
+            </fieldset>
+            <button class="academy-button" type="submit">Check tool plan</button>
+            <p class="challenge-feedback" aria-live="polite"></p>
+          </form>
+
+          <form class="academy-challenge-form" id="joint-challenge">
+            <fieldset>
+              <legend>Identify all defects shown in the schematic joint-preparation review.</legend>
+              {[
+                ['bevel-angle', 'Bevel angle outside the specified value'],
+                ['no-root-gap', 'No root gap'],
+                ['excessive-gap', 'Excessive root gap'],
+                ['missing-root-face', 'Missing root face / land'],
+                ['contamination', 'Mill scale, rust, or oil on the surface'],
+                ['burrs', 'Burrs on the cut edge'],
+              ].map(([id, label]) => (
+                <label class="challenge-choice"><input type="checkbox" value={id} /><span>{label}</span></label>
+              ))}
+            </fieldset>
+            <p>Compare these features with the drawing and applicable WPS; the exercise does not prescribe preparation values.</p>
+            <button class="academy-button" type="submit">Check flagged defects</button>
+            <p class="challenge-feedback" aria-live="polite"></p>
+          </form>
+
+          <form class="academy-challenge-form" id="position-challenge">
+            <label for="offset-input">Enter stiffener offset from baseline B (mm); target 125 mm ±2 mm.</label>
+            <input id="offset-input" name="offset" type="number" step="0.1" required />
+            <button class="academy-button" type="submit">Check position</button>
+            <p class="challenge-feedback" aria-live="polite"></p>
+          </form>
+
+          <form class="academy-challenge-form" id="alignment-challenge">
+            <fieldset>
+              <legend>Record the simulated fit-up checks against the displayed tolerance.</legend>
+              {[
+                ['squareness', 'Squareness (°)', '90'],
+                ['plumb', 'Plumb deviation (mm)', '0'],
+                ['root-gap', 'Root gap (mm)', '3'],
+                ['offset', 'Stiffener offset (mm)', '125'],
+                ['mismatch', 'Edge mismatch (mm)', '0'],
+              ].map(([id, label, value]) => (
+                <label class="challenge-choice" for={`alignment-${id}`}>
+                  <span>{label}</span>
+                  <input id={`alignment-${id}`} name={id} type="number" step="0.1" value={value} required />
+                </label>
+              ))}
+            </fieldset>
+            <p>Tolerances: squareness ±1°, plumb ±2 mm, root gap 3 ±1 mm, offset 125 ±2 mm, mismatch ±2 mm.</p>
+            <button class="academy-button" type="submit">Check alignment</button>
+            <p class="challenge-feedback" aria-live="polite"></p>
+          </form>
+
+          <h3>Fitting workflow · no skipping ahead</h3>
+          <p>Try clicking a future step first; the challenge explains why the reference and measurement must come first. The review records each accepted step.</p>
+          <ol class="workflow-review" id="workflow-review">
+            {[
+              'Read drawing',
+              'Establish reference',
+              'Measure',
+              'Fit',
+              'Check',
+              'Correct',
+              'Verify',
+            ].map((label, index) => <li data-workflow-index={index}>{label} — pending</li>)}
+          </ol>
+          <div class="academy-module-actions" id="workflow-actions">
+            {[
+              ['read-drawing', 'Read drawing'],
+              ['establish-reference', 'Establish reference'],
+              ['measure', 'Measure'],
+              ['fit', 'Fit'],
+              ['check', 'Check'],
+              ['correct', 'Correct'],
+              ['verify', 'Verify'],
+            ].map(([id, label]) => <button class="academy-button secondary" type="button" data-workflow-action={id}>{label}</button>)}
+          </div>
+          <p class="challenge-feedback" id="workflow-feedback" aria-live="polite">Start with the current controlled drawing and its revision.</p>
+          <a class="academy-inline-link" href="/industrial-simulation">Open integrated Level 8 job simulation →</a>
+        </section>
+      </div>
+      <LessonNav lessons={lessons} activeId="fundamentals" />
+    </div>
+  </main>
+</Layout>
+
+<script>
+  import {
+    alignmentChallenge,
+    chooseToolsChallenge,
+    jointDefects,
+    positionChallenge,
+    workflowSteps,
+  } from '../../data/academy/challenges';
+  import {
+    checkAlignment,
+    checkJointDefects,
+    checkPosition,
+    checkToolSelection,
+    recordWorkflowAction,
+  } from '../../lib/academy/engine';
+
+  const completionKey = 'matrixhub-academy-lessons-v1';
+  const getCompleted = (): string[] => {
+    try {
+      const value: unknown = JSON.parse(localStorage.getItem(completionKey) ?? '[]');
+      return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+    } catch {
+      return [];
+    }
+  };
+  const completed = getCompleted();
+  document.querySelectorAll<HTMLButtonElement>('[data-complete-lesson]').forEach((button) => {
+    const lessonId = button.dataset.completeLesson ?? '';
+    const status = document.querySelector<HTMLElement>(`[data-completion-label="${lessonId}"]`);
+    const update = () => {
+      const isComplete = completed.includes(lessonId);
+      button.textContent = isComplete ? 'Mark module incomplete' : 'Mark module complete';
+      status && (status.textContent = isComplete ? 'Module completed in this browser.' : 'Not yet marked complete.');
+    };
+    update();
+    button.addEventListener('click', () => {
+      if (completed.includes(lessonId)) {
+        completed.splice(completed.indexOf(lessonId), 1);
+      } else {
+        completed.push(lessonId);
+      }
+      try {
+        localStorage.setItem(completionKey, JSON.stringify(completed));
+      } catch {
+        // Completion is still announced for the current page if storage is unavailable.
+      }
+      update();
+      window.dispatchEvent(new Event('academy-progress-updated'));
+    });
+  });
+
+  const showResult = (form: HTMLFormElement, result: { passed: boolean; feedback: string[] }) => {
+    const output = form.querySelector<HTMLElement>('.challenge-feedback');
+    if (output) {
+      output.textContent = `${result.passed ? 'Good check. ' : 'Review: '}${result.feedback.join(' ')}`;
+      output.dataset.correct = String(result.passed);
+    }
+  };
+
+  document.querySelector<HTMLFormElement>('#tool-challenge')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const selected = Array.from(document.querySelectorAll<HTMLInputElement>('#tool-challenge input:checked'), (input) => input.value);
+    showResult(event.currentTarget as HTMLFormElement, checkToolSelection(selected, chooseToolsChallenge.expectedTools, chooseToolsChallenge.coaching));
+  });
+  document.querySelector<HTMLFormElement>('#joint-challenge')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const selected = Array.from(document.querySelectorAll<HTMLInputElement>('#joint-challenge input:checked'), (input) => input.value);
+    showResult(event.currentTarget as HTMLFormElement, checkJointDefects(selected, jointDefects));
+  });
+  document.querySelector<HTMLFormElement>('#position-challenge')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = Number(new FormData(event.currentTarget as HTMLFormElement).get('offset'));
+    showResult(event.currentTarget as HTMLFormElement, checkPosition(value, positionChallenge.expectedMm, positionChallenge.toleranceMm, 'the drawing baseline / datum B'));
+  });
+  document.querySelector<HTMLFormElement>('#alignment-challenge')?.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const actual = Object.fromEntries(alignmentChallenge.measurements.map(({ id }) => [
+      id,
+      Number(new FormData(form).get(id)),
+    ]));
+    showResult(form, checkAlignment(alignmentChallenge.measurements, actual));
+  });
+
+  let workflowIndex = 0;
+  const reviewItems = document.querySelectorAll<HTMLElement>('[data-workflow-index]');
+  document.querySelectorAll<HTMLButtonElement>('[data-workflow-action]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const result = recordWorkflowAction(button.dataset.workflowAction ?? '', workflowIndex, workflowSteps);
+      const feedback = document.querySelector<HTMLElement>('#workflow-feedback');
+      if (feedback) feedback.textContent = result.feedback;
+      if (!result.accepted) return;
+      reviewItems[workflowIndex]?.setAttribute('data-state', 'done');
+      if (reviewItems[workflowIndex]) reviewItems[workflowIndex].textContent += ' — complete';
+      workflowIndex = result.nextStep;
+      if (result.complete) {
+        const list = document.querySelector<HTMLOListElement>('#workflow-review');
+        if (list) {
+          const review = document.createElement('p');
+          review.textContent = `Step-by-step review: ${workflowSteps.map(({ label }) => label).join(' → ')}. Score: ${result.score}/${workflowSteps.length}.`;
+          list.insertAdjacentElement('afterend', review);
+        }
+        document.querySelectorAll<HTMLButtonElement>('[data-workflow-action]').forEach((item) => item.disabled = true);
+      }
+    });
+  });
+</script>

@@ -1,0 +1,19 @@
+---
+interface Props {
+  terms: { term: string; definition: string }[];
+}
+
+const { terms } = Astro.props;
+---
+
+<section class="academy-card glossary-card" aria-labelledby="glossary-title">
+  <h3 id="glossary-title">Shipyard terminology · quick reference</h3>
+  <dl>
+    {terms.map(({ term, definition }) => (
+      <div class="glossary-term">
+        <dt>{term}</dt>
+        <dd>{definition}</dd>
+      </div>
+    ))}
+  </dl>
+</section>

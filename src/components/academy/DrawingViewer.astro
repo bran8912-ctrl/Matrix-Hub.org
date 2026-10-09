@@ -1,0 +1,58 @@
+---
+interface Props {
+  id: string;
+  title: string;
+  exercise: string;
+  callouts: { label: string; description: string }[];
+}
+
+const { id, title, exercise, callouts } = Astro.props;
+const svgTitleId = `drawing-title-${id}`;
+const svgDescId = `drawing-desc-${id}`;
+---
+
+<figure class="academy-card drawing-viewer">
+  <figcaption>
+    <strong>Blueprint exercise</strong>
+    <span>{exercise}</span>
+  </figcaption>
+  <div class="drawing-scroll" tabindex="0" aria-label={`${title} blueprint; scroll horizontally to inspect`}>
+    <svg viewBox="0 0 620 260" role="img" aria-labelledby={`${svgTitleId} ${svgDescId}`}>
+      <title id={svgTitleId}>{title} training drawing</title>
+      <desc id={svgDescId}>A schematic steel plate and stiffener with reference lines. Select numbered callouts to read their explanations. Not to scale.</desc>
+      <rect x="25" y="20" width="570" height="215" rx="3" fill="#06131a" stroke="#256c65" />
+      <path d="M80 185 H535 V206 H80 Z" class="drawing-steel" />
+      <path d="M292 184 V104 H314 V184" class="drawing-steel" />
+      <path d="M250 96 H356 V108 H250 Z" class="drawing-steel" />
+      <path d="M82 166 H532" class="drawing-reference" />
+      <path d="M314 42 V213" class="drawing-centerline" />
+      <path d="M148 154 V191 M148 154 H298 M148 149 V160 M298 149 V160" class="drawing-dimension" />
+      <text x="190" y="145" class="drawing-label">125 mm OFFSET · SCHEMATIC</text>
+      <text x="89" y="223" class="drawing-note">PLATE</text>
+      <text x="320" y="127" class="drawing-note">WEB</text>
+      <text x="323" y="92" class="drawing-note">FLANGE</text>
+      <text x="85" y="157" class="drawing-note">BASELINE / DATUM</text>
+      <text x="321" y="58" class="drawing-note">CENTERLINE</text>
+      {callouts.map(({ label }, index) => {
+        const x = [113, 438, 509][index % 3];
+        const y = [62, 76, 135][index % 3];
+        return (
+          <a href={`#${id}-callout-${index}`} aria-label={`Explain callout ${index + 1}: ${label}`}>
+            <circle cx={x} cy={y} r="13" class="drawing-hotspot" />
+            <text x={x} y={y + 4} text-anchor="middle" class="drawing-hotspot-number">{index + 1}</text>
+          </a>
+        );
+      })}
+    </svg>
+  </div>
+  <ol class="drawing-callouts">
+    {callouts.map(({ label, description }, index) => (
+      <li id={`${id}-callout-${index}`}>
+        <a href={`#${id}-callout-${index}`} aria-label={`Callout ${index + 1}: ${label}`}>
+          <strong>{index + 1}. {label}</strong>
+        </a>
+        <p>{description}</p>
+      </li>
+    ))}
+  </ol>
+</figure>

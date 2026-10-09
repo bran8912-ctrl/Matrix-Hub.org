@@ -1,0 +1,57 @@
+---
+import Layout from '../../components/Layout.astro';
+import LessonNav from '../../components/academy/LessonNav.astro';
+import { lessons } from '../../data/academy/lessons';
+import '../../styles/academy.css';
+
+export const prerender = true;
+export const title = 'Shipyard Fit-Up Academy';
+export const navCategory = 'academy';
+---
+
+<Layout title="Academy | Matrix Hub">
+  <main class="academy-shell">
+    <header class="academy-hero">
+      <p class="academy-eyebrow">Matrix Hub · Industrial training · Prototype 01</p>
+      <h1>From Blueprint to Fit-Up</h1>
+      <p>Practice the shipfitter’s sequence: <strong>read the drawing → establish a reference → measure → fit → check → correct → verify.</strong></p>
+      <p>Static, browser-based learning. Lesson and quiz progress stays in this browser.</p>
+      <div class="academy-module-actions">
+        <a class="academy-link-button" href="/academy/shipyard-fitup">Start the lesson path</a>
+        <a class="academy-link-button secondary" href="/industrial-simulation">Open the job simulation</a>
+      </div>
+    </header>
+
+    <div class="academy-grid">
+      <section class="academy-content" aria-label="Academy curriculum">
+        <article class="academy-card">
+          <h2>Learning path · Levels 1–8</h2>
+          <p>Build from shipyard fundamentals through a virtual inspection. Each module pairs a concise explanation with a drawing exercise and a coaching quiz.</p>
+          <ol>
+            <li><strong>Level 1 — Fundamentals:</strong> roles, steel parts, terminology, shop safety, tools, and controlled drawings.</li>
+            <li><strong>Level 2 — Measurement and layout:</strong> instruments, datums, baselines, tolerances, and measurement transfer.</li>
+            <li><strong>Level 3 — Blueprints and weld symbols:</strong> views, sections, details, revisions, weld location and supplementary symbols.</li>
+            <li><strong>Level 4 — Cutting and edge preparation:</strong> preparation geometry, cleaning, and procedure-driven joint prep.</li>
+            <li><strong>Level 5 — Shipfitting and assembly:</strong> clamping, shimming, tack planning, fit-up, and measurement-error diagnosis.</li>
+            <li><strong>Level 6 — Welding literacy:</strong> process/position recognition, weld requirements, and inspection fundamentals.</li>
+            <li><strong>Level 7 — Straightening and quality:</strong> distortion awareness, qualified correction decisions, tolerance checks, and records.</li>
+            <li><strong>Level 8 — Job simulation:</strong> interpret, lay out, prepare, fit, inspect, and explain a small assembly.</li>
+          </ol>
+        </article>
+        <article class="academy-card">
+          <h2>Prototype 01 · Seven lesson modules</h2>
+          <p>Interactive schematic drawings are for recognition and measurement practice only; always follow approved project documents and site procedures.</p>
+          <ol>
+            {lessons.map((lesson) => (
+              <li><a href={`/academy/shipyard-fitup#${lesson.id}`}>{lesson.level}: {lesson.title}</a> — {lesson.summary}</li>
+            ))}
+          </ol>
+        </article>
+        <aside class="academy-disclaimer">
+          <strong>Training is not qualification.</strong> These simulations teach recognition, planning, and measurement. They do not qualify or certify a welder and do not replace supervised hands-on practice, approved procedures, required testing, or inspection by qualified personnel.
+        </aside>
+      </section>
+      <LessonNav lessons={lessons} />
+    </div>
+  </main>
+</Layout>
