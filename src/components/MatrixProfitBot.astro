@@ -79,7 +79,7 @@ import { monetizationIdeas } from "../data/matrix-bot-knowledge.js";
     const escaped = keyword
       .toLowerCase()
       .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`(^|[^a-z0-9])${escaped}`).test(text);
+    return new RegExp(`(^|[^a-z0-9])${escaped}($|[^a-z0-9])`).test(text);
   }
 
   function appendMessage(message: string, className: string) {
