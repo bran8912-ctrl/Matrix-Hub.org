@@ -1,5 +1,6 @@
 ---
 import Layout from "../components/Layout.astro";
+import MatrixProfitBot from "../components/MatrixProfitBot.astro";
 import MTXEcosystem from "../components/MTXEcosystem.astro";
 import CasinoGamesPanel from "../components/CasinoGamesPanel.astro";
 import MTXOwnershipPanel from "../components/MTXOwnershipPanel.astro";
@@ -43,6 +44,15 @@ export const navCategory = "home";
 
   <!-- Casino Games Panel -->
   <CasinoGamesPanel />
+
+  <section class="profit-console-section">
+    <div class="profit-console-header">
+      <span class="profit-console-label">Local Engine</span>
+      <h2>💸 Matrix Profit Console</h2>
+      <p>Explore monetization ideas and estimate affiliate revenue. Runs entirely in your browser.</p>
+    </div>
+    <MatrixProfitBot />
+  </section>
 
   <!-- MTX Ownership & Casino Economics -->
   <MTXOwnershipPanel />
@@ -142,6 +152,45 @@ export const navCategory = "home";
   .stats-widget-container {
     max-width: 400px;
     margin: 0 auto 40px auto;
+  }
+
+  .profit-console-section {
+    max-width: 860px;
+    margin: 0 auto 40px;
+    padding: 0 1rem;
+  }
+
+  .profit-console-header {
+    margin-bottom: 2rem;
+    text-align: center;
+    font-family: 'Courier New', monospace;
+  }
+
+  .profit-console-label {
+    display: inline-block;
+    margin-bottom: 0.8rem;
+    padding: 0.3rem 1rem;
+    color: var(--theme-primary, #00ff99);
+    border: 1px solid var(--theme-primary, #00ff99);
+    border-radius: 2px;
+    font-size: 0.7rem;
+    letter-spacing: 5px;
+    text-transform: uppercase;
+  }
+
+  .profit-console-header h2 {
+    margin: 0 0 0.6rem;
+    color: var(--theme-primary, #00ff99);
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+  }
+
+  .profit-console-header p {
+    color: var(--theme-muted, #b8c1cc);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    line-height: 1.6;
   }
 
   @media (max-width: 768px) {
