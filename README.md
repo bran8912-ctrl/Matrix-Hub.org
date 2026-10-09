@@ -416,7 +416,7 @@ For the n8n CTA flow, add a server-side webhook URL to your deployment environme
 N8N_WEBHOOK_URL=https://your-n8n.example.com/webhook/your-workflow-id
 ```
 
-This lets the server API proxy on [src/server/n8n-webhook.ts](src/server/n8n-webhook.ts) forward a real JSON payload into your n8n workflow through the Node adapter runtime.
+This handler is dormant in the static build, so `/api/n8n-webhook` is unavailable. To enable forwarding, move [src/server/n8n-webhook.ts](src/server/n8n-webhook.ts) back under `src/pages/api/`, add `export const prerender = false`, configure a Node adapter, and set `N8N_WEBHOOK_URL` in the server environment.
 
 ### ⚠️ MTX Contract Deployment Required
 
