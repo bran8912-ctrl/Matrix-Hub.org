@@ -3,10 +3,14 @@ interface Props {
   id: string;
   title: string;
   exercise: string;
-  callouts: { label: string; description: string }[];
+  callouts: { label: string; description: string; x: number; y: number }[];
+  drawing?: {
+    paths: { d: string; className: string }[];
+    labels: { x: number; y: number; text: string; className: string }[];
+  };
 }
 
-const { id, title, exercise, callouts } = Astro.props;
+const { id, title, exercise, callouts, drawing } = Astro.props;
 const svgTitleId = `drawing-title-${id}`;
 const svgDescId = `drawing-desc-${id}`;
 ---
@@ -19,28 +23,37 @@ const svgDescId = `drawing-desc-${id}`;
   <div class="drawing-scroll" tabindex="0" aria-label={`${title} blueprint; scroll horizontally to inspect`}>
     <svg viewBox="0 0 620 260" role="img" aria-labelledby={`${svgTitleId} ${svgDescId}`}>
       <title id={svgTitleId}>{title} training drawing</title>
-      <desc id={svgDescId}>A schematic steel plate and stiffener with reference lines. Select numbered callouts to read their explanations. Not to scale.</desc>
+      <desc id={svgDescId}>{drawing ? 'A schematic joint-preparation cross-section. Select numbered callouts to read their explanations. Not to scale.' : 'A schematic steel plate and stiffener with reference lines. Select numbered callouts to read their explanations. Not to scale.'}</desc>
       <rect x="25" y="20" width="570" height="215" rx="3" fill="#06131a" stroke="#256c65" />
-      <path d="M80 185 H535 V206 H80 Z" class="drawing-steel" />
-      <path d="M292 184 V104 H314 V184" class="drawing-steel" />
-      <path d="M250 96 H356 V108 H250 Z" class="drawing-steel" />
-      <path d="M82 166 H532" class="drawing-reference" />
-      <path d="M314 42 V213" class="drawing-centerline" />
-      <path d="M148 154 V191 M148 154 H298 M148 149 V160 M298 149 V160" class="drawing-dimension" />
-      <text x="190" y="145" class="drawing-label">125 mm OFFSET · SCHEMATIC</text>
-      <text x="89" y="223" class="drawing-note">PLATE</text>
-      <text x="320" y="127" class="drawing-note">WEB</text>
-      <text x="323" y="92" class="drawing-note">FLANGE</text>
-      <text x="85" y="157" class="drawing-note">BASELINE / DATUM</text>
-      <text x="321" y="58" class="drawing-note">CENTERLINE</text>
-      {id === 'dimensions' && (
+      {drawing ? (
+        <g>
+          {drawing.paths.map(({ d, className }) => <path d={d} class={className} />)}
+          {drawing.labels.map(({ x, y, text, className }) => <text x={x} y={y} class={className}>{text}</text>)}
+        </g>
+      ) : (
+        <g>
+          <path d="M80 185 H535 V206 H80 Z" class="drawing-steel" />
+          <path d="M292 184 V104 H314 V184" class="drawing-steel" />
+          <path d="M250 96 H356 V108 H250 Z" class="drawing-steel" />
+          <path d="M82 166 H532" class="drawing-reference" />
+          <path d="M314 42 V213" class="drawing-centerline" />
+          <path d="M148 154 V191 M148 154 H298 M148 149 V160 M298 149 V160" class="drawing-dimension" />
+          <text x="190" y="145" class="drawing-label">125 mm OFFSET · SCHEMATIC</text>
+          <text x="89" y="223" class="drawing-note">PLATE</text>
+          <text x="320" y="127" class="drawing-note">WEB</text>
+          <text x="323" y="92" class="drawing-note">FLANGE</text>
+          <text x="85" y="157" class="drawing-note">BASELINE / DATUM</text>
+          <text x="321" y="58" class="drawing-note">CENTERLINE</text>
+        </g>
+      )}
+      {!drawing && id === 'dimensions' && (
         <g>
           <text x="65" y="40" class="drawing-label">CHAIN: 600 + 600 mm</text>
           <path d="M65 48 H260 M65 45 V53 M162 45 V53 M260 45 V53" class="drawing-dimension" />
           <text x="65" y="68" class="drawing-label">BASELINE: 1200 mm · TOL ±2 mm</text>
         </g>
       )}
-      {id === 'weld-symbols' && (
+      {!drawing && id === 'weld-symbols' && (
         <g>
           <text x="365" y="38" class="drawing-label">WELD SYMBOL · SCHEMATIC</text>
           <path d="M367 52 H535 M383 91 L417 52 M521 52 l12 -12 M521 52 l12 12" class="drawing-dimension" />
@@ -50,7 +63,7 @@ const svgDescId = `drawing-desc-${id}`;
           <text x="369" y="122" class="drawing-note">READ SIZE / LENGTH / PITCH / TAIL</text>
         </g>
       )}
-      {id === 'views' && (
+      {!drawing && id === 'views' && (
         <g>
           <text x="65" y="43" class="drawing-label">PLAN</text>
           <text x="160" y="43" class="drawing-label">ELEVATION</text>
@@ -58,9 +71,7 @@ const svgDescId = `drawing-desc-${id}`;
           <text x="390" y="43" class="drawing-label">DETAIL B · NOT TO SCALE</text>
         </g>
       )}
-      {callouts.map(({ label }, index) => {
-        const x = [113, 438, 509][index % 3];
-        const y = [62, 76, 135][index % 3];
+      {callouts.map(({ label, x, y }, index) => {
         return (
           <a href={`#${id}-callout-${index}`} aria-label={`Explain callout ${index + 1}: ${label}`}>
             <circle cx={x} cy={y} r="13" class="drawing-hotspot" />
