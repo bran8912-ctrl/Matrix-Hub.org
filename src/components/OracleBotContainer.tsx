@@ -1,231 +1,261 @@
-export type BotMode = 'oracle' | 'profit';
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  buildBotAnswer,
+  getGreeting,
+  getModeForPath,
+  getSuggestions,
+  writeBotMemory,
+  type BotMode,
+} from '../lib/site-bot-engine';
 
-export interface BotContext {
-  userName?: string;
-  roomId?: string;
-  previousMessages?: string[];
-}
-
-interface BotKnowledgeItem {
+interface Message {
   id: string;
-  keywords: string[];
-  answer: string;
+  text: string;
+  isBot: boolean;
+  timestamp: number;
 }
 
-const ORACLE_TOPICS: BotKnowledgeItem[] = [
-  {
-    id: 'wallet-safety',
-    keywords: ['wallet', 'security', 'private key', 'seed phrase', 'safe', 'phishing', 'scam', 'password'],
-    answer: 'Never share private keys, seed phrases, recovery phrases, or wallet secrets with anyone. Treat every unsolicited request for a wallet action or code review as suspicious. Use official links, verify contract addresses, and keep your wallet isolated from untrusted browser prompts.'
-  },
-  {
-    id: 'mtx',
-    keywords: ['mtx', 'token', 'coin', 'balance', 'supply', 'ecosystem'],
-    answer: 'MTX is the utility and governance layer for Matrix Hub. It supports access, incentives, and ecosystem functions across the site. The safest way to evaluate it is to inspect the contract, the docs, and the actual product behavior rather than promises or hype.'
-  },
-  {
-    id: 'casino',
-    keywords: ['casino', 'slots', 'blackjack', 'roulette', 'dice', 'bet', 'game'],
-    answer: 'Matrix Hub casino experiences are designed to be entertained responsibly. Key risk controls are clear rules, transparent odds, bounded bets, and informed play. Always treat gambling as entertainment, not as a strategy for guaranteed returns.'
-  },
-  {
-    id: 'defi',
-    keywords: ['defi', 'decentralized finance', 'yield', 'liquidity', 'staking', 'pool'],
-    answer: 'DeFi can be powerful, but it is not free of risk. Smart contract bugs, token volatility, and bad incentives can cause major losses. The wise move is to learn protocols deeply, verify audits, and avoid anything promising guaranteed yields.'
-  },
-  {
-    id: 'dao',
-    keywords: ['dao', 'governance', 'vote', 'proposal', 'community', 'treasury'],
-    answer: 'DAOs work best when power, rules, and incentives are clear. Good governance increases transparency and reduces single-point control. Always inspect voting rules, treasury spending, and proposal criteria before trusting governance language.'
-  },
-  {
-    id: 'blockchain',
-    keywords: ['blockchain', 'ethereum', 'solidity', 'smart contract', 'gas', 'contract'],
-    answer: 'A blockchain is a shared ledger secured by consensus, while a smart contract is code that enforces rules on-chain. The practical lesson is simple: verify code, verify transactions, and understand the trust assumptions before you trust any project.'
-  },
-  {
-    id: 'nft',
-    keywords: ['nft', 'token gate', 'collectible', 'mint', 'digital asset'],
-    answer: 'NFTs can represent digital identity, access, or ownership but they are not automatically valuable. Utility, scarcity, and community matter more than hype. Treat NFT purchases as speculative and verify every collection and marketplace carefully.'
-  },
-  {
-    id: 'earning',
-    keywords: ['earn', 'reward', 'contribute', 'pull request', 'issue', 'passive income', 'revenue'],
-    answer: 'Revenue and growth usually come from solving a real problem, not from random hype. Build useful tools, ship consistently, and measure real user demand. In Matrix Hub, value is created through useful products, clear trust, and measurable traction.'
-  },
-  {
-    id: 'site-tools',
-    keywords: ['tool', 'feature', 'tools', 'dashboard', 'tracker', 'chart', 'calculator', 'site', 'page'],
-    answer: 'Matrix Hub is designed as a practical toolkit: content, docs, tools, games, and ecosystem utilities. The best strategy is to start with a specific user need, use the site as a working toolkit, and then expand based on what demonstrates genuine value.'
-  },
-  {
-    id: 'greeting',
-    keywords: ['hello', 'hi', 'hey', 'good morning', 'good evening', 'help'],
-    answer: 'The Matrix is listening. Ask about MTX, casino mechanics, wallet safety, DeFi, governance, or how to get started with the site. Type “help” at any time for a quick guide.'
-  }
-];
+export default function OracleBotContainer() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [inputValue, setInputValue] = useState('');
+  const [isTyping, setIsTyping] = useState(false);
+  const [path, setPath] = useState('/');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-const PROFIT_TOPICS: BotKnowledgeItem[] = [
-  {
-    id: 'affiliate',
-    keywords: ['affiliate', 'commission', 'referral', 'partner'],
-    answer: 'Affiliate marketing works best when the product is genuinely relevant to the audience. Pick a problem people already have, use honest comparisons, and measure what converts instead of chasing hype. Create trust first; the commission follows.'
-  },
-  {
-    id: 'digital-products',
-    keywords: ['digital product', 'ebook', 'template', 'download', 'guide', 'resource'],
-    answer: 'Digital products win when they solve a clear pain point. Good candidates include checklists, calculators, templates, mini-guides, and toolkits. The key is validation: make a small useful version, test demand, then improve it.'
-  },
-  {
-    id: 'traffic',
-    keywords: ['traffic', 'visitors', 'seo', 'search', 'growth', 'audience'],
-    answer: 'Traffic is usually a byproduct of useful content. Build pages that answer a specific question, improve discoverability, and make the next step obvious. Good traffic compounds when the content is consistently better than the alternatives.'
-  },
-  {
-    id: 'crypto-risk',
-    keywords: ['crypto', 'token', 'coin', 'matrix hub coin', 'risk'],
-    answer: 'Crypto projects are high-risk by default. Focus on transparency, real utility, and safety-minded communication. Never promise guaranteed returns or pressure people into quick investments.'
-  },
-  {
-    id: 'passive-income',
-    keywords: ['passive income', 'make money', 'earn', 'income', 'revenue'],
-    answer: 'A sustainable income stream usually starts with one useful offer and one reliable distribution channel. Test demand with a small solution, learn from the data, and build systems around what people actually pay for.'
-  },
-  {
-    id: 'ads',
-    keywords: ['ads', 'advertising', 'monetize', 'monetization', 'support'],
-    answer: 'Advertising can work, but it works best when the content is already useful and the audience is relevant. Always review the platform rules, audience fit, and conversion quality before optimizing for ad revenue.'
-  },
-  {
-    id: 'products',
-    keywords: ['product', 'saaS', 'software', 'tool', 'dashboard', 'utility'],
-    answer: 'Useful software compounds when it solves a real workflow problem. Start with a single workflow, validate real demand, and let feedback drive the next feature. The best products are simple, valuable, and easy to explain.'
-  }
-];
+  const mode: BotMode = getModeForPath(path);
+  const persona = mode === 'profit' ? 'PROFIT ORACLE' : 'THE ORACLE';
 
-const SECURITY_PATTERNS = [
-  { pattern: /(private\s*key|seed\s*phrase|recovery\s*phrase|mnemonic|secret\s*key)/i, response: 'Never share private keys, recovery phrases, or wallet secrets. The Matrix has blocked this message for safety.' },
-  { pattern: /(verify\s*wallet|claim\s*airdrop|guaranteed\s*(profit|returns)|send\s*(eth|mtx|crypto)|limited\s*time)/i, response: 'This looks like a scam or phishing pattern. Never send funds, share keys, or trust urgent wallet requests from unverified sources.' },
-  { pattern: /(bit\.ly|tinyurl|goo\.gl|shorturl|t\.co|ow\.ly)/i, response: 'Shortened links are risky. The Oracle advises caution and recommends using verified, direct links only.' }
-];
+  useEffect(() => {
+    if (typeof window !== 'undefined') setPath(window.location.pathname);
+  }, []);
 
-function normalizeText(text: string): string {
-  return text.toLowerCase().replace(/[^a-z0-9\s-]/g, ' ').replace(/\s+/g, ' ').trim();
-}
-
-function scoreKnowledge(query: string, items: BotKnowledgeItem[]): { item: BotKnowledgeItem; score: number } | null {
-  const normalized = normalizeText(query);
-  let best: { item: BotKnowledgeItem; score: number } | null = null;
-
-  for (const item of items) {
-    let score = 0;
-    for (const keyword of item.keywords) {
-      const keywordText = normalizeText(keyword);
-      if (!keywordText) continue;
-      const bonus = keywordText.includes(' ') ? 2 : 1;
-      if (normalized.includes(keywordText)) score += bonus;
-      if (keywordText.split(' ').every((part) => normalized.includes(part))) score += 1;
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+      setMessages([{ id: `bot-${Date.now()}`, text: getGreeting(path), isBot: true, timestamp: Date.now() }]);
     }
-    if (score > 0 && (!best || score > best.score)) {
-      best = { item, score };
+  }, [isOpen, messages.length, path]);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isTyping]);
+
+  const send = (raw: string) => {
+    const text = raw.trim();
+    if (!text || isTyping) return;
+
+    setMessages((prev) => [...prev, { id: `user-${Date.now()}`, text, isBot: false, timestamp: Date.now() }]);
+    setInputValue('');
+    setIsTyping(true);
+
+    setTimeout(() => {
+      const { text: reply, topic } = buildBotAnswer(mode, text, { roomId: mode, path });
+      writeBotMemory(mode, text, topic);
+      setMessages((prev) => [...prev, { id: `bot-${Date.now()}`, text: reply, isBot: true, timestamp: Date.now() }]);
+      setIsTyping(false);
+    }, 500 + Math.random() * 500);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      send(inputValue);
     }
-  }
+  };
 
-  return best;
+  return (
+    <>
+      <style>{`
+        @keyframes matrixRainBot { 0% { transform: translateY(-100%); opacity: 0; } 10% { opacity: 1; } 90% { opacity: 1; } 100% { transform: translateY(100vh); opacity: 0; } }
+        @keyframes scanline { 0% { transform: translateY(-100%); } 100% { transform: translateY(100%); } }
+        @keyframes oracleGlow {
+          0%, 100% { box-shadow: 0 0 20px rgba(0,255,0,0.5), 0 0 40px rgba(0,255,0,0.3); }
+          50% { box-shadow: 0 0 30px rgba(0,255,0,0.8), 0 0 60px rgba(0,255,0,0.5); }
+        }
+        @keyframes oraclePulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+        @keyframes fadeInMessage { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .oracle-bot-button { position: fixed; bottom: 24px; right: 24px; width: 64px; height: 64px; border-radius: 50%; background: rgba(0,0,0,0.95); border: 2px solid #00ff00; color: #00ff00; display: flex; align-items: center; justify-content: center; cursor: pointer; z-index: 9998; transition: all 0.3s ease; animation: oracleGlow 2s infinite; padding: 0; }
+        .oracle-bot-button:hover { transform: scale(1.1); border-color: #00ffff; }
+        .oracle-bot-window { position: fixed; bottom: 100px; right: 24px; width: min(440px, calc(100vw - 48px)); height: min(620px, calc(100vh - 140px)); background: rgba(0,0,0,0.96); border: 2px solid #00ff00; border-radius: 12px; display: flex; flex-direction: column; z-index: 9999; box-shadow: 0 0 40px rgba(0,255,0,0.4), inset 0 0 60px rgba(0,255,0,0.05); backdrop-filter: blur(10px); font-family: 'Courier New', monospace; overflow: hidden; }
+        .oracle-header { background: rgba(0,20,0,0.8); border-bottom: 2px solid #00ff00; padding: 16px; display: flex; align-items: center; justify-content: space-between; position: relative; }
+        .oracle-header::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px; background: linear-gradient(90deg, transparent, #00ff00, transparent); animation: scanline 3s linear infinite; }
+        .oracle-avatar { width: 48px; height: 48px; margin-right: 12px; }
+        .oracle-title { flex: 1; }
+        .oracle-title h3 { margin: 0; color: #00ff00; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px rgba(0,255,0,0.8); letter-spacing: 2px; }
+        .oracle-title p { margin: 4px 0 0; color: #00ffaa; font-size: 11px; opacity: 0.8; }
+        .oracle-close { background: transparent; border: 1px solid #00ff00; color: #00ff00; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .oracle-close:hover { background: rgba(0,255,0,0.1); border-color: #00ffff; color: #00ffff; }
+        .oracle-messages { flex: 1; overflow-y: auto; padding: 16px; position: relative; background: rgba(0,10,0,0.3); }
+        .oracle-messages::before { content: ''; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,255,0,0.03) 0px, transparent 1px, transparent 2px, rgba(0,255,0,0.03) 3px); pointer-events: none; z-index: 1; }
+        .oracle-messages > * { position: relative; z-index: 2; }
+        .oracle-message { margin-bottom: 16px; animation: fadeInMessage 0.3s ease-out; }
+        .message-user { text-align: right; }
+        .message-bot { text-align: left; }
+        .message-bubble { display: inline-block; max-width: 92%; padding: 12px 16px; border-radius: 8px; font-size: 13px; line-height: 1.55; word-wrap: break-word; text-align: left; }
+        .message-user .message-bubble { background: rgba(0,100,0,0.3); border: 1px solid #00ff00; color: #00ff00; }
+        .message-bot .message-bubble { background: rgba(0,50,50,0.3); border: 1px solid #00ffaa; color: #00ffaa; }
+        .bubble-head { color: #00ffff; font-weight: bold; letter-spacing: 1px; text-shadow: 0 0 8px rgba(0,255,255,0.6); }
+        .bubble-rule { color: rgba(0,255,170,0.35); overflow: hidden; white-space: nowrap; }
+        .typing-indicator { display: inline-flex; gap: 4px; padding: 12px 16px; background: rgba(0,50,50,0.3); border: 1px solid #00ffaa; border-radius: 8px; }
+        .typing-dot { width: 8px; height: 8px; background: #00ffaa; border-radius: 50%; animation: oraclePulse 1.4s infinite; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        .oracle-chips { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 16px 0; background: rgba(0,20,0,0.8); border-top: 1px solid rgba(0,255,0,0.3); }
+        .oracle-chip { background: transparent; border: 1px solid rgba(0,255,0,0.5); color: #00ff99; border-radius: 12px; padding: 3px 10px; font-family: inherit; font-size: 11px; cursor: pointer; transition: all 0.2s; }
+        .oracle-chip:hover { background: rgba(0,255,0,0.12); border-color: #00ffff; color: #00ffff; }
+        .oracle-input-area { padding: 12px 16px 16px; background: rgba(0,20,0,0.8); display: flex; gap: 8px; }
+        .oracle-input { flex: 1; background: rgba(0,0,0,0.7); border: 1px solid #00ff00; border-radius: 6px; padding: 12px; color: #00ff00; font-family: 'Courier New', monospace; font-size: 14px; outline: none; transition: all 0.2s; }
+        .oracle-input::placeholder { color: rgba(0,255,0,0.5); }
+        .oracle-input:focus { border-color: #00ffff; box-shadow: 0 0 10px rgba(0,255,255,0.3); }
+        .oracle-send-btn { background: rgba(0,100,0,0.4); border: 1px solid #00ff00; border-radius: 6px; color: #00ff00; width: 48px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
+        .oracle-send-btn:hover:not(:disabled) { background: rgba(0,150,0,0.5); border-color: #00ffff; color: #00ffff; }
+        .oracle-send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .oracle-footer { padding: 8px 16px; background: rgba(0,20,0,0.8); border-top: 1px solid rgba(0,255,0,0.3); font-size: 11px; color: rgba(0,255,0,0.6); display: flex; justify-content: space-between; align-items: center; }
+        .oracle-footer a { color: #00ffaa; text-decoration: none; }
+        .oracle-footer a:hover { color: #00ffff; text-decoration: underline; }
+        .matrix-rain-container { position: absolute; inset: 0; overflow: hidden; pointer-events: none; opacity: 0.15; }
+        .matrix-rain-char { position: absolute; color: #00ff00; font-family: 'Courier New', monospace; font-size: 12px; animation: matrixRainBot 8s linear infinite; }
+        @media (max-width: 768px) {
+          .oracle-bot-button { bottom: 16px; right: 16px; width: 56px; height: 56px; }
+          .oracle-bot-window { bottom: 84px; right: 16px; left: 16px; width: calc(100vw - 32px); height: calc(100vh - 120px); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .oracle-bot-button, .matrix-rain-char, .typing-dot, .oracle-header::before { animation: none; }
+        }
+        .oracle-bot-button:focus-visible, .oracle-close:focus-visible, .oracle-send-btn:focus-visible, .oracle-input:focus-visible, .oracle-chip:focus-visible { outline: 2px solid #00ffff; outline-offset: 2px; }
+      `}</style>
+
+      <button className="oracle-bot-button" onClick={() => setIsOpen(!isOpen)} aria-label="Open Oracle Chat" title="Ask the Oracle">
+        <OracleHeadSVG />
+      </button>
+
+      {isOpen && (
+        <div className="oracle-bot-window" role="dialog" aria-label="Oracle chat">
+          <MatrixRain />
+
+          <div className="oracle-header">
+            <div className="oracle-avatar"><OracleHeadSVG /></div>
+            <div className="oracle-title">
+              <h3>{persona}</h3>
+              <p>Matrix Hub Guardian • Always Vigilant</p>
+            </div>
+            <button className="oracle-close" onClick={() => setIsOpen(false)} aria-label="Close Oracle Chat">×</button>
+          </div>
+
+          <div className="oracle-messages" aria-live="polite">
+            {messages.map((m) => (
+              <div key={m.id} className={`oracle-message ${m.isBot ? 'message-bot' : 'message-user'}`}>
+                <div className="message-bubble">
+                  {m.text.split('\n').map((line, i) => (
+                    <React.Fragment key={i}>
+                      {line.startsWith('▌') ? (
+                        <span className="bubble-head">{line}</span>
+                      ) : line.startsWith('─') ? (
+                        <span className="bubble-rule">{line}</span>
+                      ) : (
+                        line
+                      )}
+                      {i < m.text.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                  ))}
+                </div>
+              </div>
+            ))}
+
+            {isTyping && (
+              <div className="oracle-message message-bot">
+                <div className="typing-indicator"><div className="typing-dot" /><div className="typing-dot" /><div className="typing-dot" /></div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
+          </div>
+
+          <div className="oracle-chips">
+            {getSuggestions(path).map((s) => (
+              <button key={s} className="oracle-chip" onClick={() => send(s)} disabled={isTyping}>{s}</button>
+            ))}
+          </div>
+
+          <div className="oracle-input-area">
+            <input
+              type="text"
+              className="oracle-input"
+              placeholder={mode === 'profit' ? 'Ask about growth & monetization...' : 'Ask the Oracle...'}
+              value={inputValue}
+              maxLength={500}
+              onChange={(e) => setInputValue(e.target.value)}
+              onKeyDown={handleKeyDown}
+              aria-label="Message input"
+            />
+            <button className="oracle-send-btn" onClick={() => send(inputValue)} disabled={!inputValue.trim() || isTyping} aria-label="Send message">➤</button>
+          </div>
+
+          <div className="oracle-footer">
+            <span>🔒 Never share private keys</span>
+            <div>
+              <a href="#help" onClick={(e) => { e.preventDefault(); send('help'); }}>Help</a>
+              {' • '}
+              <a href="https://github.com/bran8912-ctrl/Matrix-Hub.org/issues" target="_blank" rel="noopener noreferrer">Report</a>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
+  );
 }
 
-export function readBotMemory(roomId: string): Array<{ q: string; a: string; t: number }> {
-  if (typeof window === 'undefined' || !roomId) return [];
-  try {
-    const raw = window.localStorage.getItem(`matrix_hub_bot_memory_${roomId}`);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
+function OracleHeadSVG() {
+  return (
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" style={{ width: '100%', height: '100%' }} aria-hidden="true">
+      <defs>
+        <radialGradient id="oracleGlowGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#00ff00" stopOpacity="0.8" />
+          <stop offset="50%" stopColor="#00ff00" stopOpacity="0.4" />
+          <stop offset="100%" stopColor="#00ff00" stopOpacity="0" />
+        </radialGradient>
+        <filter id="digitalGlow">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+      <circle cx="50" cy="50" r="45" fill="url(#oracleGlowGrad)" opacity="0.6" />
+      <circle cx="50" cy="45" r="28" fill="none" stroke="#00ff00" strokeWidth="2" filter="url(#digitalGlow)" />
+      <rect x="40" y="38" width="6" height="10" fill="#00ff00" opacity="0.9" filter="url(#digitalGlow)" />
+      <rect x="54" y="38" width="6" height="10" fill="#00ff00" opacity="0.9" filter="url(#digitalGlow)" />
+      <line x1="38" y1="41" x2="48" y2="41" stroke="#00ffff" strokeWidth="1" opacity="0.6" />
+      <line x1="52" y1="41" x2="62" y2="41" stroke="#00ffff" strokeWidth="1" opacity="0.6" />
+      <line x1="38" y1="45" x2="48" y2="45" stroke="#00ffff" strokeWidth="1" opacity="0.6" />
+      <line x1="52" y1="45" x2="62" y2="45" stroke="#00ffff" strokeWidth="1" opacity="0.6" />
+      <path d="M 38 58 Q 50 62 62 58" fill="none" stroke="#00ff00" strokeWidth="2" filter="url(#digitalGlow)" />
+      <circle cx="30" cy="35" r="2" fill="#00ff00" opacity="0.8"><animate attributeName="opacity" values="0.8;0.3;0.8" dur="2s" repeatCount="indefinite" /></circle>
+      <circle cx="70" cy="35" r="2" fill="#00ff00" opacity="0.8"><animate attributeName="opacity" values="0.3;0.8;0.3" dur="2s" repeatCount="indefinite" /></circle>
+      <path d="M 50 73 L 50 85" stroke="#00ff00" strokeWidth="1.5" opacity="0.6" />
+      <circle cx="50" cy="85" r="3" fill="none" stroke="#00ff00" strokeWidth="1.5" opacity="0.6" />
+    </svg>
+  );
 }
 
-export function writeBotMemory(roomId: string, question: string, answer: string): void {
-  if (typeof window === 'undefined' || !roomId) return;
-  try {
-    const existing = readBotMemory(roomId);
-    const next = [...existing, { q: question, a: answer, t: Date.now() }].slice(-8);
-    window.localStorage.setItem(`matrix_hub_bot_memory_${roomId}`, JSON.stringify(next));
-  } catch {
-    // localStorage may be unavailable in some browsers or private contexts
-  }
+function MatrixRain() {
+  const [chars, setChars] = useState<Array<{ char: string; left: number; delay: number }>>([]);
+
+  useEffect(() => {
+    const matrixChars = 'アイウエオカキクケコサシスセソタチツテト01';
+    const columns = 12;
+    setChars(
+      Array.from({ length: columns }, (_, i) => ({
+        char: matrixChars[Math.floor(Math.random() * matrixChars.length)],
+        left: (i / columns) * 100,
+        delay: Math.random() * 5,
+      }))
+    );
+  }, []);
+
+  return (
+    <div className="matrix-rain-container" aria-hidden="true">
+      {chars.map((c, i) => (
+        <div key={i} className="matrix-rain-char" style={{ left: `${c.left}%`, animationDelay: `${c.delay}s` }}>{c.char}</div>
+      ))}
+    </div>
+  );
 }
-
-export function buildOracleResponse(query: string, context: BotContext = {}): string {
-  const normalized = normalizeText(query);
-  if (!normalized) return 'The Oracle is ready. Ask about MTX, casino mechanics, wallet safety, DeFi, or governance.';
-
-  for (const entry of SECURITY_PATTERNS) {
-    if (entry.pattern.test(query)) {
-      return `${entry.response} ${ORACLE_TOPICS.find((item) => item.id === 'wallet-safety')?.answer ?? ''}`.trim();
-    }
-  }
-
-  const memory = readBotMemory(context.roomId ?? 'oracle');
-  if (memory.length > 0) {
-    const last = memory[memory.length - 1];
-    if (normalized.includes('again') || normalized.includes('more') || normalized.includes('expand')) {
-      return last.a;
-    }
-  }
-
-  const bestMatch = scoreKnowledge(query, ORACLE_TOPICS);
-  if (bestMatch && bestMatch.score > 0) {
-    return bestMatch.item.answer;
-  }
-
-  if (/what can|help|guide|what do|what are/.test(normalized)) {
-    return 'The Oracle can help with MTX, casino mechanics, wallet safety, DeFi, governance, and site tools. Ask a specific question and the Matrix will narrow the answer.';
-  }
-
-  return 'The Oracle sees your question, seeker. The Matrix is broad, but the safest path is to ask a specific question about MTX, wallet safety, casino rules, governance, or site tools.';
-}
-
-export function buildProfitResponse(query: string, context: BotContext = {}): string {
-  const normalized = normalizeText(query);
-  if (!normalized) return 'I can help with affiliate marketing, traffic, product ideas, or monetization. Ask me about a specific audience or revenue model.';
-
-  const memory = readBotMemory(context.roomId ?? 'profit');
-  if (memory.length > 0) {
-    const last = memory[memory.length - 1];
-    if (normalized.includes('again') || normalized.includes('repeat') || normalized.includes('more')) {
-      return last.a;
-    }
-  }
-
-  const bestMatch = scoreKnowledge(query, PROFIT_TOPICS);
-  if (bestMatch && bestMatch.score > 0) {
-    return bestMatch.item.answer;
-  }
-
-  if (/traffic|audience|growth|seo/.test(normalized)) {
-    return 'Start by solving one real problem for one clear audience, then measure which content brings traffic and which offers convert. Great monetization usually follows a repeatable user journey, not a random idea.';
-  }
-
-  return 'Useful monetization usually starts with one real user problem and one practical offer. Ask about affiliate marketing, digital products, traffic, crypto risk, or ad models and I’ll narrow the path.';
-}
-
-export function describeBotIntent(query: string): string {
-  const normalized = normalizeText(query);
-  const all = [...ORACLE_TOPICS, ...PROFIT_TOPICS];
-  const best = scoreKnowledge(query, all);
-  return best?.item.id ?? 'general';
-}
-
-export function renderContextAwareGreeting(userName?: string): string {
-  const name = userName?.trim() || 'seeker';
-  return `Welcome back, ${name}. The Matrix is ready. Ask about MTX, wallet safety, casino rules, monetization, or growth.`;
-}
-
-export function buildBotAnswer(mode: BotMode, query: string, context: BotContext = {}): string {
-  return mode === 'profit' ? buildProfitResponse(query, context) : buildOracleResponse(query, context);
-}
-
-export const ORACLE_KNOWLEDGE = ORACLE_TOPICS;
-export const PROFIT_KNOWLEDGE = PROFIT_TOPICS;
