@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import {
   buildBotAnswer,
   getGreeting,
+  getMissionForPath,
   getModeForPath,
   getSuggestions,
   writeBotMemory,
@@ -24,7 +25,8 @@ export default function OracleBotContainer() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const mode: BotMode = getModeForPath(path);
-  const persona = mode === 'profit' ? 'PROFIT ORACLE' : 'THE ORACLE';
+  const mission = getMissionForPath(path);
+  const persona = mode === 'profit' ? 'PROFIT CONCIERGE' : 'ORACLE CONCIERGE';
 
   useEffect(() => {
     if (typeof window !== 'undefined') setPath(window.location.pathname);
@@ -37,7 +39,7 @@ export default function OracleBotContainer() {
   }, [isOpen, messages.length, path]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesEndRef.current?.scrollIntoView({ behavior: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   }, [messages, isTyping]);
 
   const send = (raw: string) => {
@@ -48,12 +50,13 @@ export default function OracleBotContainer() {
     setInputValue('');
     setIsTyping(true);
 
+    const delay = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ? 0 : 500 + Math.random() * 500;
     setTimeout(() => {
       const { text: reply, topic } = buildBotAnswer(mode, text, { roomId: mode, path });
       writeBotMemory(mode, text, topic);
       setMessages((prev) => [...prev, { id: `bot-${Date.now()}`, text: reply, isBot: true, timestamp: Date.now() }]);
       setIsTyping(false);
-    }, 500 + Math.random() * 500);
+    }, delay);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -83,6 +86,7 @@ export default function OracleBotContainer() {
         .oracle-avatar { width: 48px; height: 48px; margin-right: 12px; }
         .oracle-title { flex: 1; }
         .oracle-title h3 { margin: 0; color: #00ff00; font-size: 18px; font-weight: bold; text-shadow: 0 0 10px rgba(0,255,0,0.8); letter-spacing: 2px; }
+        .oracle-title .oracle-mission { font-weight: bold; letter-spacing: 1px; }
         .oracle-title p { margin: 4px 0 0; color: #00ffaa; font-size: 11px; opacity: 0.8; }
         .oracle-close { background: transparent; border: 1px solid #00ff00; color: #00ff00; width: 32px; height: 32px; border-radius: 4px; cursor: pointer; font-size: 20px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; }
         .oracle-close:hover { background: rgba(0,255,0,0.1); border-color: #00ffff; color: #00ffff; }
@@ -126,19 +130,19 @@ export default function OracleBotContainer() {
         .oracle-bot-button:focus-visible, .oracle-close:focus-visible, .oracle-send-btn:focus-visible, .oracle-input:focus-visible, .oracle-chip:focus-visible { outline: 2px solid #00ffff; outline-offset: 2px; }
       `}</style>
 
-      <button className="oracle-bot-button" onClick={() => setIsOpen(!isOpen)} aria-label="Open Oracle Chat" title="Ask the Oracle">
+      <button className="oracle-bot-button" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? 'Close Oracle Concierge chat' : 'Open Oracle Concierge chat'} aria-expanded={isOpen} title="Ask the Concierge">
         <OracleHeadSVG />
       </button>
 
       {isOpen && (
-        <div className="oracle-bot-window" role="dialog" aria-label="Oracle chat">
+        <div className="oracle-bot-window" role="dialog" aria-label={`${persona} chat`}>
           <MatrixRain />
 
           <div className="oracle-header">
             <div className="oracle-avatar"><OracleHeadSVG /></div>
             <div className="oracle-title">
               <h3>{persona}</h3>
-              <p>Matrix Hub Guardian • Always Vigilant</p>
+              <p className="oracle-mission">MISSION: {mission.title}</p>
             </div>
             <button className="oracle-close" onClick={() => setIsOpen(false)} aria-label="Close Oracle Chat">×</button>
           </div>
@@ -171,7 +175,7 @@ export default function OracleBotContainer() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="oracle-chips">
+          <div className="oracle-chips" role="group" aria-label="Suggested prompts">
             {getSuggestions(path).map((s) => (
               <button key={s} className="oracle-chip" onClick={() => send(s)} disabled={isTyping}>{s}</button>
             ))}
@@ -181,7 +185,7 @@ export default function OracleBotContainer() {
             <input
               type="text"
               className="oracle-input"
-              placeholder={mode === 'profit' ? 'Ask about growth & monetization...' : 'Ask the Oracle...'}
+              placeholder={mode === 'profit' ? 'Ask about growth & monetization...' : 'Say "start mission" or ask...'}
               value={inputValue}
               maxLength={500}
               onChange={(e) => setInputValue(e.target.value)}

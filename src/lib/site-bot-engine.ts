@@ -282,42 +282,175 @@ export function getModeForPath(path = ''): BotMode {
   return PROFIT_PATHS.some((p) => path.startsWith(p)) ? 'profit' : 'oracle';
 }
 
+// ── mission profiles ──
+export interface Mission {
+  id: string;
+  title: string;
+  objective: string;
+  steps: [string, string, string];
+  warning: string;
+  next: string;
+}
+
+const MISSIONS: Record<string, Mission> = {
+  casino: {
+    id: 'casino',
+    title: 'PLAY WITH EYES OPEN',
+    objective: 'Understand the odds and set limits before you play.',
+    steps: [
+      'Read the game math and provably-fair docs for the game you want.',
+      'Set a session budget you can afford to lose, before you place a bet.',
+      'Start with minimum bets and stop when the budget or the fun runs out.'
+    ],
+    warning: 'Every game has a house edge. No outcome is guaranteed and no strategy beats the math.',
+    next: 'Open the game-math docs, then decide your budget.'
+  },
+  academy: {
+    id: 'academy',
+    title: 'LEARN THE SYSTEM',
+    objective: 'Build working knowledge of shipyard blueprint reading and fit-up fundamentals.',
+    steps: [
+      'Pick the first module at /academy and finish it in order.',
+      'Look up unfamiliar terms in the glossary as you go.',
+      'Test yourself with the quizzes and challenges.'
+    ],
+    warning: 'Education is not financial advice. Verify claims before acting on them.',
+    next: 'Start the first lesson at /academy.'
+  },
+  wallet: {
+    id: 'wallet',
+    title: 'SECURE THE KEYS',
+    objective: 'Connect and use a wallet without exposing your funds.',
+    steps: [
+      'Use a dedicated wallet for site interactions and keep savings in a separate one.',
+      'Check the network and contract address against official sources before signing.',
+      'Read every transaction prompt and revoke approvals you no longer use.'
+    ],
+    warning: 'Never share a private key or seed phrase. Matrix Hub will never ask for them or hold your funds.',
+    next: 'Verify the network and address, then review what you are about to sign.'
+  },
+  buy: {
+    id: 'buy',
+    title: 'DUE DILIGENCE FIRST',
+    objective: 'Research MTX thoroughly before any purchase.',
+    steps: [
+      'Read the tokenomics and whitepaper to see what MTX actually does.',
+      'Confirm the contract address on a block explorer from an official link.',
+      'Decide an amount you can afford to lose entirely, then test with a small one.'
+    ],
+    warning: 'Crypto is volatile and may lose all value. Nothing here is financial advice or a promise of returns.',
+    next: 'Read the tokenomics, then verify the contract address.'
+  },
+  profit: {
+    id: 'profit',
+    title: 'BUILD A GROWTH PATH',
+    objective: 'Choose one realistic income idea and test it cheaply.',
+    steps: [
+      'Pick one offer, one audience, and one channel.',
+      'Publish one useful asset (guide, review, tool) and track visits and clicks.',
+      'Keep what works, drop what does not, and disclose any affiliate links.'
+    ],
+    warning: 'Income is never guaranteed. Results depend on effort, audience, and market conditions.',
+    next: 'Choose your single offer and write down who it is for.'
+  },
+  orientation: {
+    id: 'orientation',
+    title: 'ORIENTATION',
+    objective: 'Find your way around Matrix Hub.',
+    steps: [
+      'Try the free arcade at /games, no wallet needed.',
+      'Explore the Academy to learn the fundamentals.',
+      'Review wallet safety before connecting anything.'
+    ],
+    warning: 'Never share private keys or seed phrases, and treat guaranteed-profit offers as scams.',
+    next: 'Open /games or /academy to begin.'
+  }
+};
+
+const MISSION_ROUTES: Array<[string[], string]> = [
+  [['/casino', '/games/casino', '/mtx-casino'], 'casino'],
+  [['/academy'], 'academy'],
+  [['/wallet', '/enhanced-wallet', '/staking'], 'wallet'],
+  [['/buy-mtx', '/token', '/contract'], 'buy'],
+  [PROFIT_PATHS, 'profit']
+];
+
+export function getMissionForPath(path = ''): Mission {
+  const clean = path.split(/[?#]/)[0].toLowerCase();
+  for (const [prefixes, id] of MISSION_ROUTES) {
+    if (prefixes.some((p) => clean === p || clean.startsWith(`${p}/`) || clean.startsWith(`${p}-`) || clean === `${p}.html`)) {
+      return MISSIONS[id];
+    }
+  }
+  return MISSIONS.orientation;
+}
+
+function personaFor(mode: BotMode): string {
+  return mode === 'profit' ? 'PROFIT CONCIERGE' : 'ORACLE CONCIERGE';
+}
+
 export function getGreeting(path = ''): string {
   const mode = getModeForPath(path);
-  if (mode === 'profit') {
-    return frame('PROFIT ORACLE', 'ONLINE', [
-      'I read the market of ideas, not the future.',
-      'Ask about affiliates, traffic, products, or monetization.'
-    ], 'Information only — never guaranteed income.');
-  }
-  if (path.startsWith('/games/casino') || path.startsWith('/casino') || path.startsWith('/mtx-casino')) {
-    return frame('ORACLE', 'THE HOUSE ALWAYS WATCHES', [
-      'You have entered the casino floor.',
-      'Ask about odds, game math, fairness, or safe play.'
-    ]);
-  }
-  if (path.startsWith('/academy')) {
-    return frame('ORACLE', 'THE ACADEMY', ['Knowledge is the only unbreakable key.', 'Ask me about lessons, terms, or where to begin.']);
-  }
-  if (path.startsWith('/wallet') || path.startsWith('/enhanced-wallet') || path.startsWith('/buy-mtx') || path.startsWith('/staking')) {
-    return frame('ORACLE', 'WALLET ZONE', ['Guard your keys. Verify every address.', 'Ask me before you sign anything unfamiliar.']);
-  }
-  return frame('ORACLE', 'WELCOME, SEEKER', [
-    'The Matrix reveals itself to those who ask.',
-    'Try: MTX, casino odds, wallet safety, DeFi, governance, or the arcade.'
-  ]);
+  const m = getMissionForPath(path);
+  return frame(personaFor(mode), `MISSION: ${m.title}`, [
+    m.objective,
+    `Next: ${m.next}`,
+    'Say "start mission", "next step", "fast path" or "deep path".'
+  ], `⚠ ${m.warning}`);
 }
 
 export function getSuggestions(path = ''): string[] {
   const mode = getModeForPath(path);
-  if (mode === 'profit') return ['affiliate marketing', 'grow traffic', 'digital products', 'crypto risk'];
-  if (path.includes('casino')) return ['casino odds', 'blackjack strategy', 'is it fair?', 'wallet safety'];
-  if (path.startsWith('/academy')) return ['academy', 'how do I start?', 'blockchain basics'];
-  return ['what is MTX?', 'wallet safety', 'casino odds', 'free games'];
+  const base = ['start mission', 'next step'];
+  if (mode === 'profit') return [...base, 'affiliate marketing', 'grow traffic', 'fast path'];
+  const id = getMissionForPath(path).id;
+  if (id === 'casino') return [...base, 'casino odds', 'is it fair?', 'fast path'];
+  if (id === 'academy') return [...base, 'how do I start?', 'blockchain basics'];
+  if (id === 'wallet') return [...base, 'wallet safety', 'deep path'];
+  if (id === 'buy') return [...base, 'what is MTX?', 'deep path'];
+  return [...base, 'what is MTX?', 'wallet safety', 'free games'];
+}
+
+function missionStep(room: string, missionId: string): number {
+  const last = readBotMemory(room).slice().reverse().find((e) => e.topic.startsWith('mission:'));
+  if (!last) return 0;
+  const [, id, n] = last.topic.split(':');
+  return id === missionId ? Math.min(Number(n) || 0, 3) : 0;
+}
+
+function conciergeAnswer(q: string, persona: string, room: string, path?: string): { text: string; topic: string } | null {
+  const m = getMissionForPath(path);
+  const tag = (n: number) => `mission:${m.id}:${n}`;
+  const warn = `⚠ ${m.warning}`;
+
+  if (/^(start|begin|launch) (the |my |a )?mission$|^mission( start)?$/.test(q)) {
+    return { topic: tag(1), text: frame(persona, `MISSION: ${m.title}`, [`Objective: ${m.objective}`, `Step 1/3: ${m.steps[0]}`], `${warn}\nSay "next step" to continue.`) };
+  }
+  if (/^(next step|next|what now|what next|continue mission)$/.test(q)) {
+    const cur = missionStep(room, m.id);
+    if (cur >= 3) {
+      return { topic: tag(3), text: frame(persona, 'MISSION COMPLETE', ['All 3 steps covered.', `Recommended next action: ${m.next}`], warn) };
+    }
+    return { topic: tag(cur + 1), text: frame(persona, `STEP ${cur + 1}/3`, [m.steps[cur]], `${warn}\nSay "next step" to continue.`) };
+  }
+  if (/^(status|mission status|progress)$/.test(q)) {
+    const cur = missionStep(room, m.id);
+    const lines = cur === 0
+      ? [`Mission: ${m.title}`, 'Not started. Say "start mission".']
+      : [`Mission: ${m.title}`, `Progress: step ${cur}/3`, `Next: ${cur >= 3 ? m.next : m.steps[cur]}`];
+    return { topic: tag(cur), text: frame(persona, 'STATUS', lines, warn) };
+  }
+  if (/^(fast path|quick path|fast|quick)$/.test(q)) {
+    return { topic: tag(0), text: frame(persona, 'FAST PATH', [`Goal: ${m.objective}`, `Do this now: ${m.next}`, `Then: ${m.steps[2]}`], warn) };
+  }
+  if (/^(deep path|full path|deep|full)$/.test(q)) {
+    return { topic: tag(0), text: frame(persona, 'DEEP PATH', [`Goal: ${m.objective}`, ...m.steps.map((st, i) => `${i + 1}. ${st}`), `Finally: ${m.next}`], warn) };
+  }
+  return null;
 }
 
 export function buildBotAnswer(mode: BotMode, query: string, ctx: BotContext = {}): { text: string; topic: string } {
-  const persona = mode === 'profit' ? 'PROFIT ORACLE' : 'ORACLE';
+  const persona = personaFor(mode);
   const room = ctx.roomId ?? mode;
   const q = normalize(query);
 
@@ -333,6 +466,9 @@ export function buildBotAnswer(mode: BotMode, query: string, ctx: BotContext = {
       ], 'Stay vigilant.')
     };
   }
+
+  const concierge = conciergeAnswer(q, persona, room, ctx.path);
+  if (concierge) return concierge;
 
   const topics = mode === 'profit' ? PROFIT_TOPICS : ORACLE_TOPICS;
   const all = [...ORACLE_TOPICS, ...PROFIT_TOPICS];
@@ -354,7 +490,7 @@ export function buildBotAnswer(mode: BotMode, query: string, ctx: BotContext = {
     const menu = mode === 'profit'
       ? ['Affiliate strategy', 'Digital products', 'Traffic growth', 'Advertising', 'Crypto risk']
       : ['The MTX token', 'The casino', 'Wallet security', 'DeFi', 'Governance', 'The arcade', 'The academy'];
-    return { topic: 'help', text: frame(persona, 'CAPABILITIES', menu) };
+    return { topic: 'help', text: frame(persona, 'CAPABILITIES', ['Concierge: start mission, next step, status, fast path, deep path', ...menu]) };
   }
 
   if (/^(hi|hello|hey|yo|sup|good (morning|evening|afternoon))\b/.test(q)) {
