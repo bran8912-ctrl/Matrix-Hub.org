@@ -6,18 +6,47 @@
     <meta name="color-scheme" content="dark">
     <title>Factory simulator preview</title>
     <style>
-      :root { color-scheme: dark; font: 16px/1.6 "Courier New", monospace; background: #061016; color: #d8eee7; }
-      body { display: grid; min-height: 100vh; place-items: center; margin: 0; padding: 1.5rem; box-sizing: border-box; }
-      main { max-width: 38rem; padding: 1.5rem; border: 1px solid #65ffd0; background: #091820; }
-      h1 { color: #65ffd0; }
+      :root {
+        color-scheme: dark;
+        font: 16px/1.6 "Courier New", monospace;
+        background: #061016;
+        color: #d8eee7;
+      }
+      * { box-sizing: border-box; }
+      body {
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        margin: 0;
+        padding: 1.5rem;
+        background: #061016;
+      }
+      main {
+        width: min(100%, 42rem);
+        padding: 1.5rem;
+        border: 1px solid #65ffd0;
+        background: rgba(9, 24, 32, 0.9);
+        box-shadow: 0 0 22px rgba(101, 255, 208, 0.12);
+      }
+      .eyebrow { margin: 0 0 1rem; color: #77c9ff; letter-spacing: .08em; text-transform: uppercase; }
+      h1 {
+        margin: 0 0 1rem;
+        color: #65ffd0;
+        font-size: clamp(2.3rem, 6vw, 4.5rem);
+        line-height: 1.05;
+        font-weight: 700;
+      }
+      p { margin: 0 0 1rem; color: #d8eee7; }
+      .cta { color: #77c9ff; }
       a { color: #77c9ff; }
     </style>
   </head>
   <body>
     <main>
-      <p>SIMULATOR HOST · FACTORY</p>
+      <p class="eyebrow">SIMULATOR HOST · FACTORY</p>
       <h1>Cocos simulator build not yet deployed</h1>
-      <p>This static slot is ready for the Factory web build. Return to the <a href="/industrial-simulation">Industrial Simulation</a> page to use its local mock checklist demo.</p>
+      <p>This static slot is ready for the Factory web build.</p>
+      <p>Return to the <a href="/industrial-simulation">Industrial Simulation</a> page to use its local mock checklist demo.</p>
       <p>Training only: this preview does not certify welders or replace supervised practice, approved procedures, or required testing.</p>
     </main>
   </body>
