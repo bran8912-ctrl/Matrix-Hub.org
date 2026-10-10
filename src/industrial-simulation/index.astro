@@ -1,0 +1,32 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { site } from '../../config/site';
+
+const waitingForDeployment = [
+  {
+    name: 'Cocos Simulator',
+    description:
+      'Cross-platform simulation and testing environment from the Cocos ecosystem, commonly used alongside Cocos2d-x projects.',
+    status: 'Waiting for deployment',
+  },
+];
+---
+
+<Layout title={`Industrial Simulation | ${site.title}`} description="Industrial simulation tools and projects.">
+  <section class="container mx-auto px-4 py-12">
+    <h1 class="text-3xl font-bold mb-6">Industrial Simulation</h1>
+
+    <div class="mb-10">
+      <h2 class="text-2xl font-semibold mb-4">Waiting for deployment</h2>
+      <ul class="space-y-4">
+        {waitingForDeployment.map((item) => (
+          <li class="border rounded-lg p-4" aria-label={item.name}>
+            <h3 class="text-xl font-medium">{item.name}</h3>
+            <p class="text-sm opacity-80 mt-1">{item.description}</p>
+            <p class="text-sm mt-2 font-semibold">{item.status}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </section>
+</Layout>
