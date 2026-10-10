@@ -130,7 +130,7 @@ export default function OracleBotContainer() {
         .oracle-bot-button:focus-visible, .oracle-close:focus-visible, .oracle-send-btn:focus-visible, .oracle-input:focus-visible, .oracle-chip:focus-visible { outline: 2px solid #00ffff; outline-offset: 2px; }
       `}</style>
 
-      <button className="oracle-bot-button" onClick={() => setIsOpen(!isOpen)} aria-label="Open Oracle Concierge chat" aria-expanded={isOpen} title="Ask the Concierge">
+      <button className="oracle-bot-button" onClick={() => setIsOpen(!isOpen)} aria-label={isOpen ? 'Close Oracle Concierge chat' : 'Open Oracle Concierge chat'} aria-expanded={isOpen} title="Ask the Concierge">
         <OracleHeadSVG />
       </button>
 
