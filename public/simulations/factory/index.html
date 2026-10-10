@@ -8,46 +8,114 @@
     <style>
       :root {
         color-scheme: dark;
-        font: 16px/1.6 "Courier New", monospace;
-        background: #061016;
-        color: #d8eee7;
+        --bg-deep: #030c12;
+        --bg-panel: rgba(5, 19, 28, 0.9);
+        --panel-border: rgba(110, 245, 220, 0.9);
+        --panel-glow: rgba(110, 245, 220, 0.2);
+        --text-main: #7eece1;
+        --text-soft: #cfe9ea;
+        --accent: #f3d648;
+        --cyan: #7fe6de;
+        --muted: rgba(167, 210, 214, 0.8);
       }
       * { box-sizing: border-box; }
-      body {
-        display: grid;
-        min-height: 100vh;
-        place-items: center;
+      html, body {
         margin: 0;
-        padding: 1.5rem;
-        background: #061016;
+        min-height: 100%;
+        background: var(--bg-deep);
+        color: var(--text-soft);
+        font: 16px/1.6 "Courier New", monospace;
+      }
+      body {
+        position: relative;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 2rem 1.25rem;
+        overflow: hidden;
+        background:
+          linear-gradient(rgba(5, 19, 28, 0.76), rgba(5, 19, 28, 0.9)),
+          repeating-linear-gradient(
+            to bottom,
+            rgba(126, 236, 225, 0.06),
+            rgba(126, 236, 225, 0.06) 2px,
+            transparent 2px,
+            transparent 4px
+          );
+      }
+      body::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          linear-gradient(90deg, rgba(126, 236, 225, 0.15) 0 1px, transparent 1px 100%),
+          linear-gradient(rgba(126, 236, 225, 0.08) 0 1px, transparent 1px 100%);
+        background-size: 22px 22px;
+        mask-image: radial-gradient(circle at center, black 38%, transparent 100%);
+        opacity: 0.3;
       }
       main {
-        width: min(100%, 42rem);
-        padding: 1.5rem;
-        border: 1px solid #65ffd0;
-        background: rgba(9, 24, 32, 0.9);
-        box-shadow: 0 0 22px rgba(101, 255, 208, 0.12);
+        position: relative;
+        z-index: 1;
+        width: min(100%, 46rem);
+        padding: 1.1rem 1.1rem 1.4rem;
+        border: 2px solid var(--panel-border);
+        background: rgba(4, 15, 22, 0.88);
+        box-shadow: inset 0 0 0 1px rgba(127, 230, 222, 0.35), 0 0 18px rgba(127, 230, 222, 0.2);
       }
-      .eyebrow { margin: 0 0 1rem; color: #77c9ff; letter-spacing: .08em; text-transform: uppercase; }
-      h1 {
+      .eyebrow {
         margin: 0 0 1rem;
-        color: #65ffd0;
-        font-size: clamp(2.3rem, 6vw, 4.5rem);
-        line-height: 1.05;
+        color: var(--accent);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
         font-weight: 700;
       }
-      p { margin: 0 0 1rem; color: #d8eee7; }
-      .cta { color: #77c9ff; }
-      a { color: #77c9ff; }
+      h1 {
+        margin: 0 0 1.15rem;
+        color: var(--text-main);
+        font-size: clamp(2.5rem, 7vw, 6rem);
+        line-height: 0.9;
+        font-weight: 700;
+        letter-spacing: -0.06em;
+        text-shadow: 0 0 16px rgba(127, 230, 222, 0.5);
+      }
+      .lead {
+        margin: 0 0 1rem;
+        color: var(--text-main);
+        font-size: clamp(1.2rem, 2.5vw, 2rem);
+        font-style: italic;
+        line-height: 1.3;
+        text-shadow: 0 0 12px rgba(127, 230, 222, 0.3);
+      }
+      p {
+        margin: 0 0 1rem;
+        color: var(--text-soft);
+      }
+      .status {
+        display: inline-block;
+        margin: 0 0 1rem;
+        padding: 0.1rem 0;
+        color: var(--text-soft);
+        font-size: 1.05rem;
+      }
+      a {
+        color: var(--text-main);
+      }
+      .muted {
+        color: var(--muted);
+      }
     </style>
   </head>
   <body>
     <main>
       <p class="eyebrow">SIMULATOR HOST · FACTORY</p>
-      <h1>Cocos simulator build not yet deployed</h1>
-      <p>This static slot is ready for the Factory web build.</p>
-      <p>Return to the <a href="/industrial-simulation">Industrial Simulation</a> page to use its local mock checklist demo.</p>
-      <p>Training only: this preview does not certify welders or replace supervised practice, approved procedures, or required testing.</p>
+      <h1>Cocos<br>simulator<br>build not yet<br>deployed</h1>
+      <p class="lead">This static slot is ready<br>for the Factory web build.</p>
+      <p class="status">Preview ready: Cocos simulator build not yet deployed. The local mock is available below.</p>
+      <p class="muted"><a href="/industrial-simulation">Open full simulator in a new tab ↗</a></p>
+      <p class="muted"><a href="/industrial-simulation">Demo the checklist without the Cocos build</a></p>
+      <p class="muted">Training only: this preview does not certify welders or replace supervised practice, approved procedures, or required testing.</p>
     </main>
   </body>
 </html>
