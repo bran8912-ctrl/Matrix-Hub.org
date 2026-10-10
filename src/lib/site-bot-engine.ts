@@ -308,7 +308,7 @@ const MISSIONS: Record<string, Mission> = {
   academy: {
     id: 'academy',
     title: 'LEARN THE SYSTEM',
-    objective: 'Build working knowledge of shipyard blueprint reading and fit-up fundamentals.'
+    objective: 'Build working knowledge of shipyard blueprint reading and fit-up fundamentals.',
     steps: [
       'Pick the first module at /academy and finish it in order.',
       'Look up unfamiliar terms in the glossary as you go.',
