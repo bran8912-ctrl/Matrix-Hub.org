@@ -1,0 +1,73 @@
+// scripts/polygon-error-bot.js
+import fs from 'fs';
+import path from 'path';
+
+console.log('🤖 Matrix-Hub Bot: Running Polygon & Site Error Scan...');
+
+let errorsFound = 0;
+let warningsFound = 0;
+
+// 1. Check for Polygon Network configuration file
+const configPaths = ['src/config/web3.js', 'src/utils/web3.js', 'src/constants.js'];
+let configFound = false;
+
+configPaths.forEach(p => {
+  if (fs.existsSync(p)) {
+    configFound = true;
+    const content = fs.readFileSync(p, 'utf8');
+    
+    // Check Chain ID
+    if (content.includes('0x89') || content.includes('137')) {
+      console.log(`✅ Polygon Chain ID verified in ${p}`);
+    } else {
+      console.warn(`⚠️ Warning: Polygon Chain ID (0x89 / 137) not explicitly found in ${p}. Check your network configuration.`);
+      warningsFound++;
+    }
+
+    // Check for deprecated MATIC vs current POL native currency symbol
+    if (content.includes('MATIC') && !content.includes('POL')) {
+      console.warn(`⚠️ Notice: Found 'MATIC' symbol reference in ${p}. Polygon network migrated native gas token to 'POL'. Consider updating references.`);
+      warningsFound++;
+    }
+  }
+});
+
+if (!configFound) {
+  console.error('❌ Error: No web3 configuration file found in typical paths (src/config/web3.js, etc.).');
+  errorsFound++;
+}
+
+// 2. Scan Astro pages for SSR/Client window reference build crashes
+const pagesDir = path.join('src', 'pages');
+if (fs.existsSync(pagesDir)) {
+  const scanDir = (dir) => {
+    const files = fs.readdirSync(dir);
+    files.forEach(file => {
+      const filePath = path.join(dir, file);
+      if (fs.statSync(filePath).isDirectory()) {
+        scanDir(filePath);
+      } else if (filePath.endsWith('.astro')) {
+        const content = fs.readFileSync(filePath, 'utf8');
+        // Check if window or ethereum is accessed outside client script tags
+        if (content.includes('window.ethereum') && !content.includes('script:not([src])') && !content.includes('is:inline')) {
+          console.error(`❌ Build Risk in ${filePath}: Direct 'window.ethereum' usage in Astro frontmatter can break static builds.`);
+          errorsFound++;
+        }
+      }
+    });
+  };
+  scanDir(pagesDir);
+  console.log('✅ Astro page structure scanned for hydration errors.');
+}
+
+// 3. Summary Report
+console.log('\n--- Scan Summary ---');
+console.log(`Errors: ${errorsFound}`);
+console.log(`Warnings: ${warningsFound}`);
+
+if (errorsFound > 0) {
+  console.log('❌ Fix the errors above before deploying your Polygon mainnet version.');
+  process.exit(1);
+} else {
+  console.log('✨ All Polygon structure checks passed cleanly!');
+}
