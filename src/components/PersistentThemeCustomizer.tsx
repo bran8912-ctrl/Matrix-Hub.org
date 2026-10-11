@@ -95,9 +95,9 @@ const themes: Record<string, Theme> = {
 };
 
 export default function PersistentThemeCustomizer() {
-  const [currentTheme, setCurrentTheme] = useState('classic');
-  const [customPrimary, setCustomPrimary] = useState('#00ff00');
-  const [customSecondary, setCustomSecondary] = useState('#00ffff');
+  const [currentTheme, setCurrentTheme] = useState('gold-elite');
+  const [customPrimary, setCustomPrimary] = useState('#ffd700');
+  const [customSecondary, setCustomSecondary] = useState('#ffea00');
   const [isMinimized, setIsMinimized] = useState(true);
 
   const applyTheme = useCallback((themeName: string) => {
@@ -133,7 +133,7 @@ export default function PersistentThemeCustomizer() {
 
   useEffect(() => {
     // Load saved theme on mount
-    const savedTheme = localStorage.getItem('matrixHubTheme') || 'classic';
+    const savedTheme = localStorage.getItem('matrixHubTheme') || 'gold-elite';
     const savedMinimized = localStorage.getItem('themeCustomizerMinimized');
 
     if (savedMinimized) {

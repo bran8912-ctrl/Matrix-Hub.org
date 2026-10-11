@@ -1,16 +1,16 @@
 @import 'tailwindcss';
 @plugin "@tailwindcss/typography";
 
-/* Matrix Theme CSS Variables - Default to Classic Matrix */
+/* Matrix Theme CSS Variables - Default to Gold Elite */
 :root {
-  --theme-primary: #00ff00;
-  --theme-secondary: #00ffff;
-  --theme-glow: #00ff00;
-  --theme-bg-dark: #000000;
-  --theme-bg-panel: rgba(0, 20, 0, 0.18);
-  --theme-text: #00ffff;
-  --theme-border: #00ff00;
-  --theme-name: 'Classic Matrix';
+  --theme-primary: #ffd700;
+  --theme-secondary: #ffea00;
+  --theme-glow: #ffd700;
+  --theme-bg-dark: #0a0800;
+  --theme-bg-panel: rgba(30, 25, 0, 0.18);
+  --theme-text: #ffeb80;
+  --theme-border: #ffd700;
+  --theme-name: 'Gold Elite';
   
   /* Audio-reactive UI pulse (0..1) – all set by PersistentMusicPlayer each frame */
   --matrix-bass: 0;
@@ -31,6 +31,16 @@
   --z-index-navigation: 1000;
   --z-index-navigation-toggle: 1001;
   --z-index-dropdown: 1010;
+}
+
+.theme-classic {
+  --theme-primary: #00ff00;
+  --theme-secondary: #00ffff;
+  --theme-glow: #00ff00;
+  --theme-bg-dark: #000000;
+  --theme-bg-panel: rgba(0, 20, 0, 0.18);
+  --theme-text: #00ffff;
+  --theme-border: #00ff00;
 }
 
 .theme-cyber-purple {

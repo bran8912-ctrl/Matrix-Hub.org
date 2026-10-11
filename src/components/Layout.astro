@@ -23,6 +23,29 @@ const { title } = Astro.props;
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name='impact-site-verification' value='7c857a2b-e958-419c-9417-238f3c42d3dd' />
+    <script is:inline>
+      (function () {
+        try {
+          var root = document.documentElement;
+          var savedTheme = localStorage.getItem('matrixHubTheme') || 'gold-elite';
+          var presets = ['classic', 'cyber-purple', 'neon-blue', 'blood-red', 'gold-elite', 'toxic-orange', 'arctic-white', 'synthwave'];
+
+          if (savedTheme === 'custom') {
+            var primary = localStorage.getItem('matrixHubCustomPrimary') || '#00ff00';
+            var secondary = localStorage.getItem('matrixHubCustomSecondary') || '#00ffff';
+            if (!/^#[\da-f]{6}$/i.test(primary)) primary = '#00ff00';
+            if (!/^#[\da-f]{6}$/i.test(secondary)) secondary = '#00ffff';
+            root.style.setProperty('--theme-primary', primary);
+            root.style.setProperty('--theme-secondary', secondary);
+            root.style.setProperty('--theme-glow', primary);
+            root.style.setProperty('--theme-border', primary);
+            root.style.setProperty('--theme-text', secondary);
+          } else if (presets.indexOf(savedTheme) !== -1) {
+            root.classList.add('theme-' + savedTheme);
+          }
+        } catch (error) {}
+      })();
+    </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CKWFL856MZ"></script>
     <script is:inline>

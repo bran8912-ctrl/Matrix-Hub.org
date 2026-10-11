@@ -429,8 +429,9 @@
 .simulator-frame-wrap {
   position: relative;
   min-height: 380px;
-  border: 1px solid rgba(101, 255, 208, .45);
-  background: #050c11;
+  border: 1px solid rgba(255, 215, 0, .75);
+  background: #040b10;
+  box-shadow: inset 0 0 0 1px rgba(255, 215, 0, .35), 0 0 22px rgba(255, 215, 0, .12);
 }
 
 .simulator-frame-wrap iframe {
@@ -438,11 +439,16 @@
   width: 100%;
   min-height: 380px;
   border: 0;
+  background: #051018;
 }
 
 .simulator-status {
-  padding: .55rem .8rem;
-  color: var(--academy-muted);
+  padding: .7rem .9rem;
+  color: rgba(255, 234, 0, .9);
+  border: 1px solid rgba(255, 215, 0, .5);
+  border-top: none;
+  background: rgba(9, 14, 19, .8);
+  margin-top: 0;
 }
 
 .simulation-checklist {
