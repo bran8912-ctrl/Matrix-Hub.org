@@ -1,6 +1,7 @@
 // scripts/polygon-error-bot.js
 import fs from 'fs';
 import path from 'path';
+import { parse } from '@typescript-eslint/parser';
 
 console.log('🤖 Matrix-Hub Bot: Running Polygon & Site Error Scan...');
 
@@ -39,6 +40,61 @@ if (!configFound) {
 
 // 2. Scan Astro pages for SSR/Client window reference build crashes
 const pagesDir = path.join('src', 'pages');
+const isWindowDefinedCheck = (node, defined) => {
+  if (node?.type !== 'BinaryExpression' || !['!==', '!=', '===', '=='].includes(node.operator)) {
+    return false;
+  }
+
+  const isWindowTypeof = expression =>
+    expression?.type === 'UnaryExpression'
+    && expression.operator === 'typeof'
+    && expression.argument?.type === 'Identifier'
+    && expression.argument.name === 'window';
+  const isUndefined = expression =>
+    expression?.type === 'Literal'
+    && expression.value === 'undefined';
+  const isDefinedComparison = ['!==', '!='].includes(node.operator);
+
+  return (isWindowTypeof(node.left) && isUndefined(node.right)
+    || isUndefined(node.left) && isWindowTypeof(node.right))
+    && defined === isDefinedComparison;
+};
+
+const hasUnguardedWindowEthereum = (node, windowDefined = false) => {
+  if (!node || typeof node !== 'object') return false;
+
+  if (node.type === 'MemberExpression'
+    && !node.computed
+    && node.object?.type === 'Identifier'
+    && node.object.name === 'window'
+    && node.property?.type === 'Identifier'
+    && node.property.name === 'ethereum') {
+    return !windowDefined;
+  }
+
+  if (node.type === 'LogicalExpression') {
+    return hasUnguardedWindowEthereum(node.left, windowDefined)
+      || hasUnguardedWindowEthereum(
+        node.right,
+        windowDefined || node.operator === '&&' && isWindowDefinedCheck(node.left, true),
+      );
+  }
+
+  if (node.type === 'ConditionalExpression' || node.type === 'IfStatement') {
+    const definedWhenTrue = isWindowDefinedCheck(node.test, true);
+    const definedWhenFalse = isWindowDefinedCheck(node.test, false);
+    return hasUnguardedWindowEthereum(node.test, windowDefined)
+      || hasUnguardedWindowEthereum(node.consequent, windowDefined || definedWhenTrue)
+      || hasUnguardedWindowEthereum(node.alternate, windowDefined || definedWhenFalse);
+  }
+
+  return Object.values(node).some(value =>
+    Array.isArray(value)
+      ? value.some(child => hasUnguardedWindowEthereum(child, windowDefined))
+      : hasUnguardedWindowEthereum(value, windowDefined),
+  );
+};
+
 if (fs.existsSync(pagesDir)) {
   const scanDir = (dir) => {
     const files = fs.readdirSync(dir);
@@ -49,7 +105,8 @@ if (fs.existsSync(pagesDir)) {
       } else if (filePath.endsWith('.astro')) {
         const content = fs.readFileSync(filePath, 'utf8');
         const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)?.[1] ?? '';
-        if (frontmatter.includes('window.ethereum')) {
+        const ast = parse(frontmatter, { sourceType: 'module', ecmaVersion: 'latest' });
+        if (hasUnguardedWindowEthereum(ast)) {
           console.error(`❌ Build Risk in ${filePath}: Direct 'window.ethereum' usage in Astro frontmatter can break static builds.`);
           errorsFound++;
         }
