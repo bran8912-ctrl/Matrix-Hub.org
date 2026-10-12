@@ -32,7 +32,7 @@ async function runPolygonSimulation() {
     console.log('🪙 Note: Ensure your UI prompts wallets for POL as the native gas asset.');
 
     // 3. Verify Contracts have bytecode (meaning they are deployed)
-    for [name, address] of Object.entries(CONTRACTS)) {
+    for (const [name, address] of Object.entries(CONTRACTS)) {
       if (address.includes('0xYour')) {
         console.log(`ℹ️ Skipping bytecode check for ${name}: Placeholder address detected.`);
         continue;
