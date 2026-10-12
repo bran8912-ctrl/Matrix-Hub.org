@@ -25,15 +25,16 @@ async function runPolygonSimulation() {
     let provider;
     let network;
     for (const rpc of POLYGON_RPCS) {
+      const rpcLabel = rpc === process.env.POLYGON_RPC_URL ? 'configured POLYGON_RPC_URL' : rpc;
       try {
-        const candidate = new ethers.JsonRpcProvider(rpc, CHAIN_ID, { staticNetwork: true });
+        const candidate = new ethers.JsonRpcProvider(rpc);
         network = await candidate.getNetwork();
         await candidate.getBlockNumber();
         provider = candidate;
-        console.log(`🔧 Using RPC endpoint: ${rpc}`);
+        console.log(`🔧 Using RPC endpoint: ${rpcLabel}`);
         break;
       } catch (err) {
-        console.warn(`⚠️ RPC ${rpc} failed (${err.message}); trying next endpoint...`);
+        console.warn(`⚠️ RPC ${rpcLabel} failed; trying next endpoint...`);
       }
     }
     if (!provider) throw new Error('All Polygon RPC endpoints are unreachable');
