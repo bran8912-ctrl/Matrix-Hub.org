@@ -32,8 +32,10 @@ jobs:
           npm install
           node scripts/matrix-bot-core.js
           node scripts/polygon-error-bot.js
-          node scripts/test-polygon-live.js
-          node scripts/test-mtx-and-wallets.js
+          status=0
+          node scripts/test-polygon-live.js || status=$?
+          node scripts/test-mtx-and-wallets.js || status=$?
+          exit "$status"
 
       - name: Commit auto-fixes
         if: always() && github.event_name == 'schedule'
