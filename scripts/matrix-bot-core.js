@@ -11,6 +11,12 @@ const checkEcosystem = () => {
   
   if (missing.length > 0) {
     console.warn(`⚠️ Missing core directories: ${missing.join(', ')}`);
+    // Auto-fix: recreate missing directories
+    missing.forEach(dir => {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.writeFileSync(path.join(dir, '.gitkeep'), '');
+      console.log(`🔧 Auto-fixed: created ${dir}`);
+    });
   } else {
     console.log('✅ Astro directory structure looks solid.');
   }
