@@ -30,6 +30,9 @@ contract CasinoReserve {
     /// @notice CasinoCore contract address
     address public casinoCore;
 
+    /// @notice Owner address for administrative functions
+    address public owner;
+
     /**
      * @notice Modifier to restrict access to CasinoCore only
      */
@@ -47,10 +50,21 @@ contract CasinoReserve {
      */
     constructor(address _mtx, uint256 _reserveCap, address _casinoCore) {
         if (_mtx == address(0)) revert ZeroAddress();
-        if (_casinoCore == address(0)) revert ZeroAddress();
         if (_reserveCap == 0) revert ZeroAmount();
         mtx = IERC20(_mtx); // MTX Token address on Polygon - set from deployed MatrixHubCoin
         reserveCap = _reserveCap;
+        casinoCore = _casinoCore; // can be address(0) — set later via setCasinoCore
+        owner = msg.sender;
+    }
+
+    /**
+     * @notice Update the CasinoCore address (owner only)
+     * @dev Used to resolve circular deployment dependency
+     * @param _casinoCore New CasinoCore contract address
+     */
+    function setCasinoCore(address _casinoCore) external {
+        if (msg.sender != owner) revert NotAuthorized();
+        if (_casinoCore == address(0)) revert ZeroAddress();
         casinoCore = _casinoCore;
     }
 

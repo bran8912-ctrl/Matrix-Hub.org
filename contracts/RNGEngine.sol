@@ -84,6 +84,16 @@ contract RNGEngine {
     }
 
     /**
+     * @notice Update the CasinoCore address (owner only)
+     * @dev Used to resolve circular deployment dependency
+     * @param _casinoCore New CasinoCore contract address
+     */
+    function setCasinoCore(address _casinoCore) external onlyOwner {
+        if (_casinoCore == address(0)) revert NotAuthorized();
+        casinoCore = _casinoCore;
+    }
+
+    /**
      * @notice Reveal server seed to verify fairness
      * @dev Allows verification that server didn't cheat
      * @param seed Original server seed
