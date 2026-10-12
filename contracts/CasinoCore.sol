@@ -560,6 +560,19 @@ contract CasinoCore {
     // ═══════════════════════════════════════════════════════════════════════════
 
     /**
+     * @notice Seed the reserve balance to match actual MTX held by CasinoReserve
+     * @dev Only callable by governance. Call once after funding CasinoReserve
+     *      with an initial token transfer so that placeBet() doesn't revert.
+     *      This syncs reserveBalance with the actual MTX tokens already sent.
+     */
+    function seedReserve() external onlyGovernance {
+        uint256 actualBalance = mtx.balanceOf(address(reserve));
+        uint256 currentBalance = reserve.reserveHealth();
+        if (actualBalance <= currentBalance) revert ZeroAmount();
+        reserve.deposit(actualBalance - currentBalance);
+    }
+
+    /**
      * @notice Emergency withdrawal of stuck MTX tokens
      * @dev Only callable by governance. Use for recovery, not regular operation.
      * @param to Recipient address
