@@ -7,6 +7,7 @@ console.log('🤖 Matrix-Hub Bot: Running Polygon & Site Error Scan...');
 
 let errorsFound = 0;
 let warningsFound = 0;
+let fixesApplied = 0;
 
 // 1. Check for Polygon Network configuration file
 const configPaths = ['src/config/mtx.ts', 'src/config/casino.ts'];
@@ -27,8 +28,23 @@ configPaths.forEach(p => {
 
     // Check for deprecated MATIC vs current POL native currency symbol
     if (content.includes('MATIC') && !content.includes('POL')) {
-      console.warn(`⚠️ Notice: Found 'MATIC' symbol reference in ${p}. Polygon network migrated native gas token to 'POL'. Consider updating references.`);
-      warningsFound++;
+      // Auto-fix: only the nativeCurrency name/symbol values are rewritten
+      const fixed = content.replace(
+        /(nativeCurrency\s*:\s*\{[^}]*?)\b(name|symbol)(\s*:\s*)(["'])MATIC\4/g,
+        (_m, pre, key, sep, q) => `${pre}${key}${sep}${q}POL${q}`,
+      );
+      const fixedAgain = fixed.replace(
+        /(nativeCurrency\s*:\s*\{[^}]*?)\b(name|symbol)(\s*:\s*)(["'])MATIC\4/g,
+        (_m, pre, key, sep, q) => `${pre}${key}${sep}${q}POL${q}`,
+      );
+      if (fixedAgain !== content) {
+        fs.writeFileSync(p, fixedAgain);
+        console.log(`🔧 Auto-fixed: native currency MATIC -> POL in ${p}`);
+        fixesApplied++;
+      } else {
+        console.warn(`⚠️ Notice: Found 'MATIC' symbol reference in ${p}. Polygon network migrated native gas token to 'POL'. Consider updating references.`);
+        warningsFound++;
+      }
     }
   }
 });
@@ -121,6 +137,7 @@ if (fs.existsSync(pagesDir)) {
 console.log('\n--- Scan Summary ---');
 console.log(`Errors: ${errorsFound}`);
 console.log(`Warnings: ${warningsFound}`);
+console.log(`Auto-fixes applied: ${fixesApplied}`);
 
 if (errorsFound > 0) {
   console.log('❌ Fix the errors above before deploying your Polygon mainnet version.');
