@@ -8,7 +8,7 @@ let errorsFound = 0;
 let warningsFound = 0;
 
 // 1. Check for Polygon Network configuration file
-const configPaths = ['src/config/web3.js', 'src/utils/web3.js', 'src/constants.js'];
+const configPaths = ['src/config/mtx.ts', 'src/config/casino.ts'];
 let configFound = false;
 
 configPaths.forEach(p => {
@@ -33,7 +33,7 @@ configPaths.forEach(p => {
 });
 
 if (!configFound) {
-  console.error('❌ Error: No web3 configuration file found in typical paths (src/config/web3.js, etc.).');
+  console.error('❌ Error: No Polygon configuration file found in src/config/mtx.ts or src/config/casino.ts.');
   errorsFound++;
 }
 
@@ -48,8 +48,8 @@ if (fs.existsSync(pagesDir)) {
         scanDir(filePath);
       } else if (filePath.endsWith('.astro')) {
         const content = fs.readFileSync(filePath, 'utf8');
-        // Check if window or ethereum is accessed outside client script tags
-        if (content.includes('window.ethereum') && !content.includes('script:not([src])') && !content.includes('is:inline')) {
+        const frontmatter = content.match(/^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/)?.[1] ?? '';
+        if (frontmatter.includes('window.ethereum')) {
           console.error(`❌ Build Risk in ${filePath}: Direct 'window.ethereum' usage in Astro frontmatter can break static builds.`);
           errorsFound++;
         }
