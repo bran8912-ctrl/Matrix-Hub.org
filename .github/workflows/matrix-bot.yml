@@ -2,6 +2,7 @@
 name: Matrix-Hub Ecosystem Bot
 
 on:
+  workflow_dispatch:
   issues:
     types: [opened, edited]
   issue_comment:
@@ -16,6 +17,11 @@ jobs:
     permissions:
       contents: read
     steps:
+      - name: Log trigger info
+        run: |
+          echo "Triggered at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (UTC)"
+          echo "Event: ${{ github.event_name }}"
+
       - name: Checkout Repo
         uses: actions/checkout@v4
 
@@ -44,6 +50,11 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Log trigger info
+        run: |
+          echo "Triggered at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (UTC)"
+          echo "Event: ${{ github.event_name }}"
+
       - name: Checkout Repo
         uses: actions/checkout@v4
 
