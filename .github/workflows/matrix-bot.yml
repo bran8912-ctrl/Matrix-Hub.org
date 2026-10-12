@@ -29,3 +29,5 @@ jobs:
           npm install
           node scripts/matrix-bot-core.js
           node scripts/polygon-error-bot.js
+          node scripts/test-polygon-live.js
+          node scripts/test-mtx-and-wallets.js
