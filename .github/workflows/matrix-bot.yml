@@ -1,6 +1,8 @@
+# matrix-bot.yml
 name: Matrix-Hub Ecosystem Bot
 
 on:
+  workflow_dispatch:
   issues:
     types: [opened, edited]
   issue_comment:
@@ -10,15 +12,23 @@ on:
 
 jobs:
   matrix-engineer:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
+      - name: Log trigger info
+        run: |
+          echo "Triggered at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (UTC)"
+          echo "Event: ${{ github.event_name }}"
+
       - name: Checkout Repo
         uses: actions/checkout@v4
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '24'
           cache: 'npm'
 
       - name: Run Matrix-Hub Automation Script
@@ -28,3 +38,52 @@ jobs:
         run: |
           npm install
           node scripts/matrix-bot-core.js
+          node scripts/polygon-error-bot.js
+          status=0
+          node scripts/test-polygon-live.js || status=$?
+          node scripts/test-mtx-and-wallets.js || status=$?
+          exit "$status"
+
+  scheduled-matrix-engineer:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Log trigger info
+        run: |
+          echo "Triggered at $(date -u '+%Y-%m-%dT%H:%M:%SZ') (UTC)"
+          echo "Event: ${{ github.event_name }}"
+
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Run Matrix-Hub Automation Script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # Or your preferred LLM key
+        run: |
+          npm install
+          node scripts/matrix-bot-core.js
+          node scripts/polygon-error-bot.js
+          status=0
+          node scripts/test-polygon-live.js || status=$?
+          node scripts/test-mtx-and-wallets.js || status=$?
+          exit "$status"
+
+      - name: Commit auto-fixes
+        if: always() && github.event_name == 'schedule'
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "matrix-hub-bot"
+            git config user.email "matrix-hub-bot@users.noreply.github.com"
+            git add src scripts public
+            git commit -m "chore(bot): auto-fix issues found by Matrix-Hub bot" || exit 0
+            git push
+          fi
