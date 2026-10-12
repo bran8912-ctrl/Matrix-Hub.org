@@ -27,7 +27,8 @@ configPaths.forEach(p => {
     }
 
     // Check for deprecated MATIC vs current POL native currency symbol
-    if (content.includes('MATIC') && !content.includes('POL')) {
+    const hasDeprecatedNativeCurrency = /(nativeCurrency\s*:\s*\{[^}]*?)\b(name|symbol)(\s*:\s*)(["'])MATIC\4/.test(content);
+    if (hasDeprecatedNativeCurrency || (content.includes('MATIC') && !content.includes('POL'))) {
       // Auto-fix: only the nativeCurrency name/symbol values are rewritten
       const fixed = content.replace(
         /(nativeCurrency\s*:\s*\{[^}]*?)\b(name|symbol)(\s*:\s*)(["'])MATIC\4/g,
