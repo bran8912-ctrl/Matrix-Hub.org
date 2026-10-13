@@ -56,10 +56,19 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
       }
 
       try {
-        const ethersProvider = new BrowserProvider(walletProvider)
+        const ethersProvider = new BrowserProvider(walletProvider as any)
         setProvider(ethersProvider)
         
-        const token = new Contract(MTX_TOKEN_ADDRESS, MTX_TOKEN_ABI, ethersProvider)
+        if (!MTX.isDeployed) {
+          setBalance(0)
+          setTier(getTier(0))
+          if (onWalletChange) {
+            onWalletChange({ address, balance: 0 })
+          }
+          return
+        }
+
+        const token = new Contract(MTX.address, MTX_TOKEN_ABI, ethersProvider)
         const rawBalance = await token.balanceOf(address)
         const decimals = await token.decimals()
         const formatted = parseFloat(formatUnits(rawBalance, decimals))

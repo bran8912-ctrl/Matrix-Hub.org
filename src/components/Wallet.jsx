@@ -22,6 +22,10 @@ const Wallet = () => {
    * Fetch MTX token balance for the connected address
    */
   const fetchBalance = useCallback(async (ethersProvider, userAddress) => {
+    if (!MTX.isDeployed) {
+      setBalance('0 (MTX address pending)');
+      return;
+    }
     try {
       const { Contract, formatUnits } = await import('ethers');
       const mtxContract = new Contract(MTX.address, mtxAbi, ethersProvider);
@@ -75,9 +79,17 @@ const Wallet = () => {
     }
 
     try {
-      const { BrowserProvider } = await import('ethers');
-      const ethersProvider = new BrowserProvider(walletProvider)
-      setProvider(ethersProvider)
+      const wasAdded = await window.ethereum.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: MTX.address,
+            symbol: MTX.symbol,
+            decimals: MTX.decimals,
+          },
+        },
+      });
 
       if (wasAdded) {
         console.log('MTX token successfully added to wallet');

@@ -9,14 +9,26 @@
 // Exchange Rate: 1 MATIC = 1,000 MTX (configured in contract)
 // Initial Owner: 0x9fb4bb44d8d962d695fc93b3dc15f1b287391077
 
+// Helper to safely retrieve environment variables across Node and browser/Vite contexts
+const getEnvVar = (name: string): string | undefined => {
+  if (typeof process !== 'undefined' && process.env?.[name]) {
+    return process.env[name];
+  }
+  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.[name]) {
+    return (import.meta as any).env[name];
+  }
+  return undefined;
+};
+
 // Get contract address from environment or use placeholder
-const contractAddress = typeof process !== 'undefined' && process.env?.MTX_CONTRACT_ADDRESS 
-  ? process.env.MTX_CONTRACT_ADDRESS 
+const rawContractAddress = getEnvVar('MTX_CONTRACT_ADDRESS') || getEnvVar('PUBLIC_MTX_CONTRACT_ADDRESS');
+const contractAddress = (rawContractAddress && rawContractAddress.trim() !== '')
+  ? rawContractAddress.trim()
   : "0x0000000000000000000000000000000000000000"; // Placeholder - deploy contract to get real address
 
-// Validate address format
-const isValidAddress = contractAddress && contractAddress.match(/^0x[a-fA-F0-9]{40}$/);
-const isPlaceholder = contractAddress === "0x0000000000000000000000000000000000000000";
+// Validate address format (supports 40-character hex addresses and 64-character contract IDs)
+const isValidAddress = Boolean(contractAddress && contractAddress.match(/^0x([a-fA-F0-9]{40}|[a-fA-F0-9]{64})$/));
+const isPlaceholder = !contractAddress || /^0x0+$/.test(contractAddress);
 
 if (isPlaceholder) {
   console.warn("⚠️  MTX: Using placeholder address. Deploy contract to get legitimate address.");

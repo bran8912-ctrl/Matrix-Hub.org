@@ -4,7 +4,12 @@ import mtxAbi from '../abi/mtx.json';
 import { Casino } from '../config/casino';
 
 const POLYGON_CHAIN_ID = 137n;
-const CASINO_VAULT_ADDRESS = Casino.contracts.casinoReserve.isDeployed ? Casino.contracts.casinoReserve.address : MTX.owner;
+const isAddress20 = (addr: string | null | undefined): boolean =>
+  typeof addr === 'string' && /^0x[a-fA-F0-9]{40}$/.test(addr);
+
+const CASINO_VAULT_ADDRESS = (Casino.contracts.casinoReserve.isDeployed && isAddress20(Casino.contracts.casinoReserve.address))
+  ? Casino.contracts.casinoReserve.address
+  : (Casino.owner || MTX.owner);
 
 export interface BetResult {
   txHash: string;
