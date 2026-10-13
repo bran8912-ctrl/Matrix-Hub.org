@@ -41,7 +41,16 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
     <div class="section-block">
       <h4>CasinoReserve Contract</h4>
       {casinoReserveAddress ? (
-        <p><code>{casinoReserveAddress}</code></p>
+        <p>
+          <a
+            href={`https://polygonscan.com/address/${casinoReserveAddress}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="contract-link"
+          >
+            <code>{casinoReserveAddress}</code>
+          </a>
+        </p>
       ) : (
         <p><code class="coming-soon-code">Deploying to Polygon — address coming soon</code></p>
       )}
@@ -251,6 +260,16 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
     border-radius: 3px;
     font-family: 'Courier New', monospace;
     font-size: 0.9rem;
+    word-break: break-all;
+  }
+
+  .contract-link {
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .contract-link:hover {
+    opacity: 0.85;
   }
 
   .section-block ul {
