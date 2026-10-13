@@ -1,15 +1,15 @@
-# Deploy MTX Token to Amoy Testnet
+# Deploy MTX Token to Polygon Amoy Testnet
 
 This guide walks you through deploying the MTX token contract to Polygon Amoy testnet.
 
 ## Prerequisites
 
-### 1. Get Amoy test MATIC
+### 1. Get Amoy test POL
 
-You need Amoy MATIC to pay for gas fees:
+You need Amoy POL to pay for gas fees:
 - Visit: https://faucet.polygon.technology/amoy/
 - Or: https://www.alchemy.com/faucets/polygon-amoy
-- Request test MATIC for your deployer wallet address
+- Request test POL for your deployer wallet address
 
 ### 2. Get Polygonscan API Key
 
@@ -34,11 +34,11 @@ Edit `.env` and add your values:
 
 ```env
 # Your deployer wallet private key (WITHOUT the 0x prefix)
-# ⚠️ Use a burner wallet with only test MATIC, not your main wallet!
+# ⚠️ Use a burner wallet with only test POL, not your main wallet!
 PRIVATE_KEY=your_private_key_without_0x
 
 # Amoy RPC URL (default provided, or use your own)
-SEPOLIA_RPC_URL=https://rpc-amoy.polygon.technology/
+AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
 
 # Polygonscan API key for contract verification
 ETHERSCAN_API_KEY=your_etherscan_api_key_here
@@ -68,7 +68,7 @@ This compiles the Solidity contracts and generates artifacts.
 ### Step 3: Deploy to Amoy
 
 ```bash
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 This will:
@@ -104,7 +104,7 @@ Block Number: 12345
 
 📋 Next Steps:
 1. Verify contract on Polygonscan:
-   npx hardhat verify --network sepolia 0xYourContractAddress "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+   npx hardhat verify --network amoy 0xYourContractAddress "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 
 2. Update src/config/mtx.ts with the contract address:
    address: "0xYourContractAddress"
@@ -123,7 +123,7 @@ Block Number: 12345
 After deployment, verify the contract to make it publicly readable:
 
 ```bash
-npm run verify:sepolia 0xYourContractAddress "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy 0xYourContractAddress "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 Replace `0xYourContractAddress` with your actual deployed contract address.
@@ -224,7 +224,7 @@ export const MTX = {
 1. Test all contract functions thoroughly on Amoy
 2. Test wallet integration with Amoy contract
 3. Test buying MTX with test MATIC
-4. Once confident, deploy to Mainnet using `npm run deploy:mainnet`
+4. Once confident, deploy to Polygon using `npm run deploy:polygon`
 5. Add liquidity to QuickSwap after mainnet deployment
 
 ## Important Notes
@@ -245,4 +245,4 @@ For more information:
 
 ---
 
-**Ready to deploy? Run: `npm run deploy:sepolia`**
+**Ready to deploy? Run: `npm run deploy:amoy`**

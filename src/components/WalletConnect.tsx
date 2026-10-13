@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserProvider, formatUnits, parseUnits, Contract } from 'ethers';
+import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
 
@@ -56,10 +57,19 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
       }
 
       try {
-        const ethersProvider = new BrowserProvider(walletProvider)
+        const ethersProvider = new BrowserProvider(walletProvider as any)
         setProvider(ethersProvider)
         
-        const token = new Contract(MTX_TOKEN_ADDRESS, MTX_TOKEN_ABI, ethersProvider)
+        if (!MTX.isDeployed) {
+          setBalance(0)
+          setTier(getTier(0))
+          if (onWalletChange) {
+            onWalletChange({ address, balance: 0 })
+          }
+          return
+        }
+
+        const token = new Contract(MTX.address, MTX_TOKEN_ABI, ethersProvider)
         const rawBalance = await token.balanceOf(address)
         const decimals = await token.decimals()
         const formatted = parseFloat(formatUnits(rawBalance, decimals))
@@ -82,20 +92,22 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   // MTX: Add MTX token to wallet using wallet_watchAsset (EIP-747)
   const addTokenToWallet = async (): Promise<void> => {
     setError('');
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
     if (!provider) {
       setError('Connect wallet first.');
       return;
     }
     try {
-      // wallet_watchAsset requires direct ethereum object access (not through ethers provider)
-      const ethereum = (window as any).ethereum;
-      if (!ethereum) {
-        setError('MetaMask or compatible wallet not found.');
+      if (!walletProvider) {
+        setError('Connect wallet first.');
         return;
       }
       
       // Request to add MTX token to user's wallet using EIP-747
-      const wasAdded = await ethereum.request({
+      const wasAdded = await (walletProvider as Eip1193Provider).request({
         method: 'wallet_watchAsset',
         params: {
           type: 'ERC20',
@@ -121,6 +133,10 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   // Deduct MTX for premium features with burn
   const deductMTX = async (amount: number): Promise<void> => {
     setError('');
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
     if (!provider || !address) {
       setError('Connect wallet first.');
       return;
@@ -166,6 +182,10 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   // Lock/Unlock MTX for tier access (simulated client-side)
   const lockMTX = async (amount: number, days: number = 30): Promise<void> => {
     setError('');
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
     if (!provider || !address) {
       setError('Connect wallet first.');
       return;
@@ -183,6 +203,10 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     }
   };
   const unlockMTX = (): void => {
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
     if (!lockUntil || Date.now() < lockUntil) {
       setError('Lock period not finished.');
       return;
@@ -207,6 +231,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
           <div style={{ marginTop: '0.5rem' }}>
             <button 
               onClick={addTokenToWallet} 
+              disabled={!MTX.isDeployed}
               style={{ 
                 padding: '0.25rem 0.75rem', 
                 fontSize: '0.875rem', 
@@ -221,60 +246,64 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
               Add MTX to Wallet
             </button>
             {/* MTX: Buy MTX link using uniswapUrl from config */}
-            <a 
-              href={MTX.uniswapUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              style={{ 
-                padding: '0.25rem 0.75rem', 
-                fontSize: '0.875rem', 
-                background: '#FF007A', 
-                color: '#fff', 
-                textDecoration: 'none',
-                border: 'none', 
-                borderRadius: '4px',
-                display: 'inline-block',
-                marginRight: '0.5rem'
-              }}
-            >
-              Buy MTX on QuickSwap
-            </a>
+            {MTX.isDeployed && (
+              <a
+                href={MTX.uniswapUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  padding: '0.25rem 0.75rem',
+                  fontSize: '0.875rem',
+                  background: '#FF007A',
+                  color: '#fff',
+                  textDecoration: 'none',
+                  border: 'none',
+                  borderRadius: '4px',
+                  display: 'inline-block',
+                  marginRight: '0.5rem'
+                }}
+              >
+                Buy MTX on QuickSwap
+              </a>
+            )}
             {/* MTX: Direct Mint link */}
-            <a 
-              href="/buy-mtx"
-              style={{ 
-                padding: '0.25rem 0.75rem', 
-                fontSize: '0.875rem', 
-                background: '#00ff99', 
-                color: '#181818', 
-                textDecoration: 'none',
-                border: 'none', 
-                borderRadius: '4px',
-                display: 'inline-block'
-              }}
-            >
-              Buy MTX (Direct Mint)
-            </a>
+            {MTX.isDeployed && (
+              <a
+                href="/buy-mtx"
+                style={{
+                  padding: '0.25rem 0.75rem',
+                  fontSize: '0.875rem',
+                  background: '#00ff99',
+                  color: '#181818',
+                  textDecoration: 'none',
+                  border: 'none',
+                  borderRadius: '4px',
+                  display: 'inline-block'
+                }}
+              >
+                Buy MTX (Direct Mint)
+              </a>
+            )}
           </div>
           {locked > 0 && (
             <div style={{ color: '#ffd700', marginTop: '0.5rem' }}>
               <strong>Locked MTX:</strong> {locked} (Unlocks: {lockUntil ? new Date(lockUntil).toLocaleString() : ''})
-              <button onClick={unlockMTX} disabled={!lockUntil || Date.now() < lockUntil} style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', background: '#444', color: '#fff', border: 'none', borderRadius: '4px', cursor: !lockUntil || Date.now() < lockUntil ? 'not-allowed' : 'pointer' }}>
+              <button onClick={unlockMTX} disabled={!MTX.isDeployed || !lockUntil || Date.now() < lockUntil} style={{ marginLeft: '1rem', padding: '0.25rem 0.75rem', background: '#444', color: '#fff', border: 'none', borderRadius: '4px', cursor: !MTX.isDeployed || !lockUntil || Date.now() < lockUntil ? 'not-allowed' : 'pointer' }}>
                 Unlock MTX
               </button>
             </div>
           )}
           <div style={{ marginTop: '1rem' }}>
-            <button onClick={() => deductMTX(10)} disabled={loading} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#ff0066', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' }}>
+            <button onClick={() => deductMTX(10)} disabled={loading || !MTX.isDeployed} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#ff0066', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' }}>
               Use Heavy Tool (-10 MTX)
             </button>
-            <button onClick={() => deductMTX(5)} disabled={loading} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00aaff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' }}>
+            <button onClick={() => deductMTX(5)} disabled={loading || !MTX.isDeployed} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00aaff', color: '#fff', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' }}>
               Priority Execution (-5 MTX)
             </button>
-            <button onClick={() => deductMTX(1)} disabled={loading} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#ffaa00', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' }}>
+            <button onClick={() => deductMTX(1)} disabled={loading || !MTX.isDeployed} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#ffaa00', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer', marginRight: '0.5rem' }}>
               Experimental Module (-1 MTX)
             </button>
-            <button onClick={() => lockMTX(50, 30)} disabled={loading || locked > 0} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: locked > 0 ? 'not-allowed' : 'pointer', marginLeft: '0.5rem' }}>
+            <button onClick={() => lockMTX(50, 30)} disabled={loading || locked > 0 || !MTX.isDeployed} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: locked > 0 || !MTX.isDeployed ? 'not-allowed' : 'pointer', marginLeft: '0.5rem' }}>
               Lock 50 MTX (30 days)
             </button>
           </div>

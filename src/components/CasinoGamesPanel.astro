@@ -20,12 +20,14 @@ const casinoDeployed = Casino.isFullyDeployed;
   <div class="contract-info">
     <strong>Contract Addresses:</strong><br>
     <ul>
-      <li><strong>MTX Token (MatrixHubCoin):</strong> <span class="contract-address">{mtxDeployed ? MTX.address : "Coming Soon"}</span></li>
+      <li><strong>MTX Token (MatrixHubCoin):</strong> <span class="contract-address">{mtxDeployed ? MTX.address : "Pending Deployment"}</span></li>
       <li><strong>CasinoCore:</strong> <span class="contract-address">{Casino.contracts.casinoCore.displayAddress}</span></li>
       <li><strong>CasinoReserve:</strong> <span class="contract-address">{Casino.contracts.casinoReserve.displayAddress}</span></li>
+      <li><strong>LiquidityRouter:</strong> <span class="contract-address">{Casino.contracts.liquidityRouter.displayAddress}</span></li>
+      <li><strong>RNGEngine:</strong> <span class="contract-address">{Casino.contracts.rngEngine.displayAddress}</span></li>
     </ul>
     {casinoDeployed ? (
-      <p style="margin-top: 10px;"><strong>Status:</strong> Connect your wallet to interact with the MTX Casino.</p>
+      <p style="margin-top: 10px;"><strong>Status:</strong> Casino contracts deployed on Polygon mainnet (Chain ID 137). Connect your wallet to interact with the MTX Casino.</p>
     ) : (
       <p style="margin-top: 10px;"><strong>Status:</strong> Casino contracts deploying to Polygon mainnet — games are playable in preview mode now.</p>
     )}

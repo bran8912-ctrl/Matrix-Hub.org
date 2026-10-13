@@ -3,14 +3,10 @@
 // ⚠️ WARNING: This file needs to be updated with actual deployed contract addresses
 // See: docs/DEPLOYMENT_QUICK_START.md for deployment instructions
 
-// Note: ethers and Casino are imported but not used yet (pending contract deployment)
-// import { ethers } from "ethers";
-// import { Casino } from "../../config/casino";
+import { Casino } from "../../config/casino";
 
-// Note: CASINO_CORE_ADDRESS and CASINO_CORE_ABI are defined but not used yet
-// These will be used once the casino contracts are deployed
-// Use casino config for contract address
-// const CASINO_CORE_ADDRESS = Casino.contracts.casinoCore.address;
+// Note: CASINO_CORE_ADDRESS and CASINO_CORE_ABI are defined for casino interactions
+const CASINO_CORE_ADDRESS = Casino.contracts.casinoCore.address;
 
 // const CASINO_CORE_ABI = [
 //   // Add relevant ABI entries for bet placement and payout after deployment

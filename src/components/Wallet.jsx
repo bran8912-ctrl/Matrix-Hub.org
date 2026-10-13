@@ -22,6 +22,10 @@ const Wallet = () => {
    * Fetch MTX token balance for the connected address
    */
   const fetchBalance = useCallback(async (ethersProvider, userAddress) => {
+    if (!MTX.isDeployed) {
+      setBalance('0 (MTX address pending)');
+      return;
+    }
     try {
       const { Contract, formatUnits } = await import('ethers');
       const mtxContract = new Contract(MTX.address, mtxAbi, ethersProvider);
@@ -69,15 +73,27 @@ const Wallet = () => {
    */
   const addTokenToWallet = async () => {
     setError('');
-    if (!window.ethereum) {
-      setError('Polygon wallet not found.');
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
+    if (!walletProvider) {
+      setError('Connect wallet first.');
       return;
     }
 
     try {
-      const { BrowserProvider } = await import('ethers');
-      const ethersProvider = new BrowserProvider(walletProvider)
-      setProvider(ethersProvider)
+      const wasAdded = await walletProvider.request({
+        method: 'wallet_watchAsset',
+        params: {
+          type: 'ERC20',
+          options: {
+            address: MTX.address,
+            symbol: MTX.symbol,
+            decimals: MTX.decimals,
+          },
+        },
+      });
 
       if (wasAdded) {
         console.log('MTX token successfully added to wallet');
@@ -97,7 +113,7 @@ const Wallet = () => {
           <div className="address">{address}</div>
           <div className="balance">Balance: {balance ?? '—'}</div>
           <div className="actions">
-            <button onClick={addTokenToWallet} className="btn-small">Add MTX to Wallet</button>
+            <button onClick={addTokenToWallet} className="btn-small" disabled={!MTX.isDeployed}>Add MTX to Wallet</button>
           </div>
           {error && <div className="error">{error}</div>}
         </div>

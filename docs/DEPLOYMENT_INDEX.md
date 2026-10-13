@@ -77,19 +77,19 @@ npm run compile
 # Get test MATIC first: https://faucet.polygon.technology/amoy/
 
 # Deploy
-npm run deploy:sepolia
+npm run deploy:amoy
 
 # Verify (replace CONTRACT_ADDRESS)
-npm run verify:sepolia CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ### Deploy to Mainnet (After Testing)
 ```bash
 # Deploy
-npm run deploy:mainnet
+npm run deploy:polygon
 
 # Verify (replace CONTRACT_ADDRESS)
-npm run verify:mainnet CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:polygon CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ## 🎯 What You Need
@@ -187,7 +187,7 @@ npm run verify:mainnet CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3d
 - Ensure sufficient test MATIC
 
 **Q: How do I verify the contract?**
-- Use: `npm run verify:sepolia CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"`
+- Use: `npm run verify:amoy CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"`
 - See: [Verification Guide](SEPOLIA_DEPLOYMENT.md#step-4-verify-contract-on-etherscan)
 
 ## 🎯 Quick Navigation
@@ -208,4 +208,4 @@ npm run verify:mainnet CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3d
 **First time?** → [Start with SEPOLIA_DEPLOYMENT.md](SEPOLIA_DEPLOYMENT.md)  
 **Need checklist?** → [Use DEPLOYMENT_CHECKLIST.md](DEPLOYMENT_CHECKLIST.md)
 
-**Command**: `npm run deploy:sepolia` 🚀
+**Command**: `npm run deploy:amoy` 🚀

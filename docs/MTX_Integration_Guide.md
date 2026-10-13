@@ -263,14 +263,14 @@ User → Connect wallet
 
 2. Deploy MTX token:
    ```bash
-   npm run deploy:sepolia  # Testnet first!
+   npm run deploy:amoy  # Testnet first!
    # OR
-   npm run deploy:mainnet  # Production
+   npm run deploy:polygon  # Production
    ```
 
 3. Verify contract:
    ```bash
-   npm run verify:sepolia CONTRACT_ADDRESS "100000000" "0xOWNER_ADDRESS"
+   npm run verify:amoy CONTRACT_ADDRESS "100000000" "0xOWNER_ADDRESS"
    ```
 
 4. Update `src/config/mtx.ts` with deployed address
