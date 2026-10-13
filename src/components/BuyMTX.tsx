@@ -24,7 +24,7 @@ const BuyMTX: React.FC = () => {
   useEffect(() => {
     const fetchContractInfo = async () => {
       try {
-        if (!window.ethereum) return;
+        if (!MTX.isDeployed || !window.ethereum) return;
         const { BrowserProvider, Contract } = await import('ethers');
         const provider = new BrowserProvider(window.ethereum as any);
         const mtxContract = new Contract(MTX.address, mtxAbi, provider);
@@ -46,6 +46,11 @@ const BuyMTX: React.FC = () => {
     setError('');
     setSuccess('');
     setTxHash('');
+
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
 
     if (!window.ethereum) {
       setError('Polygon wallet not found. Please install MetaMask or a compatible wallet.');
@@ -95,7 +100,7 @@ const BuyMTX: React.FC = () => {
     <div className="buy-mtx">
       <div className="input-row">
         <input value={maticAmount} onChange={(e) => setMaticAmount(e.target.value)} />
-        <button onClick={handleBuyMTX} disabled={loading}>Buy MTX</button>
+        <button onClick={handleBuyMTX} disabled={loading || !MTX.isDeployed}>Buy MTX</button>
       </div>
       {error && <div className="error">{error}</div>}
       {success && <div className="success">{success} {txHash && (<a href={`https://polygonscan.com/tx/${txHash}`} target="_blank" rel="noreferrer">View TX</a>)}</div>}

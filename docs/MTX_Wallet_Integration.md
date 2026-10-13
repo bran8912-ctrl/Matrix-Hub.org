@@ -274,12 +274,12 @@ The MTX token configuration is located in `src/config/mtx.ts`:
 
 ```typescript
 export const MTX = {
-  address: "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0", // Live contract address
+  address: "0x0000000000000000000000000000000000000000", // Placeholder until MTX is deployed
   symbol: "MTX",
   decimals: 18,
-  Chain ID: 137, // Polygon
+  chainId: 137, // Polygon
   name: "Matrix Hub Coin",
-  ethToMtxRate: 100000, // 1 MATIC = 1,000 MTX
+  maticToMtxRate: 1000, // 1 MATIC = 1,000 MTX
   get uniswapUrl() {
     return `https://app.quickswap.exchange/#/swap?outputCurrency=${this.address}&chain=ethereum`;
   }

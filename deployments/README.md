@@ -10,7 +10,7 @@ After deployment, you will find the following JSON files here:
 - `casino-{network}.json` - Casino contracts deployment info
 - `mtx-distribution-{network}.json` - Token distribution records
 
-Where `{network}` is one of: `sepolia`, `mainnet`, `localhost`
+Where `{network}` is one of: `amoy`, `polygon`, `localhost`
 
 ## Structure
 
@@ -18,7 +18,7 @@ Each deployment file contains:
 
 ```json
 {
-  "network": "sepolia",
+  "network": "amoy",
   "chainId": 80002,
   "contractAddress": "0x...",
   "deployer": "0x...",

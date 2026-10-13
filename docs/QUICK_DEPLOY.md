@@ -32,7 +32,7 @@ npm install
 npm run compile
 
 # Deploy to Amoy testnet
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 **SAVE THE CONTRACT ADDRESS!**
@@ -41,7 +41,7 @@ npm run deploy:sepolia
 
 ```bash
 # Replace YOUR_CONTRACT_ADDRESS with the address from deployment
-npm run verify:sepolia YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ## Done! ✅
@@ -72,4 +72,4 @@ View on Polygonscan: `https://amoy.polygonscan.com/address/YOUR_CONTRACT_ADDRESS
 
 ---
 
-**Command:** `npm run deploy:sepolia` 🚀
+**Command:** `npm run deploy:amoy` 🚀

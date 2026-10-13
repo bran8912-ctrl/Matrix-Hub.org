@@ -79,10 +79,10 @@ Deploys the MTX (Matrix-HubCoin) token contract to Polygon networks.
 **Usage:**
 ```bash
 # Deploy to Amoy testnet
-npm run deploy:sepolia
+npm run deploy:amoy
 
 # Deploy to Mainnet
-npm run deploy:mainnet
+npm run deploy:polygon
 ```
 
 **Requirements:**
@@ -108,14 +108,14 @@ Deploys the complete casino contract ecosystem to Polygon networks. This automat
 **Usage:**
 ```bash
 # Deploy to Amoy testnet (recommended first)
-npx hardhat run scripts/deploy_casino.js --network sepolia
+npx hardhat run scripts/deploy_casino.js --network amoy
 
 # Deploy to Mainnet (after thorough testing)
 npx hardhat run scripts/deploy_casino.js --network mainnet
 
 # Or use npm scripts (if configured)
-npm run deploy:sepolia:casino
-npm run deploy:mainnet:casino
+npm run deploy:amoy:casino
+npm run deploy:polygon:casino
 ```
 
 **Prerequisites:**
@@ -308,7 +308,7 @@ This generates the contract artifacts needed for deployment.
 ### 3. Deploy to Testnet (Recommended First)
 
 ```bash
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 **Save the contract address!**
@@ -316,7 +316,7 @@ npm run deploy:sepolia
 ### 4. Verify Contract
 
 ```bash
-npm run verify:sepolia YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 Replace `YOUR_CONTRACT_ADDRESS` with the deployed contract address.
@@ -331,13 +331,13 @@ Replace `YOUR_CONTRACT_ADDRESS` with the deployed contract address.
 ### 6. Deploy to Mainnet (After Testing)
 
 ```bash
-npm run deploy:mainnet
+npm run deploy:polygon
 ```
 
 ### 7. Verify on Mainnet
 
 ```bash
-npm run verify:mainnet YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:polygon YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ## Networks
@@ -350,7 +350,7 @@ npm run verify:mainnet YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc
 - **Purpose**: Testing before mainnet deployment
 
 ### Polygon
-- **Chain ID**: 1
+- **Chain ID**: 137
 - **RPC**: https://eth.llamarpc.com
 - **Explorer**: https://polygonscan.com/
 - **Purpose**: Production deployment
@@ -409,4 +409,4 @@ For questions or issues:
 
 ---
 
-**Quick Deploy: `npm run deploy:sepolia` (testnet) or `npm run deploy:mainnet` (production)**
+**Quick Deploy: `npm run deploy:amoy` (testnet) or `npm run deploy:polygon` (production)**

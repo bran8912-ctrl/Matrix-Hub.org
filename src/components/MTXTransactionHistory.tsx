@@ -24,6 +24,10 @@ const MTXTransactionHistory: React.FC<MTXTransactionHistoryProps> = ({ address, 
 
   const fetchTransactions = async () => {
     if (!address || !window.ethereum) return;
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
     setLoading(true);
     setError('');
 

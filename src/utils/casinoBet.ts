@@ -9,7 +9,7 @@ const isAddress20 = (addr: string | null | undefined): boolean =>
 
 const CASINO_VAULT_ADDRESS = (Casino.contracts.casinoReserve.isDeployed && isAddress20(Casino.contracts.casinoReserve.address))
   ? Casino.contracts.casinoReserve.address
-  : (Casino.owner || MTX.owner);
+  : undefined;
 
 export interface BetResult {
   txHash: string;
@@ -31,6 +31,7 @@ export async function placeCasinoBet(walletProvider: Eip1193Provider, betAmount:
   if (!walletProvider) throw new Error('Wallet not connected. Please connect your wallet to play.');
   if (betAmount <= 0) throw new Error('Bet amount must be greater than zero.');
   if (!MTX.isDeployed) throw new Error('MTX token contract is not deployed yet. Cannot place bet.');
+  if (!CASINO_VAULT_ADDRESS) throw new Error('Casino reserve contract is not deployed yet. Cannot place bet.');
 
   const { BrowserProvider, Contract, parseUnits } = await import('ethers');
   const provider = new BrowserProvider(walletProvider as any);

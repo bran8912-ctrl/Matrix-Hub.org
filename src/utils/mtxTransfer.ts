@@ -9,6 +9,10 @@ export async function spendMTX(to: string, amount: string): Promise<string> {
   const normalizedAmount = amount.trim();
 
   if (!normalizedAmount) throw new Error('Amount is required and cannot be empty.');
+  if (!MTX.isDeployed) throw new Error('MTX token contract is not deployed yet. Cannot transfer tokens.');
+  if (!/^0x[a-fA-F0-9]{40}$/.test(to) || /^0x0{40}$/i.test(to)) {
+    throw new Error('Recipient must be a valid, non-zero EVM address.');
+  }
 
   const numericAmount = parseFloat(normalizedAmount);
   if (!Number.isFinite(numericAmount) || numericAmount <= 0) throw new Error('Amount must be a valid number greater than zero.');

@@ -6,7 +6,7 @@ The Matrix Hub MTX token deployment infrastructure is **fully configured and rea
 
 ### Command Ready to Use
 ```bash
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 ## 📋 Prerequisites Checklist
@@ -52,7 +52,7 @@ Before running the deployment command, ensure you have:
 
 ### Step 1: Deploy to Amoy
 ```bash
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 **Expected Output:**
@@ -85,7 +85,7 @@ Transaction Hash: 0xYOUR_TX_HASH
 
 ### Step 2: Verify on Polygonscan
 ```bash
-npm run verify:sepolia 0xYOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy 0xYOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 Replace `0xYOUR_CONTRACT_ADDRESS` with your actual deployed address.
@@ -202,8 +202,8 @@ The deployment script will use these fixed parameters:
 5. Perform thorough testing before mainnet deployment
 
 ### For Production (After Amoy Testing)
-1. Deploy to mainnet: `npm run deploy:mainnet`
-2. Verify on mainnet: `npm run verify:mainnet ...`
+1. Deploy to mainnet: `npm run deploy:polygon`
+2. Verify on mainnet: `npm run verify:polygon ...`
 3. Add liquidity to QuickSwap
 4. Update all documentation with mainnet address
 5. Announce deployment
@@ -254,16 +254,16 @@ If you encounter issues:
 
 If you've completed all prerequisites, run:
 ```bash
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 Then verify with:
 ```bash
-npm run verify:sepolia YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ---
 
 **Last Updated**: December 30, 2025  
 **Status**: ✅ Ready for deployment  
-**Command**: `npm run deploy:sepolia`
+**Command**: `npm run deploy:amoy`

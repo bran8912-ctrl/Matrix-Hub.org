@@ -4,7 +4,13 @@
 const hre = require("hardhat");
 
 async function main() {
-  const MTX_ADDRESS = "0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0";
+  const MTX_ADDRESS = process.env.MTX_CONTRACT_ADDRESS;
+  if (!MTX_ADDRESS || !hre.ethers.isAddress(MTX_ADDRESS) || /^0x0{40}$/i.test(MTX_ADDRESS)) {
+    throw new Error("Set MTX_CONTRACT_ADDRESS to the deployed MTX contract address for the selected network.");
+  }
+  if (await hre.ethers.provider.getCode(MTX_ADDRESS) === "0x") {
+    throw new Error("MTX_CONTRACT_ADDRESS has no deployed contract on the selected network.");
+  }
   const [deployer] = await hre.ethers.getSigners();
 
   // Deploy CasinoReserve

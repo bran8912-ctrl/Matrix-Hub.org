@@ -26,8 +26,8 @@ const contractAddress = (rawContractAddress && rawContractAddress.trim() !== '')
   ? rawContractAddress.trim()
   : "0x0000000000000000000000000000000000000000"; // Placeholder - deploy contract to get real address
 
-// Validate address format (supports 40-character hex addresses and 64-character contract IDs)
-const isValidAddress = Boolean(contractAddress && contractAddress.match(/^0x([a-fA-F0-9]{40}|[a-fA-F0-9]{64})$/));
+// Validate EVM address format
+const isValidAddress = Boolean(contractAddress && contractAddress.match(/^0x[a-fA-F0-9]{40}$/));
 const isPlaceholder = !contractAddress || /^0x0+$/.test(contractAddress);
 
 if (isPlaceholder) {
