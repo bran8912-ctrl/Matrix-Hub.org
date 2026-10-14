@@ -1,5 +1,6 @@
 // scripts/deploy_casino.cjs
-// Deploy CasinoReserve and CasinoCore contracts with the deployed MatrixHubCoin address
+// Legacy synchronous deployer disabled; use scripts/deploy_casino.js instead.
+throw new Error("This legacy casino deployer is disabled. Use scripts/deploy_casino.js with a funded Chainlink VRF subscription.");
 
 const hre = require("hardhat");
 

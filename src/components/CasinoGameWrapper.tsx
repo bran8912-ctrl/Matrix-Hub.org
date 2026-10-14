@@ -2,7 +2,14 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
-import { placeCasinoBet, type BetResult } from '../utils/casinoBet';
+import {
+  claimCasinoPayout,
+  getCasinoBetStatus,
+  placeCasinoBet,
+  type BetResult,
+  type BetStatus,
+} from '../utils/casinoBet';
+import { Casino } from '../config/casino';
 
 // Deployed MTX token contract address and ABI
 const MTX_TOKEN_ADDRESS = MTX.address;
@@ -13,15 +20,18 @@ const MTX_TOKEN_ABI = [
 ];
 
 interface CasinoGameWrapperProps {
+  game?: string;
   children: (props: {
     walletAddress?: string;
     mtxBalance: number;
-    placeBet: (amount: number, gameData?: string) => Promise<BetResult>;
+    placeBet: (amount: number, target: number) => Promise<BetResult>;
+    getBetStatus: (betId: string) => Promise<BetStatus>;
+    claimPayout: (betId: string) => Promise<string>;
     refreshBalance: () => void;
   }) => React.ReactNode;
 }
 
-export default function CasinoGameWrapper({ children }: CasinoGameWrapperProps) {
+export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperProps) {
   const { address, isConnected } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
   const { open } = useAppKit()
@@ -65,15 +75,53 @@ export default function CasinoGameWrapper({ children }: CasinoGameWrapperProps) 
     fetchBalance()
   }, [fetchBalance])
 
-  const handlePlaceBet = useCallback(async (amount: number, gameData?: string): Promise<BetResult> => {
+  const handlePlaceBet = useCallback(async (amount: number, target: number): Promise<BetResult> => {
     if (!walletProvider) {
       throw new Error('Wallet not connected.');
     }
-    const result = await placeCasinoBet(walletProvider as unknown as Eip1193Provider, amount, gameData);
+    const result = await placeCasinoBet(walletProvider as unknown as Eip1193Provider, amount, target);
     // Refresh balance after bet
     await fetchBalance();
     return result;
   }, [walletProvider, fetchBalance]);
+
+  const handleGetBetStatus = useCallback(async (betId: string): Promise<BetStatus> => {
+    if (!walletProvider) throw new Error('Wallet not connected.');
+    return getCasinoBetStatus(walletProvider as unknown as Eip1193Provider, betId);
+  }, [walletProvider]);
+
+  const handleClaimPayout = useCallback(async (betId: string): Promise<string> => {
+    if (!walletProvider) throw new Error('Wallet not connected.');
+    const txHash = await claimCasinoPayout(walletProvider as unknown as Eip1193Provider, betId);
+    await fetchBalance();
+    return txHash;
+  }, [walletProvider, fetchBalance]);
+
+  if (game !== 'dice') {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
+        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Game unavailable</h3>
+        <p className="text-gray-300">
+          This game is disabled until its outcome and payout are settled from an on-chain VRF request.
+        </p>
+        <a href="/games/casino/dice" className="inline-block mt-4 text-green-400 underline">
+          Go to Dice
+        </a>
+      </div>
+    );
+  }
+
+  if (!Casino.isFullyDeployed) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
+        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Dice wagers are not live</h3>
+        <p className="text-gray-300">
+          The VRF casino contracts have not been deployed and validated on {Casino.chainName}.
+          No MTX will be transferred.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
@@ -106,7 +154,14 @@ export default function CasinoGameWrapper({ children }: CasinoGameWrapperProps) 
               </div>
             </div>
           </div>
-          {children({ walletAddress: address, mtxBalance: balance, placeBet: handlePlaceBet, refreshBalance: fetchBalance })}
+          {children({
+            walletAddress: address,
+            mtxBalance: balance,
+            placeBet: handlePlaceBet,
+            getBetStatus: handleGetBetStatus,
+            claimPayout: handleClaimPayout,
+            refreshBalance: fetchBalance,
+          })}
         </>
       )}
     </div>

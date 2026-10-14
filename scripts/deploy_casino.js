@@ -9,12 +9,12 @@
  * - MTX token must be deployed first (run deploy_mtx.js)
  * - Environment variables configured in .env:
  *   - PRIVATE_KEY: Deployer's private key
- *   - MAINNET_RPC_URL or AMOY_RPC_URL: RPC endpoint
+ *   - POLYGON_RPC_URL or AMOY_RPC_URL: RPC endpoint
  *   - POLYGONSCAN_API_KEY: For contract verification (optional)
  * 
  * USAGE:
  *   npx hardhat run scripts/deploy_casino.js --network amoy
- *   npx hardhat run scripts/deploy_casino.js --network mainnet
+ *   npx hardhat run scripts/deploy_casino.js --network polygon
  * 
  * OUTPUT:
  *   - Deployment information saved to: deployments/casino-<network>.json
@@ -26,18 +26,22 @@
  *   - Extend deployContract() function for additional contracts
  * 
  * NOTES:
- *   - CasinoReserve initially deployed with temporary casinoCore address (deployer)
- *   - LiquidityRouter initially deployed with temporary dexPool address (deployer)
- *   - These addresses should be updated after deployment via contract functions
+ *   - MTX_CONTRACT_ADDRESS, QUICKSWAP_V2_ROUTER_ADDRESS, and
+ *     CASINO_MAX_PAYOUT_PER_BET must be set for the selected network
+ *   - Module permissions are wired to CasinoCore after all contracts deploy
+ *   - Casino MTX fees are queued; the owner separately supplies POL to create LP
  *   - The script creates the deployments/ folder automatically if it doesn't exist
  * 
  * @author Matrix-Hub Team
  * @version 2.0.0
  */
 
-const hre = require("hardhat");
-const fs = require("fs");
-const path = require("path");
+import hre from "hardhat";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // ============================================================================
 // DEPLOYMENT CONFIGURATION
@@ -55,10 +59,25 @@ const DEPLOYMENT_CONFIG = {
   // Optional: Override these addresses if needed, otherwise uses deployer
   devAddress: null,         // Developer fee recipient (null = use deployer)
   governanceAddress: null,  // Governance address (null = use deployer)
-  
-  // Temporary addresses (will need to be updated after deployment)
-  tempDexPool: null,        // Temporary DEX pool address (null = use deployer)
 };
+
+const VRF_NETWORK_CONFIG = {
+  polygon: {
+    chainId: 137,
+    coordinator: "0xec0Ed46f36576541C75739E915ADbCb3DE24bD77",
+    keyHash: "0x0ffbbd0c1c18c0263dd778dadd1d64240d7bc338d95fec1cf0473928ca7eaf9e",
+    linkToken: "0xb0897686c545045aFc77CF20eC7A532E3120E0F1",
+  },
+  amoy: {
+    chainId: 80002,
+    coordinator: "0x343300b5d84D444B2ADc9116FEF1bED02BE49Cf2",
+    keyHash: "0x816bedba8a50b294e5cbd47842baf240c2385f2eaf719edbd4f250a137a8c899",
+    linkToken: "0x0fd9e8d3af1aaee056eb9e802c3a762a667b1904",
+  },
+};
+
+const VRF_REQUEST_CONFIRMATIONS = 3;
+const VRF_CALLBACK_GAS_LIMIT = 250000;
 
 // ============================================================================
 // UTILITY FUNCTIONS
@@ -76,27 +95,6 @@ function ensureDeploymentsDir() {
     console.log("✅ Deployments directory created");
   }
   return deploymentsDir;
-}
-
-/**
- * Load MTX deployment information from previous deployment
- * @returns {Object} MTX deployment data including contract address
- * @throws {Error} If MTX deployment file not found
- */
-function loadMtxDeployment() {
-  const mtxDeploymentFile = path.join(__dirname, "..", "deployments", `mtx-${hre.network.name}.json`);
-  
-  if (!fs.existsSync(mtxDeploymentFile)) {
-    console.error("\n❌ Error: MTX token not deployed yet!");
-    console.error("   Deploy MTX first using one of these commands:");
-    console.error("   - npm run deploy:amoy:mtx");
-    console.error("   - npm run deploy:mainnet:mtx");
-    console.error("   - npx hardhat run scripts/deploy_mtx.js --network <network>");
-    throw new Error("MTX token not deployed");
-  }
-  
-  const mtxDeployment = JSON.parse(fs.readFileSync(mtxDeploymentFile, 'utf8'));
-  return mtxDeployment;
 }
 
 /**
@@ -150,34 +148,105 @@ async function main() {
   console.log("╔════════════════════════════════════════════════════════════════╗");
   console.log("║       Casino Contracts Deployment - Matrix-Hub Platform       ║");
   console.log("╚════════════════════════════════════════════════════════════════╝");
-  
+
   // Step 1: Network Information
   console.log("\n📡 Network Information:");
   console.log("   Network:", hre.network.name);
   console.log("   Chain ID:", hre.network.config.chainId);
+
+  const vrfConfig = VRF_NETWORK_CONFIG[hre.network.name];
+  if (!vrfConfig || hre.network.config.chainId !== vrfConfig.chainId) {
+    throw new Error(`Casino deployment is supported only on Polygon (137) and Amoy (80002), not ${hre.network.name}.`);
+  }
+  if (
+    hre.network.name === "polygon" &&
+    process.env.POLYGON_CASINO_DEPLOYMENT_APPROVED !== "YES"
+  ) {
+    throw new Error(
+      "Polygon deployment is release-gated. Complete Amoy end-to-end testing and independent security review, " +
+        "then explicitly set POLYGON_CASINO_DEPLOYMENT_APPROVED=YES."
+    );
+  }
   
   // Step 2: Deployer Account Setup
-  const [deployer] = await hre.ethers.getSigners();
+  const signers = await hre.ethers.getSigners();
+  if (signers.length === 0) {
+    throw new Error("Set PRIVATE_KEY for the selected network before deploying casino contracts.");
+  }
+  const [deployer] = signers;
   console.log("\n👤 Deployer Account:");
   console.log("   Address:", deployer.address);
   
   // Step 3: Check Balance
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("   Balance:", hre.ethers.formatEther(balance), "MATIC");
+  console.log("   Balance:", hre.ethers.formatEther(balance), "POL");
   
   if (balance === 0n) {
-    console.warn("\n⚠️  Warning: Deployer balance is 0 MATIC!");
+    console.warn("\n⚠️  Warning: Deployer balance is 0 POL!");
     console.warn("   Deployment will fail. Please fund the deployer account.");
   }
   
   // Step 4: Ensure Deployments Directory Exists
   const deploymentsDir = ensureDeploymentsDir();
   
-  // Step 5: Load MTX Deployment
-  console.log("\n📋 Loading MTX Token Information...");
-  const mtxDeployment = loadMtxDeployment();
-  const MTX_ADDRESS = mtxDeployment.contractAddress;
+  // Step 5: Validate network-specific deployment addresses before any deployment.
+  const MTX_ADDRESS = process.env.MTX_CONTRACT_ADDRESS;
+  const QUICKSWAP_V2_ROUTER_ADDRESS = process.env.QUICKSWAP_V2_ROUTER_ADDRESS;
+  const maxPayoutPerBet = process.env.CASINO_MAX_PAYOUT_PER_BET;
+  const subscriptionValue = process.env.VRF_SUBSCRIPTION_ID;
+  if (!subscriptionValue || !/^\d+$/.test(subscriptionValue) || BigInt(subscriptionValue) === 0n) {
+    throw new Error("Set VRF_SUBSCRIPTION_ID to an existing, LINK-funded Chainlink VRF v2.5 subscription.");
+  }
+  const subscriptionId = BigInt(subscriptionValue);
+  if (!MTX_ADDRESS || !hre.ethers.isAddress(MTX_ADDRESS) || /^0x0{40}$/i.test(MTX_ADDRESS)) {
+    throw new Error("Set MTX_CONTRACT_ADDRESS to the intended MTX token for the selected network.");
+  }
+  if (
+    hre.network.name === "polygon" &&
+    MTX_ADDRESS.toLowerCase() !== "0x53307e1db6c5cb6773c9495ca140372016dfe266"
+  ) {
+    throw new Error("Polygon deployment must use the user-designated canonical MTX token.");
+  }
+  if (
+    !QUICKSWAP_V2_ROUTER_ADDRESS ||
+    !hre.ethers.isAddress(QUICKSWAP_V2_ROUTER_ADDRESS) ||
+    /^0x0{40}$/i.test(QUICKSWAP_V2_ROUTER_ADDRESS)
+  ) {
+    throw new Error("Set QUICKSWAP_V2_ROUTER_ADDRESS to the QuickSwap V2 router for the selected network.");
+  }
+  if (!maxPayoutPerBet || !/^\d+(\.\d+)?$/.test(maxPayoutPerBet)) {
+    throw new Error("Set CASINO_MAX_PAYOUT_PER_BET to the intended maximum payout in MTX.");
+  }
+  for (const [label, address] of [
+    ["MTX_CONTRACT_ADDRESS", MTX_ADDRESS],
+    ["QUICKSWAP_V2_ROUTER_ADDRESS", QUICKSWAP_V2_ROUTER_ADDRESS],
+    ["Chainlink VRF coordinator", vrfConfig.coordinator],
+    ["Chainlink LINK token", vrfConfig.linkToken],
+  ]) {
+    if (await hre.ethers.provider.getCode(address) === "0x") {
+      throw new Error(`${label} has no deployed contract on the selected network.`);
+    }
+  }
+  const coordinator = new hre.ethers.Contract(
+    vrfConfig.coordinator,
+    [
+      "function getSubscription(uint256) view returns (uint96 balance,uint96 nativeBalance,uint64 reqCount,address owner,address[] consumers)",
+      "function addConsumer(uint256 subId,address consumer)",
+    ],
+    deployer
+  );
+  const subscription = await coordinator.getFunction("getSubscription").staticCall(subscriptionId);
+  if (subscription.owner.toLowerCase() !== deployer.address.toLowerCase()) {
+    throw new Error("The VRF subscription must be owned by the deployer so the script can add RNGEngine as a consumer.");
+  }
+  if (subscription.balance === 0n) {
+    throw new Error("The VRF subscription has no LINK balance; fund it with the official network LINK token first.");
+  }
   console.log("   MTX Token Address:", MTX_ADDRESS);
+  console.log("   QuickSwap V2 Router:", QUICKSWAP_V2_ROUTER_ADDRESS);
+  console.log("   VRF Coordinator:", vrfConfig.coordinator);
+  console.log("   VRF Subscription:", subscriptionId.toString());
+  console.log("   VRF LINK Balance:", subscription.balance.toString());
   
   // Step 6: Prepare Constructor Arguments
   console.log("\n⚙️  Preparing Constructor Arguments...");
@@ -186,45 +255,44 @@ async function main() {
   const RESERVE_CAP = hre.ethers.parseUnits(DEPLOYMENT_CONFIG.reserveCap, 18);
   const MIN_BET = hre.ethers.parseUnits(DEPLOYMENT_CONFIG.minBet, 18);
   const MAX_BET = hre.ethers.parseUnits(DEPLOYMENT_CONFIG.maxBet, 18);
+  const MAX_PAYOUT_PER_BET = hre.ethers.parseUnits(maxPayoutPerBet, 18);
+  if (MAX_PAYOUT_PER_BET === 0n) throw new Error("CASINO_MAX_PAYOUT_PER_BET must be greater than zero.");
   const DEV_ADDRESS = DEPLOYMENT_CONFIG.devAddress || deployer.address;
   const GOVERNANCE_ADDRESS = DEPLOYMENT_CONFIG.governanceAddress || deployer.address;
-  const TEMP_DEX_POOL = DEPLOYMENT_CONFIG.tempDexPool || deployer.address;
   
   console.log("   Reserve Cap:", hre.ethers.formatUnits(RESERVE_CAP, 18), "MTX");
   console.log("   Min Bet:", hre.ethers.formatUnits(MIN_BET, 18), "MTX");
   console.log("   Max Bet:", hre.ethers.formatUnits(MAX_BET, 18), "MTX");
+  console.log("   Max Payout:", hre.ethers.formatUnits(MAX_PAYOUT_PER_BET, 18), "MTX");
   console.log("   Dev Address:", DEV_ADDRESS);
   console.log("   Governance Address:", GOVERNANCE_ADDRESS);
   
   // Step 7: Deploy Contracts
   console.log("\n🎰 Starting Casino Contracts Deployment...");
   
-  // Deploy 1: RNGEngine (no dependencies)
+  // Deploy 1: RNGEngine (CasinoCore is wired after deployment)
   console.log("\n1️⃣  RNGEngine");
-  const { address: rngAddress } = await deployContract("RNGEngine", []);
-  
-  // Deploy 2: CasinoReserve (depends on MTX)
-  // Note: CasinoCore address is set to deployer temporarily and must be updated after CasinoCore deployment
+  const { contract: rng, address: rngAddress } = await deployContract("RNGEngine", [
+    vrfConfig.coordinator,
+    subscriptionId,
+    vrfConfig.keyHash,
+    VRF_CALLBACK_GAS_LIMIT,
+    VRF_REQUEST_CONFIRMATIONS,
+  ]);
+
+  // Deploy 2: CasinoReserve (CasinoCore is wired after deployment)
   console.log("\n2️⃣  CasinoReserve");
-  const tempCasinoCore = deployer.address; // Temporary - see post-deployment steps
-  const { address: reserveAddress } = await deployContract(
+  const { contract: reserve, address: reserveAddress } = await deployContract(
     "CasinoReserve",
-    [MTX_ADDRESS, RESERVE_CAP, tempCasinoCore]
+    [MTX_ADDRESS, RESERVE_CAP, hre.ethers.ZeroAddress]
   );
-  console.log("   ⚠️  CasinoCore address is temporary (deployer)");
-  console.log("   ⚠️  Update after deployment using CasinoReserve contract");
   
-  // Deploy 3: LiquidityRouter (depends on MTX and DEX pool)
-  // Note: DEX pool address is set to deployer temporarily until QuickSwap pool is created
+  // Deploy 3: LiquidityRouter (the V2 router creates a pair on first liquidity provision)
   console.log("\n3️⃣  LiquidityRouter");
-  const { address: liquidityAddress } = await deployContract(
+  const { contract: liquidity, address: liquidityAddress } = await deployContract(
     "LiquidityRouter",
-    [MTX_ADDRESS, TEMP_DEX_POOL]
+    [MTX_ADDRESS, QUICKSWAP_V2_ROUTER_ADDRESS]
   );
-  if (TEMP_DEX_POOL === deployer.address) {
-    console.log("   ⚠️  DEX pool address is temporary (deployer)");
-    console.log("   ⚠️  Update after creating QuickSwap MTX/MATIC pool");
-  }
   
   // Deploy 4: CasinoCore (depends on all previous contracts)
   console.log("\n4️⃣  CasinoCore");
@@ -237,10 +305,22 @@ async function main() {
       rngAddress,
       MIN_BET,
       MAX_BET,
+      MAX_PAYOUT_PER_BET,
       DEV_ADDRESS,
       GOVERNANCE_ADDRESS
     ]
   );
+
+  await (await reserve.setCasinoCore(casinoCoreAddress)).wait();
+  await (await rng.setCasinoCore(casinoCoreAddress)).wait();
+  await (await liquidity.setCasinoCore(casinoCoreAddress)).wait();
+  const alreadyConsumer = subscription.consumers.some(
+    (consumer) => consumer.toLowerCase() === rngAddress.toLowerCase()
+  );
+  if (!alreadyConsumer) {
+    console.log("\nRegistering RNGEngine as a VRF subscription consumer...");
+    await (await coordinator.getFunction("addConsumer")(subscriptionId, rngAddress)).wait();
+  }
   
   console.log("\n╔════════════════════════════════════════════════════════════════╗");
   console.log("║                    ✅ DEPLOYMENT SUCCESSFUL                     ║");
@@ -273,15 +353,24 @@ async function main() {
       minBetFormatted: hre.ethers.formatUnits(MIN_BET, 18) + " MTX",
       maxBet: MAX_BET.toString(),
       maxBetFormatted: hre.ethers.formatUnits(MAX_BET, 18) + " MTX",
+      maxPayoutPerBet: MAX_PAYOUT_PER_BET.toString(),
+      maxPayoutPerBetFormatted: hre.ethers.formatUnits(MAX_PAYOUT_PER_BET, 18) + " MTX",
       devAddress: DEV_ADDRESS,
       governanceAddress: GOVERNANCE_ADDRESS,
-      tempDexPool: TEMP_DEX_POOL
+      quickSwapV2Router: QUICKSWAP_V2_ROUTER_ADDRESS,
+      vrfCoordinator: vrfConfig.coordinator,
+      vrfSubscriptionId: subscriptionId.toString(),
+      vrfKeyHash: vrfConfig.keyHash,
+      vrfRequestConfirmations: VRF_REQUEST_CONFIRMATIONS,
+      vrfCallbackGasLimit: VRF_CALLBACK_GAS_LIMIT,
+      vrfPayment: "LINK"
     },
     
     // Additional Info
     notes: {
-      casinoReserveSetup: "CasinoReserve deployed with temporary casinoCore address (deployer). Update required.",
-      liquidityRouterSetup: `LiquidityRouter deployed with DEX pool address: ${TEMP_DEX_POOL}. Verify this is the correct production pool address and update after creating the final QuickSwap pool if necessary.`,
+      casinoReserveSetup: "CasinoCore permissions configured after deployment.",
+      vrfSetup: "RNGEngine is registered as a consumer of the funded Chainlink VRF v2.5 subscription.",
+      liquidityRouterSetup: "Casino MTX fees queue in LiquidityRouter. The owner must supply POL and call provideLiquidity to add MTX/WMATIC liquidity through QuickSwap V2.",
       reserveFunding: "CasinoReserve must be funded with MTX tokens before casino operations can begin."
     }
   };
@@ -297,34 +386,28 @@ async function main() {
   console.log("\n🔧 Required Configuration Updates:");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   
-  console.log("\n1. Update CasinoReserve with correct CasinoCore address:");
-  console.log("   This requires calling a setter function on-chain or redeploying.");
-  console.log(`   CasinoCore Address: ${casinoCoreAddress}`);
-  
-  if (TEMP_DEX_POOL === deployer.address) {
-    console.log("\n2. Create QuickSwap liquidity pool for MTX/MATIC:");
-    console.log("   a. Visit https://quickswap.exchange/");
-    console.log("   b. Create a new MTX/MATIC pool");
-    console.log("   c. Note the pool address");
-    console.log("   d. Update LiquidityRouter with the pool address");
-  }
-  
-  console.log("\n3. Fund CasinoReserve with initial MTX:");
+  console.log(`\n1. Fund CasinoReserve with initial MTX: ${reserveAddress}`);
   console.log(`   Reserve Address: ${reserveAddress}`);
-  console.log("   Recommended: 100,000+ MTX for initial liquidity");
-  console.log("   Use MTX.transfer() to send tokens to the reserve");
+  console.log("   Approve MTX and call the owner-only CasinoReserve.fund(amount).");
+  console.log("\n2. Approve initial MTX and call LiquidityRouter.queueInitialLiquidity(amount).");
+  console.log("   Then call provideLiquidity with POL and the intended initial MTX/POL ratio.");
+  console.log("   The first successful QuickSwap V2 addLiquidityETH call creates the MTX/WMATIC pair.");
   
   console.log("\n🔍 Contract Verification (Optional but Recommended):");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   console.log("\nVerify contracts on Polygonscan for transparency:");
-  console.log(`\n  npx hardhat verify --network ${hre.network.name} ${rngAddress}`);
+  console.log(
+    `\n  npx hardhat verify --network ${hre.network.name} ${rngAddress} ` +
+      `"${vrfConfig.coordinator}" "${subscriptionId}" "${vrfConfig.keyHash}" ` +
+      `"${VRF_CALLBACK_GAS_LIMIT}" "${VRF_REQUEST_CONFIRMATIONS}"`
+  );
   console.log(`\n  npx hardhat verify --network ${hre.network.name} ${reserveAddress} \\`);
-  console.log(`    "${MTX_ADDRESS}" "${RESERVE_CAP}" "${tempCasinoCore}"`);
+  console.log(`    "${MTX_ADDRESS}" "${RESERVE_CAP}" "${hre.ethers.ZeroAddress}"`);
   console.log(`\n  npx hardhat verify --network ${hre.network.name} ${liquidityAddress} \\`);
-  console.log(`    "${MTX_ADDRESS}" "${TEMP_DEX_POOL}"`);
+  console.log(`    "${MTX_ADDRESS}" "${QUICKSWAP_V2_ROUTER_ADDRESS}"`);
   console.log(`\n  npx hardhat verify --network ${hre.network.name} ${casinoCoreAddress} \\`);
   console.log(`    "${MTX_ADDRESS}" "${liquidityAddress}" "${reserveAddress}" "${rngAddress}" \\`);
-  console.log(`    "${MIN_BET}" "${MAX_BET}" "${DEV_ADDRESS}" "${GOVERNANCE_ADDRESS}"`);
+  console.log(`    "${MIN_BET}" "${MAX_BET}" "${MAX_PAYOUT_PER_BET}" "${DEV_ADDRESS}" "${GOVERNANCE_ADDRESS}"`);
   
   console.log("\n🌐 Frontend Integration:");
   console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
@@ -354,7 +437,7 @@ async function main() {
   let explorerUrl = "";
   let explorerName = "Block Explorer";
   
-  if (hre.network.name === "mainnet") {
+  if (hre.network.name === "polygon") {
     explorerUrl = `https://polygonscan.com/address/${casinoCoreAddress}`;
     explorerName = "Polygonscan";
   } else if (hre.network.name === "amoy") {
@@ -399,12 +482,12 @@ main()
     console.error("\n1. Check that your .env file is configured correctly:");
     console.error("   - PRIVATE_KEY is set");
     console.error("   - RPC URL is valid and accessible");
-    console.error("\n2. Verify deployer account has sufficient MATIC:");
+    console.error("\n2. Verify deployer account has sufficient POL:");
     console.error("   - Gas fees are required for contract deployment");
     console.error("   - Check balance on block explorer");
     console.error("\n3. Ensure MTX token is deployed:");
     console.error("   - Run: npm run deploy:amoy:mtx (for testnet)");
-    console.error("   - Or: npm run deploy:mainnet:mtx (for mainnet)");
+    console.error("   - Or: npm run deploy:polygon:mtx (for mainnet)");
     console.error("\n4. Verify network configuration in hardhat.config.cjs");
     console.error("\n5. Check RPC endpoint is responding:");
     console.error("   - Try: curl <RPC_URL>");

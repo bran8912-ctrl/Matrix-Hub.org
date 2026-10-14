@@ -1,239 +1,121 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-/**
- * @title CasinoCore - Matrix Hub Casino Core Contract
- * @dev Casino management contract for Polygon
- * @notice Uses MTX (ERC-20) token for all casino operations
- *
- * Network: Polygon (Chain ID: 137)
- * Currency: MATIC
- * Token: MTX (Matrix Hub Coin)
- */
-
-// Use OpenZeppelin IERC20 interface for MatrixHubCoin (MTX)
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Math} from "@openzeppelin/contracts/utils/math/Math.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-/**
- * @title ILiquidityRouter
- * @author Matrix-Hub Team
- * @notice Interface for liquidity management
- */
 interface ILiquidityRouter {
-    /**
-     * @notice Add liquidity to the pool
-     * @param amount Amount of MTX to add to liquidity
-     */
-    function addLiquidity(uint256 amount) external;
+    function depositLiquidity(uint256 amount) external;
 }
 
-/**
- * @title ICasinoReserve
- * @author Matrix-Hub Team
- * @notice Interface for casino reserve management
- */
 interface ICasinoReserve {
-    /**
-     * @notice Deposit MTX into the reserve
-     * @param amount Amount of MTX to deposit
-     */
     function deposit(uint256 amount) external;
-
-    /**
-     * @notice Pay a winner from the reserve
-     * @param to Address of the winner
-     * @param amount Amount of MTX to pay
-     */
     function payWinner(address to, uint256 amount) external;
-
-    /**
-     * @notice Check reserve balance
-     * @return Current reserve balance
-     */
     function reserveHealth() external view returns (uint256);
 }
 
-/**
- * @title IRNGEngine
- * @author Matrix-Hub Team
- * @notice Interface for random number generation
- */
 interface IRNGEngine {
-    /**
-     * @notice Resolve game outcome based on game data
-     * @param gameData Encoded game data
-     * @return True if player wins, false otherwise
-     */
-    function resolve(bytes calldata gameData) external returns (bool);
+    function requestRandomWords() external returns (uint256 requestId);
 }
 
-/**
- * @title CasinoCore
- * @author Matrix-Hub Team
- * @notice Main casino contract managing bets, payouts, and game logic on Polygon
- * @dev Uses MTX token for all operations and integrates with external modules
- *
- * House strategy overview:
- *   - House edge is embedded in the payout multiplier (e.g. 1.9x on 50/50 games → 5% edge)
- *   - Percentages split the BET amount between liquidity, reserve, and dev
- *   - The payout pool (payoutPercent) is the portion of the bet allocated to potential winnings
- *   - Payout multiplier controls how much winners receive relative to their payout pool share
- *   - Max single payout capped to reserve balance to guarantee solvency
- *   - Emergency pause, max bets per block, and loss streak tracking protect the house
- */
-contract CasinoCore {
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Custom errors (gas-efficient)
-    // ═══════════════════════════════════════════════════════════════════════════
+contract CasinoCore is ReentrancyGuard {
+    using SafeERC20 for IERC20;
+
     error NotGovernance();
+    error NotRng();
     error BetBelowMinimum();
     error BetAboveMaximum();
+    error BetNotFound();
+    error BetNotClaimable();
+    error NotBetPlayer();
     error TransferFailed();
     error InvalidPercentageSum();
-    error DevPaymentFailed();
     error ZeroAddress();
     error CasinoPaused();
     error ExceedsMaxPayout();
     error MaxPayoutExceedsReserve();
     error TooManyBetsInBlock();
-    error InvalidMultiplier();
     error InvalidBetLimit();
-    error NotContract(address);
+    error InvalidTarget();
     error ZeroAmount();
+    error AmountTooLarge();
+    error ActiveBetsPreventModuleChange();
+    error DuplicateRandomnessRequest();
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Events
-    // ═══════════════════════════════════════════════════════════════════════════
+    enum BetStatus {
+        None,
+        Pending,
+        Settled,
+        Claimed
+    }
 
-    /// @notice Emitted when a bet is placed
-    /// @param player Address of the player
-    /// @param amount Bet amount in MTX
-    /// @param gameData Encoded game data
-    event BetPlaced(address indexed player, uint256 indexed amount, bytes gameData);
+    struct Bet {
+        address player;
+        uint256 amount;
+        uint256 payout;
+        uint256 reservedPayout;
+        uint8 target;
+        uint8 roll;
+        BetStatus status;
+        bool win;
+    }
 
-    /// @notice Emitted when a bet is resolved
-    /// @param player Address of the player
-    /// @param amount Original bet amount in MTX
-    /// @param win True if player won, false otherwise
-    /// @param payout Payout amount (0 if loss)
-    event BetResolved(address indexed player, uint256 indexed amount, bool win, uint256 payout);
-
-    /// @notice Emitted when percentages are updated
+    event BetPlaced(
+        uint256 indexed betId,
+        address indexed player,
+        uint256 amount,
+        uint8 target
+    );
+    event BetRequested(
+        uint256 indexed betId,
+        uint256 indexed requestId,
+        address indexed player,
+        uint256 reservedPayout
+    );
+    event BetResolved(uint256 indexed betId, uint8 roll, bool win, uint256 payout);
+    event PayoutClaimed(uint256 indexed betId, address indexed player, uint256 payout);
     event PercentagesUpdated(uint256 payout, uint256 liquidity, uint256 reserve, uint256 dev);
-
-    /// @notice Emitted when bet limits are updated
     event BetLimitsUpdated(uint256 minBet, uint256 maxBet);
-
-    /// @notice Emitted when the payout multiplier is updated
-    event PayoutMultiplierUpdated(uint256 oldMultiplier, uint256 newMultiplier);
-
-    /// @notice Emitted when max payout per bet is updated
     event MaxPayoutUpdated(uint256 oldMaxPayout, uint256 newMaxPayout);
-
-    /// @notice Emitted when the casino is paused or unpaused
     event PauseChanged(bool paused);
-
-    /// @notice Emitted when max bets per block is updated
     event MaxBetsPerBlockUpdated(uint256 oldLimit, uint256 newLimit);
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // State variables
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice MTX token contract
     IERC20 public mtx;
-
-    /// @notice Liquidity router contract
     ILiquidityRouter public liquidity;
-
-    /// @notice Casino reserve contract
     ICasinoReserve public reserve;
-
-    /// @notice Random number generator contract
     IRNGEngine public rng;
 
-    // ── Fee split (applied to every bet amount, must sum to 100) ──────────────
-    /// @notice Percentage of bet allocated to the payout pool (default 88)
     uint256 public payoutPercent = 88;
-
-    /// @notice Percentage of bet allocated to liquidity (default 6)
     uint256 public liquidityPercent = 6;
-
-    /// @notice Percentage of bet allocated to reserve (default 4)
     uint256 public reservePercent = 4;
-
-    /// @notice Percentage of bet allocated to dev (default 2)
     uint256 public devPercent = 2;
-
-    // ── Payout configuration ──────────────────────────────────────────────────
-    /// @notice Payout multiplier in basis points (e.g. 19000 = 1.9x)
-    /// @dev Applied to (bet * payoutPercent / 100) on win. Higher = more player-friendly.
-    ///      19000 with ~50% win rate → 5% house edge. 20000 with ~50% → 0% edge (break-even).
-    uint256 public payoutMultiplierBps = 19000;
-
-    /// @notice Maximum payout per single bet (hard cap, protects reserve solvency)
     uint256 public maxPayoutPerBet;
-
-    // ── Bet limits ────────────────────────────────────────────────────────────
-    /// @notice Minimum bet amount (18 decimals)
     uint256 public minBet;
-
-    /// @notice Maximum bet amount (18 decimals)
     uint256 public maxBet;
-
-    // ── Access control ────────────────────────────────────────────────────────
-    /// @notice Developer address (collects dev fee)
     address public dev;
-
-    /// @notice Governance address (can update all parameters)
     address public governance;
 
-    // ── Risk controls ────────────────────────────────────────────────────────
-    /// @notice Emergency pause flag — when true, all bets are blocked
     bool public paused;
-
-    /// @notice Max bets a single address can place in one block (anti-bot)
     uint256 public maxBetsPerBlock = 3;
-
-    /// @notice Tracks bets placed per address per block
-    mapping(address => mapping(uint256 => uint256)) private _betsInBlock;
-
-    /// @notice Total bets placed (lifetime)
     uint256 public totalBets;
-
-    /// @notice Total MTX wagered (lifetime)
     uint256 public totalWagered;
-
-    /// @notice Total MTX paid out (lifetime)
     uint256 public totalPayout;
+    uint256 public lockedPayouts;
+    uint256 public activeRandomnessRequests;
+    int256 public houseProfit;
+    uint256 public nextBetId;
 
-    /// @notice Total house profit (lifetime) = totalWagered - totalPayout - fees distributed
-    uint256 public houseProfit;
-
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Constants
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @dev Basis points denominator
+    uint8 public constant MIN_TARGET = 2;
+    uint8 public constant MAX_TARGET = 98;
+    uint256 public constant HOUSE_RETURN_BPS = 9800;
     uint256 private constant BPS_DENOMINATOR = 10000;
 
-    // ═══════════════════════════════════════════════════════ ​​══​​​════════════════════
-    // Constructor
-    // ═══════════════════════════════════════════════════════════════════════════
+    mapping(address => mapping(uint256 => uint256)) private _betsInBlock;
+    mapping(uint256 => uint256) public requestToBetId;
+    mapping(uint256 => Bet) private _bets;
 
-    /**
-     * @notice Constructor initializes casino with required contract addresses
-     * @dev Sets up all contract integrations and parameters
-     * @param _mtx Address of deployed MatrixHubCoin (MTX) ERC-20 contract on Polygon
-     * @param _liquidity Address of LiquidityRouter contract
-     * @param _reserve Address of CasinoReserve contract
-     * @param _rng Address of RNGEngine contract
-     * @param _minBet Minimum bet amount in MTX (with 18 decimals)
-     * @param _maxBet Maximum bet amount in MTX (with 18 decimals)
-     * @param _maxPayoutPerBet Hard cap on payout for a single bet (18 decimals)
-     * @param _dev Developer address for fee collection
-     * @param _governance Governance address for parameter updates
-     */
     constructor(
         address _mtx,
         address _liquidity,
@@ -253,7 +135,6 @@ contract CasinoCore {
             _dev == address(0) ||
             _governance == address(0)
         ) revert ZeroAddress();
-
         if (_minBet == 0 || _maxBet == 0 || _minBet > _maxBet) revert InvalidBetLimit();
         if (_maxPayoutPerBet == 0) revert ZeroAmount();
 
@@ -268,185 +149,168 @@ contract CasinoCore {
         governance = _governance;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Modifiers
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * @notice Modifier to restrict access to governance only
-     */
     modifier onlyGovernance() {
         if (msg.sender != governance) revert NotGovernance();
         _;
     }
 
-    /**
-     * @notice Modifier to block all bets when paused
-     */
     modifier notPaused() {
         if (paused) revert CasinoPaused();
         _;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Core betting logic
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * @notice Place a bet in the casino
-     * @dev User must approve CasinoCore for MTX spend before calling
-     * @param amount Bet amount in MTX (18 decimals)
-     * @param gameData Encoded game data for RNG
-     *
-     * Flow:
-     *   1. Validate bet amount and casino state
-     *   2. Transfer bet from player to CasinoCore
-     *   3. Split bet: liquidity portion, reserve portion, dev fee
-     *   4. Resolve win/loss via RNG
-     *   5. If win → calculate payout (bet * payoutPercent / 100 * multiplierBps / 10000)
-     *      capped at maxPayoutPerBet and reserve balance → pay from reserve
-     *   6. Track stats
-     */
-    function placeBet(uint256 amount, bytes calldata gameData) external notPaused {
+    function placeDiceBet(uint256 amount, uint8 target)
+        external
+        notPaused
+        nonReentrant
+        returns (uint256 betId)
+    {
         if (amount < minBet) revert BetBelowMinimum();
         if (amount > maxBet) revert BetAboveMaximum();
+        if (target < MIN_TARGET || target > MAX_TARGET) revert InvalidTarget();
 
-        // Anti-bot: limit bets per address per block
         uint256 blockBets = _betsInBlock[msg.sender][block.number];
         if (blockBets >= maxBetsPerBlock) revert TooManyBetsInBlock();
         _betsInBlock[msg.sender][block.number] = blockBets + 1;
 
-        // Check reserve can cover the worst-case payout BEFORE accepting the bet
-        uint256 potentialPayout = _calculatePotentialPayout(amount);
+        uint256 potentialPayout = _calculateDicePayout(amount, target);
         if (potentialPayout > maxPayoutPerBet) revert ExceedsMaxPayout();
+        if (
+            amount > uint256(type(int256).max) ||
+            potentialPayout > uint256(type(int256).max)
+        ) revert AmountTooLarge();
+
         uint256 reserveBal = reserve.reserveHealth();
-        if (potentialPayout > reserveBal) revert MaxPayoutExceedsReserve();
-
-        // Transfer bet from player
-        if (!mtx.transferFrom(msg.sender, address(this), amount)) revert TransferFailed();
-
-        emit BetPlaced(msg.sender, amount, gameData);
-
-        // ── Split the bet ───────────────────────────────────────────────────
-        uint256 liquidityAmount = (amount * liquidityPercent) / 100;
-        uint256 reserveAmount = (amount * reservePercent) / 100;
-        uint256 devAmount = (amount * devPercent) / 100;
-
-        // Route liquidity
-        if (liquidityAmount > 0) {
-            liquidity.addLiquidity(liquidityAmount);
+        if (lockedPayouts > reserveBal || potentialPayout > reserveBal - lockedPayouts) {
+            revert MaxPayoutExceedsReserve();
         }
 
-        // Deposit to reserve (grows the payout pool)
+        mtx.safeTransferFrom(msg.sender, address(this), amount);
+
+        uint256 liquidityAmount = Math.mulDiv(amount, liquidityPercent, 100);
+        uint256 reserveAmount =
+            Math.mulDiv(amount, payoutPercent, 100) +
+            Math.mulDiv(amount, reservePercent, 100);
+        uint256 devAmount = Math.mulDiv(amount, devPercent, 100);
+
+        if (liquidityAmount > 0) {
+            mtx.safeTransfer(address(liquidity), liquidityAmount);
+            liquidity.depositLiquidity(liquidityAmount);
+        }
         if (reserveAmount > 0) {
+            mtx.safeTransfer(address(reserve), reserveAmount);
             reserve.deposit(reserveAmount);
         }
+        if (devAmount > 0) mtx.safeTransfer(dev, devAmount);
 
-        // Dev payment
-        if (devAmount > 0) {
-            if (!mtx.transfer(dev, devAmount)) revert DevPaymentFailed();
-        }
+        betId = ++nextBetId;
+        _bets[betId] = Bet({
+            player: msg.sender,
+            amount: amount,
+            payout: 0,
+            reservedPayout: potentialPayout,
+            target: target,
+            roll: 0,
+            status: BetStatus.Pending,
+            win: false
+        });
+        lockedPayouts += potentialPayout;
+        activeRandomnessRequests++;
 
-        // ── Resolve outcome ─────────────────────────────────────────────────
-        bool win = rng.resolve(gameData);
-        uint256 payout = 0;
+        uint256 requestId = rng.requestRandomWords();
+        if (requestToBetId[requestId] != 0) revert DuplicateRandomnessRequest();
+        requestToBetId[requestId] = betId;
 
-        if (win) {
-            payout = potentialPayout;
-            reserve.payWinner(msg.sender, payout);
-        }
-
-        // ── Track stats ─────────────────────────────────────────────────────
         totalBets++;
         totalWagered += amount;
+        emit BetPlaced(betId, msg.sender, amount, target);
+        emit BetRequested(betId, requestId, msg.sender, potentialPayout);
+    }
+
+    function fulfillRandomness(uint256 requestId, uint256 randomWord) external {
+        if (msg.sender != address(rng)) revert NotRng();
+
+        uint256 betId = requestToBetId[requestId];
+        if (betId == 0) return;
+
+        Bet storage bet = _bets[betId];
+        if (bet.status != BetStatus.Pending) return;
+
+        delete requestToBetId[requestId];
+        activeRandomnessRequests--;
+
+        uint8 roll = uint8(randomWord % 100) + 1;
+        bool win = roll < bet.target;
+        uint256 payout = win ? _calculateDicePayout(bet.amount, bet.target) : 0;
+
+        lockedPayouts -= bet.reservedPayout - payout;
+        bet.reservedPayout = payout;
+        bet.payout = payout;
+        bet.roll = roll;
+        bet.win = win;
+        bet.status = BetStatus.Settled;
         totalPayout += payout;
-        // houseProfit = amount kept by house - payout to player
-        // (liquidity, reserve, dev are already routed; payout comes from reserve)
-        if (amount >= payout) {
-            houseProfit += (amount - payout);
-        } else {
-            houseProfit -= (payout - amount); // rare: payout > bet (multiplier effect from reserve)
-        }
+        houseProfit += int256(bet.amount) - int256(payout);
 
-        emit BetResolved(msg.sender, amount, win, payout);
+        emit BetResolved(betId, roll, win, payout);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Internal payout calculation
-    // ═══════════════════════════════════════════════════════════════════════════
+    function claimPayout(uint256 betId) external nonReentrant {
+        Bet storage bet = _bets[betId];
+        if (bet.status == BetStatus.None) revert BetNotFound();
+        if (bet.player != msg.sender) revert NotBetPlayer();
+        if (bet.status != BetStatus.Settled || !bet.win) revert BetNotClaimable();
 
-    /**
-     * @notice Calculate the potential payout for a given bet amount
-     * @dev payout = bet * payoutPercent / 100 * payoutMultiplierBps / 10000
-     *      Capped at maxPayoutPerBet
-     * @param amount Bet amount in MTX
-     * @return Payout amount in MTX
-     */
-    function _calculatePotentialPayout(uint256 amount) internal view returns (uint256) {
-        uint256 payoutPool = (amount * payoutPercent) / 100;
-        uint256 payout = (payoutPool * payoutMultiplierBps) / BPS_DENOMINATOR;
-        if (payout > maxPayoutPerBet) {
-            payout = maxPayoutPerBet;
-        }
-        return payout;
+        bet.status = BetStatus.Claimed;
+        lockedPayouts -= bet.payout;
+        reserve.payWinner(msg.sender, bet.payout);
+        emit PayoutClaimed(betId, msg.sender, bet.payout);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // View functions
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * @notice Preview the payout for a given bet amount (if win)
-     * @param amount Bet amount in MTX
-     * @return Potential payout in MTX
-     */
-    function previewPayout(uint256 amount) external view returns (uint256) {
-        return _calculatePotentialPayout(amount);
+    function getBet(uint256 betId)
+        external
+        view
+        returns (
+            address player,
+            uint256 amount,
+            uint8 target,
+            uint8 roll,
+            BetStatus status,
+            bool win,
+            uint256 payout
+        )
+    {
+        Bet storage bet = _bets[betId];
+        if (bet.status == BetStatus.None) revert BetNotFound();
+        return (bet.player, bet.amount, bet.target, bet.roll, bet.status, bet.win, bet.payout);
     }
 
-    /**
-     * @notice Current reserve balance available for payouts
-     * @return Reserve balance in MTX
-     */
+    function previewPayout(uint256 amount, uint8 target) external pure returns (uint256) {
+        if (target < MIN_TARGET || target > MAX_TARGET) revert InvalidTarget();
+        return _calculateDicePayout(amount, target);
+    }
+
     function reserveBalance() external view returns (uint256) {
         return reserve.reserveHealth();
     }
 
-    /**
-     * @notice Effective house edge in basis points
-     * @dev edge = (10000 - payoutPercent * payoutMultiplierBps / 10000)
-     *      Assumes ~50% win rate. Actual edge depends on game/RNG.
-     * @return House edge in basis points
-     */
-    function houseEdgeBps() external view returns (uint256) {
-        // Expected return per 1 MTX bet = (winRate * payout)
-        // With 50% win rate: expectedReturn = 0.5 * (payoutPercent/100 * multiplierBps/10000)
-        // House edge = 1 - expectedReturn (in BPS)
-        // Simplified: edge = 10000 - (payoutPercent * payoutMultiplierBps / 100)
-        uint256 expectedReturnBps = (payoutPercent * payoutMultiplierBps) / 100;
-        if (expectedReturnBps >= 10000) return 0;
-        return 10000 - expectedReturnBps;
+    function houseEdgeBps() external pure returns (uint256) {
+        return BPS_DENOMINATOR - HOUSE_RETURN_BPS;
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Governance: parameter updates
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * @notice Update percentage allocations for fee split
-     * @dev Only callable by governance, percentages must sum to 100
-     * @param payout Percentage allocated to payout pool
-     * @param liquidity_ Percentage allocated to liquidity
-     * @param reserve_ Percentage allocated to reserve
-     * @param dev_ Percentage allocated to dev
-     */
     function updatePercentages(
         uint256 payout,
         uint256 liquidity_,
         uint256 reserve_,
         uint256 dev_
     ) external onlyGovernance {
-        if (payout + liquidity_ + reserve_ + dev_ != 100) revert InvalidPercentageSum();
+        if (
+            payout > 100 ||
+            liquidity_ > 100 ||
+            reserve_ > 100 ||
+            dev_ > 100 ||
+            payout + liquidity_ + reserve_ + dev_ != 100
+        ) revert InvalidPercentageSum();
         payoutPercent = payout;
         liquidityPercent = liquidity_;
         reservePercent = reserve_;
@@ -454,12 +318,6 @@ contract CasinoCore {
         emit PercentagesUpdated(payout, liquidity_, reserve_, dev_);
     }
 
-    /**
-     * @notice Update bet limits
-     * @dev Only callable by governance
-     * @param _minBet New minimum bet (18 decimals)
-     * @param _maxBet New maximum bet (18 decimals)
-     */
     function setBetLimits(uint256 _minBet, uint256 _maxBet) external onlyGovernance {
         if (_minBet == 0 || _maxBet == 0 || _minBet > _maxBet) revert InvalidBetLimit();
         minBet = _minBet;
@@ -467,104 +325,59 @@ contract CasinoCore {
         emit BetLimitsUpdated(_minBet, _maxBet);
     }
 
-    /**
-     * @notice Update the payout multiplier (controls house edge)
-     * @dev Only callable by governance
-     * @param _multiplierBps New multiplier in basis points (e.g. 19000 = 1.9x)
-     *       Must be > 0. Lower = more house edge. 20000 = break-even at 50% win rate.
-     */
-    function setPayoutMultiplier(uint256 _multiplierBps) external onlyGovernance {
-        if (_multiplierBps == 0) revert InvalidMultiplier();
-        emit PayoutMultiplierUpdated(payoutMultiplierBps, _multiplierBps);
-        payoutMultiplierBps = _multiplierBps;
-    }
-
-    /**
-     * @notice Update the maximum payout per single bet
-     * @dev Only callable by governance. Protects reserve from large drains.
-     * @param _maxPayout New max payout per bet (18 decimals)
-     */
     function setMaxPayoutPerBet(uint256 _maxPayout) external onlyGovernance {
         if (_maxPayout == 0) revert ZeroAmount();
         emit MaxPayoutUpdated(maxPayoutPerBet, _maxPayout);
         maxPayoutPerBet = _maxPayout;
     }
 
-    /**
-     * @notice Update max bets per block per address (anti-bot)
-     * @dev Only callable by governance
-     * @param _maxBets New limit (0 = unlimited)
-     */
     function setMaxBetsPerBlock(uint256 _maxBets) external onlyGovernance {
         emit MaxBetsPerBlockUpdated(maxBetsPerBlock, _maxBets);
         maxBetsPerBlock = _maxBets;
     }
 
-    /**
-     * @notice Emergency pause — blocks all new bets
-     * @dev Only callable by governance. Does not affect withdrawals or reads.
-     */
     function setPaused(bool _paused) external onlyGovernance {
         paused = _paused;
         emit PauseChanged(_paused);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Governance: address updates
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /// @notice Update casino reserve address (governance only)
-    /// @param _reserve New CasinoReserve contract address
     function setReserve(address _reserve) external onlyGovernance {
         if (_reserve == address(0)) revert ZeroAddress();
+        if (activeRandomnessRequests != 0 || lockedPayouts != 0) {
+            revert ActiveBetsPreventModuleChange();
+        }
         reserve = ICasinoReserve(_reserve);
     }
 
-    /// @notice Update RNG engine address (governance only)
-    /// @param _rng New RNGEngine contract address
     function setRng(address _rng) external onlyGovernance {
         if (_rng == address(0)) revert ZeroAddress();
+        if (activeRandomnessRequests != 0) revert ActiveBetsPreventModuleChange();
         rng = IRNGEngine(_rng);
     }
 
-    /// @notice Update liquidity router address (governance only)
-    /// @param _liquidity New LiquidityRouter contract address
     function setLiquidity(address _liquidity) external onlyGovernance {
         if (_liquidity == address(0)) revert ZeroAddress();
         liquidity = ILiquidityRouter(_liquidity);
     }
 
-    /// @notice Update dev address (governance only)
-    /// @param _dev New developer address
     function setDev(address _dev) external onlyGovernance {
         if (_dev == address(0)) revert ZeroAddress();
         dev = _dev;
     }
 
-    /// @notice Update governance address (governance only)
-    /// @param _governance New governance address
     function setGovernance(address _governance) external onlyGovernance {
         if (_governance == address(0)) revert ZeroAddress();
         governance = _governance;
     }
 
-    /// @notice Update MTX token address (governance only)
-    /// @param _mtx New MTX token contract address
     function setMtx(address _mtx) external onlyGovernance {
         if (_mtx == address(0)) revert ZeroAddress();
+        if (activeRandomnessRequests != 0 || lockedPayouts != 0) {
+            revert ActiveBetsPreventModuleChange();
+        }
         mtx = IERC20(_mtx);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════════
-    // Emergency functions
-    // ═══════════════════════════════════════════════════════════════════════════
-
-    /**
-     * @notice Seed the reserve balance to match actual MTX held by CasinoReserve
-     * @dev Only callable by governance. Call once after funding CasinoReserve
-     *      with an initial token transfer so that placeBet() doesn't revert.
-     *      This syncs reserveBalance with the actual MTX tokens already sent.
-     */
     function seedReserve() external onlyGovernance {
         uint256 actualBalance = mtx.balanceOf(address(reserve));
         uint256 currentBalance = reserve.reserveHealth();
@@ -572,14 +385,12 @@ contract CasinoCore {
         reserve.deposit(actualBalance - currentBalance);
     }
 
-    /**
-     * @notice Emergency withdrawal of stuck MTX tokens
-     * @dev Only callable by governance. Use for recovery, not regular operation.
-     * @param to Recipient address
-     * @param amount Amount to withdraw
-     */
     function emergencyWithdraw(address to, uint256 amount) external onlyGovernance {
         if (to == address(0)) revert ZeroAddress();
-        if (!mtx.transfer(to, amount)) revert TransferFailed();
+        mtx.safeTransfer(to, amount);
+    }
+
+    function _calculateDicePayout(uint256 amount, uint8 target) private pure returns (uint256) {
+        return Math.mulDiv(amount, HOUSE_RETURN_BPS, 100 * (uint256(target) - 1));
     }
 }

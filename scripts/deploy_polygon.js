@@ -1,5 +1,6 @@
 // Deploy all casino contracts to Polygon Mainnet via Remix injected provider
-// Run with: remix.exe currentfile, or use run_script in Remix
+// This legacy deployment entry point is disabled.
+throw new Error("This legacy synchronous casino deployer is disabled. Use scripts/deploy_casino.js with the Chainlink VRF deployment configuration.");
 
 (async function () {
   try {

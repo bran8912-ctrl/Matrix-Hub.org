@@ -87,8 +87,8 @@ npm run deploy:polygon
 
 **Requirements:**
 - `.env` file with `PRIVATE_KEY` (deployer wallet private key without 0x)
-- Sufficient ETH in deployer wallet for gas fees
-- `ETHERSCAN_API_KEY` (recommended for contract verification)
+- Sufficient POL in deployer wallet for Polygon gas fees
+- `POLYGONSCAN_API_KEY` (recommended for contract verification)
 
 **Configuration:**
 - Initial Supply: 100,000,000 MTX
@@ -103,15 +103,15 @@ npm run deploy:polygon
 - Provides verification command for Polygonscan
 
 ### `deploy_casino.js`
-Deploys the complete casino contract ecosystem to Polygon networks. This automated script handles deployment of CasinoCore, CasinoReserve, LiquidityRouter, and RNGEngine with proper configuration and error handling.
+Deploys the casino contracts to Polygon mainnet or Amoy. It configures Chainlink VRF v2.5 with LINK-funded subscription billing, wires module permissions, and registers the RNG consumer.
 
 **Usage:**
 ```bash
 # Deploy to Amoy testnet (recommended first)
 npx hardhat run scripts/deploy_casino.js --network amoy
 
-# Deploy to Mainnet (after thorough testing)
-npx hardhat run scripts/deploy_casino.js --network mainnet
+# Deploy to Polygon mainnet (after thorough testing)
+npx hardhat run scripts/deploy_casino.js --network polygon
 
 # Or use npm scripts (if configured)
 npm run deploy:amoy:casino
@@ -119,16 +119,19 @@ npm run deploy:polygon:casino
 ```
 
 **Prerequisites:**
-- MTX token MUST be deployed first (run `deploy_mtx.js`)
+- MTX token MUST be deployed first, and its address set as `MTX_CONTRACT_ADDRESS`
 - `.env` file configured with `PRIVATE_KEY` and RPC URLs
+- Set `QUICKSWAP_V2_ROUTER_ADDRESS` and `CASINO_MAX_PAYOUT_PER_BET`
+- Create and fund a VRF v2.5 subscription owned by the deployer; set `VRF_SUBSCRIPTION_ID`
+- Use the official LINK token for the selected network
 - Sufficient ETH in deployer wallet for gas fees
-- `ETHERSCAN_API_KEY` for contract verification (optional)
+- `POLYGONSCAN_API_KEY` for contract verification (optional)
 
 **Deployed Contracts:**
-1. **RNGEngine** - Random number generation for game outcomes
+1. **RNGEngine** - Asynchronous Chainlink VRF v2.5 random words
 2. **CasinoReserve** - Holds MTX reserves for casino payouts
 3. **LiquidityRouter** - Manages liquidity for MTX/ETH DEX pool
-4. **CasinoCore** - Main casino contract managing bets and payouts
+4. **CasinoCore** - Records Dice bets, reserves liabilities, settles VRF results, and supports winner claims
 
 **Configuration:**
 The script includes a `DEPLOYMENT_CONFIG` object that you can customize:
@@ -139,9 +142,29 @@ const DEPLOYMENT_CONFIG = {
   maxBet: "1000",               // Max bet amount (1000 MTX)
   devAddress: null,             // Dev fee recipient (null = deployer)
   governanceAddress: null,      // Governance address (null = deployer)
-  tempDexPool: null,            // DEX pool address (null = deployer)
 };
 ```
+
+The deployment requires `MTX_CONTRACT_ADDRESS`,
+`QUICKSWAP_V2_ROUTER_ADDRESS`, `CASINO_MAX_PAYOUT_PER_BET`, and
+`VRF_SUBSCRIPTION_ID`. It checks that the MTX, router, coordinator, and LINK
+addresses contain contract code; the subscription must belong to the deployer
+and have a nonzero LINK balance. The script adds the deployed RNG consumer to
+the subscription automatically. Polygon must use the selected canonical MTX
+token; the V2 router address must match the selected network.
+Polygon deployment also requires `POLYGON_CASINO_DEPLOYMENT_APPROVED=YES`,
+which is a release gate to set only after Amoy end-to-end testing and
+independent security review.
+
+The first release supports single-round Dice only. Pending bets cannot be
+cancelled or rerolled, and winning payouts are claimed after VRF settlement.
+Slots, blackjack, roulette, mines, plinko, and crash stay disabled until their
+game-specific outcomes are also authoritative on-chain.
+
+Legacy Remix/artifact deployment scripts (`deploy_polygon.js`,
+`deploy_sepolia.js`, `deploy_rng.js`, and `docs/scripts/deploy_casino.cjs`) now
+stop with an error because they use obsolete synchronous casino artifacts.
+Use only `scripts/deploy_casino.js` after configuring the VRF subscription.
 
 **Output:**
 - Deploys all contracts with detailed progress logging
@@ -172,26 +195,27 @@ The script generates a JSON file (`deployments/casino-{network}.json`) containin
     "minBet": "1000000000000000000",
     "minBetFormatted": "1 MTX",
     "maxBet": "1000000000000000000000",
+    "maxPayoutPerBet": "10000000000000000000000",
+    "maxPayoutPerBetFormatted": "10000 MTX",
     "maxBetFormatted": "1000 MTX",
     "devAddress": "0x...",
     "governanceAddress": "0x...",
-    "tempDexPool": "0x..."
+    "quickSwapV2Router": "0x..."
   },
   "notes": {
-    "casinoReserveSetup": "CasinoReserve deployed with temporary casinoCore address...",
-    "liquidityRouterSetup": "LiquidityRouter deployed with temporary DEX pool address...",
+    "casinoReserveSetup": "CasinoCore permissions configured after deployment.",
+    "liquidityRouterSetup": "Casino fees queue in MTX; owner supplies POL separately through QuickSwap V2.",
     "reserveFunding": "CasinoReserve must be funded with MTX tokens..."
   }
 }
 ```
 
 **Post-Deployment Steps:**
-1. **Update CasinoReserve** with the actual CasinoCore address
-2. **Create QuickSwap Pool** for MTX/ETH and update LiquidityRouter
-3. **Fund CasinoReserve** with initial MTX (recommended: 100,000+)
-4. **Verify Contracts** on Polygonscan using provided commands
-5. **Update Frontend** environment variables and import deployment JSON
-6. **Test Thoroughly** on testnet before mainnet deployment
+1. **Fund CasinoReserve** by approving MTX and calling owner-only `fund(amount)`; a direct token transfer is not counted.
+2. **Seed the initial pool** by approving MTX, calling `queueInitialLiquidity(amount)`, then `provideLiquidity` with the chosen amount of POL (wrapped as WMATIC by QuickSwap V2).
+3. **Verify Contracts** on Polygonscan using the printed commands
+4. **Update Frontend** environment variables only after validating deployments
+5. **Test Thoroughly** on testnet before mainnet deployment
 
 **Frontend Integration (Astro):**
 Import the deployment information in your Astro components:
@@ -247,7 +271,7 @@ contracts: {
 - **"MTX token not deployed"** - Run `deploy_mtx.js` first
 - **"Insufficient funds"** - Add ETH to deployer wallet
 - **"Deployment failed"** - Check RPC URL and network connectivity
-- **"Contract verification failed"** - Ensure ETHERSCAN_API_KEY is valid
+- **"Contract verification failed"** - Ensure POLYGONSCAN_API_KEY is valid
 
 For detailed documentation, see the comments in `scripts/deploy_casino.js`.
 
@@ -268,12 +292,12 @@ Edit `.env` with your values:
 PRIVATE_KEY=your_private_key_here
 
 # RPC URLs (defaults provided if not set)
-MAINNET_RPC_URL=https://eth.llamarpc.com
-SEPOLIA_RPC_URL=https://rpc-amoy.polygon.technology/
+POLYGON_RPC_URL=https://polygon.drpc.org
+AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
 
 # Polygonscan API key for contract verification
 # Get from: https://polygonscan.com/myapikey
-ETHERSCAN_API_KEY=your_etherscan_api_key_here
+POLYGONSCAN_API_KEY=your_polygonscan_api_key_here
 ```
 
 **Security Notes:**
@@ -388,7 +412,7 @@ Each file contains:
 - If artifacts exist, deployment may still work
 
 ### "Verification failed"
-- Ensure `ETHERSCAN_API_KEY` is set in `.env`
+- Ensure `POLYGONSCAN_API_KEY` is set in `.env`
 - Wait 1-2 minutes after deployment before verifying
 - Check constructor arguments match deployment exactly
 - Verify API key is valid at https://polygonscan.com/myapikey

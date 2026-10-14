@@ -1,5 +1,6 @@
 /**
  * Deploy all casino contracts to Sepolia testnet via Remix injected provider.
+ * Disabled: this script deploys obsolete synchronous casino artifacts.
  * 
  * Deployment order (respecting dependencies):
  * 1. MatrixHubCoin (MTX)  — no dependencies
@@ -10,6 +11,7 @@
  * 
  * Post-deployment: CasinoCore.setReserve() and CasinoCore.setRng() to fix circular deps
  */
+throw new Error("This legacy synchronous casino deployer is disabled. Deploy and test the VRF casino on Amoy with scripts/deploy_casino.js.");
 
 const fs = require('fs');
 const path = require('path');

@@ -30,11 +30,11 @@ cp .env.example .env
 PRIVATE_KEY=your_64_character_hex_private_key_here
 
 # RPC endpoints
-MAINNET_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+POLYGON_RPC_URL=https://polygon.drpc.org
 AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
 
 # Polygonscan API key for contract verification
-ETHERSCAN_API_KEY=YOUR_ETHERSCAN_API_KEY
+POLYGONSCAN_API_KEY=YOUR_POLYGONSCAN_API_KEY
 ```
 
 ### 1.3 Verify Environment
@@ -88,11 +88,32 @@ const DEPLOYMENT_CONFIG = {
   maxBet: "1000",         // 1000 MTX maximum bet
   devAddress: null,       // null = use deployer
   governanceAddress: null, // null = use deployer
-  tempDexPool: null,      // null = use deployer
 };
 ```
 
 ### 3.2 Deploy to Amoy
+
+Set `MTX_CONTRACT_ADDRESS`, `QUICKSWAP_V2_ROUTER_ADDRESS`,
+`CASINO_MAX_PAYOUT_PER_BET`, `VRF_SUBSCRIPTION_ID`, and the network RPC/private
+key before running the script. The router and MTX addresses are
+network-specific; do not use the Polygon mainnet router on Amoy.
+
+Create and fund a Chainlink VRF v2.5 subscription on the selected network
+before deployment. The subscription must be owned by the deployer and funded
+with the official Chainlink LINK token because requests use LINK billing. The
+deployment script verifies the subscription, deploys `RNGEngine`, then adds it
+as a consumer automatically. The current coordinator, LINK token, and key hash
+values are pinned in `scripts/deploy_casino.js` from Chainlink's
+[supported networks reference](https://docs.chain.link/vrf/v2-5/supported-networks).
+The script supports Polygon mainnet and Amoy only.
+
+Polygon deployment is now technically enabled by the asynchronous VRF design,
+but that is not approval to launch. First deploy and test on Amoy, then decide
+the initial reserve funding, pool seed ratio/amount, and maximum payout. Never
+put a deployer private key in chat or commit it to the repository.
+The script refuses Polygon deployment unless
+`POLYGON_CASINO_DEPLOYMENT_APPROVED=YES` is set after the Amoy end-to-end test
+and independent security review are complete.
 
 ```bash
 npx hardhat run scripts/deploy_casino.js --network amoy
@@ -112,7 +133,7 @@ npx hardhat run scripts/deploy_casino.js --network amoy
    Address: 0x...
    Balance: 0.5 MATIC
 
-📋 Loading MTX Token Information...
+📡 Checking selected-network contract addresses...
    MTX Token Address: 0x...
 
 ⚙️  Preparing Constructor Arguments...
@@ -133,15 +154,13 @@ npx hardhat run scripts/deploy_casino.js --network amoy
 🔨 Deploying CasinoReserve...
 ✅ CasinoReserve deployed successfully
    Address: 0x...
-   ⚠️  CasinoCore address is temporary (deployer)
-   ⚠️  Update after deployment using CasinoReserve contract
+   CasinoCore permission will be configured after deployment
 
 3️⃣  LiquidityRouter
 🔨 Deploying LiquidityRouter...
 ✅ LiquidityRouter deployed successfully
    Address: 0x...
-   ⚠️  DEX pool address is temporary (deployer)
-   ⚠️  Update after creating QuickSwap MTX/ETH pool
+   QuickSwap V2 pair will be created on first successful liquidity provision
 
 4️⃣  CasinoCore
 🔨 Deploying CasinoCore...
@@ -179,97 +198,83 @@ jq '.contracts' deployments/casino-amoy.json
 Verify each contract for transparency:
 
 ```bash
-# RNGEngine (no constructor args)
-npx hardhat verify --network amoy <RNG_ADDRESS>
+# RNGEngine
+npx hardhat verify --network amoy <RNG_ADDRESS> \
+  "<VRF_COORDINATOR>" "<VRF_SUBSCRIPTION_ID>" "<VRF_KEY_HASH>" "250000" "3"
 
-# CasinoReserve
+# CasinoReserve (deployed with zero CasinoCore, then configured by setter)
 npx hardhat verify --network amoy <RESERVE_ADDRESS> \
-  "<MTX_ADDRESS>" "<RESERVE_CAP>" "<TEMP_CASINO_CORE>"
+  "<MTX_ADDRESS>" "<RESERVE_CAP>" "0x0000000000000000000000000000000000000000"
 
 # LiquidityRouter
 npx hardhat verify --network amoy <LIQUIDITY_ADDRESS> \
-  "<MTX_ADDRESS>" "<TEMP_DEX_POOL>"
+  "<MTX_ADDRESS>" "<QUICKSWAP_V2_ROUTER_ADDRESS>"
 
 # CasinoCore
 npx hardhat verify --network amoy <CASINO_CORE_ADDRESS> \
   "<MTX_ADDRESS>" "<LIQUIDITY_ADDRESS>" "<RESERVE_ADDRESS>" "<RNG_ADDRESS>" \
-  "<MIN_BET>" "<MAX_BET>" "<DEV_ADDRESS>" "<GOVERNANCE_ADDRESS>"
+  "<MIN_BET>" "<MAX_BET>" "<MAX_PAYOUT_PER_BET>" "<DEV_ADDRESS>" "<GOVERNANCE_ADDRESS>"
 ```
 
 **Note:** The exact verification commands are printed by the deployment script.
 
 ## Step 5: Post-Deployment Configuration
 
-### 5.1 Update CasinoReserve
+### 5.1 Module Permissions
 
-The CasinoReserve was deployed with a temporary casinoCore address. Update it:
-
-1. Option A: Redeploy CasinoReserve with correct address
-2. Option B: If contract has a setter function, call it on-chain
+The deployment script sets the CasinoCore address on the reserve, RNG engine,
+and liquidity router after deploying the core. It also registers `RNGEngine`
+as a consumer of the funded VRF subscription. Do not enable the frontend if
+consumer registration failed.
 
 ### 5.2 Create QuickSwap Pool
 
-Create a liquidity pool for MTX/ETH:
-
-1. Visit https://app.quickswap.exchange/
-2. Connect your wallet
-3. Go to "Pool" > "New Position"
-4. Select MTX and ETH
-5. Set price range and add liquidity
-6. Note the pool contract address
-7. Update LiquidityRouter with pool address
+Casino bet fees accumulate as pending MTX in LiquidityRouter. The owner must
+mint/hold the intended initial MTX allocation, approve the router, and call
+`queueInitialLiquidity`. Then call `provideLiquidity` with that queued MTX
+amount and matching POL.
+The call uses QuickSwap V2 `addLiquidityETH`; the owner supplies native POL,
+which the router wraps as WMATIC. The first successful call creates the
+MTX/WMATIC pair and establishes its initial price from the supplied ratio.
+The LP tokens are sent to the owner. Choose the initial ratio deliberately,
+then set minimum amounts and a short deadline to control slippage.
 
 ### 5.3 Fund CasinoReserve
 
-Transfer MTX tokens to the reserve:
+The reserve's tracked balance must be initialized through its owner-only
+`fund(amount)` method. A plain token transfer does not update the reserve's
+accounting and will not enable betting.
 
 ```bash
-# Using Polygonscan or cast
-cast send <MTX_ADDRESS> \
-  "transfer(address,uint256)" \
-  <RESERVE_ADDRESS> \
-  100000000000000000000000 \
-  --rpc-url $AMOY_RPC_URL \
-  --private-key $PRIVATE_KEY
+# Approve CasinoReserve to pull the selected MTX allocation, then fund it.
+# Exact CLI syntax depends on the wallet tooling used.
 ```
 
-Recommended: 100,000+ MTX for initial liquidity
+The reserve requires enough tracked MTX to cover the worst-case payout plus
+all already locked bets before it accepts a new bet. Winnings remain reserved
+until the player claims them. There is no timeout refund or cancel function:
+removing one could let players discard unfavorable pending outcomes.
+`CASINO_MAX_PAYOUT_PER_BET` and reserve funding must be chosen together.
 
 ## Step 6: Frontend Integration
 
 ### 6.1 Update Environment Variables
 
-Add to `.env`:
+For Amoy testing, set the frontend network and deployed addresses in `.env`.
+Use `PUBLIC_`-prefixed values so Astro/Vite can expose them to the browser:
 
 ```env
+PUBLIC_CASINO_CHAIN_ID=80002
+PUBLIC_MTX_CONTRACT_ADDRESS=0x...
 PUBLIC_CASINO_CORE_ADDRESS=0x...
 PUBLIC_CASINO_RESERVE_ADDRESS=0x...
 PUBLIC_LIQUIDITY_ROUTER_ADDRESS=0x...
 PUBLIC_RNG_ENGINE_ADDRESS=0x...
-PUBLIC_NETWORK=sepolia
 ```
 
-### 6.2 Import Deployment Data
-
-In your Astro components:
-
-```typescript
-import casinoDeployment from '../../deployments/casino-amoy.json';
-
-const {
-  casinoCore,
-  casinoReserve,
-  liquidityRouter,
-  rngEngine
-} = casinoDeployment.contracts;
-```
-
-### 6.3 Update Contract Interactions
-
-Update any files that interact with casino contracts:
-- `src/pages/api/place-bet.js`
-- `src/components/casino/*.tsx`
-- Any other casino-related files
+For Polygon, use `PUBLIC_CASINO_CHAIN_ID=137` and the validated mainnet
+addresses. Never point the frontend at historical synchronous RNG deployments.
+Only single-round Dice is supported; the other game pages remain disabled.
 
 ## Step 7: Testing
 
@@ -279,8 +284,13 @@ Before mainnet deployment, thoroughly test:
 
 - [ ] Connect wallet to Amoy
 - [ ] Verify contract addresses are correct
-- [ ] Test placing bets
-- [ ] Test winning payouts
+- [ ] Confirm the funded VRF subscription lists `RNGEngine` as a consumer
+- [ ] Test approval and asynchronous bet submission
+- [ ] Confirm VRF settlement matches the on-chain roll and target
+- [ ] Test winner-only payout claims and reserve-liability accounting
+- [ ] Confirm a losing result releases its reserved payout capacity
+- [ ] Confirm pending bets cannot be cancelled, rerolled, or claimed early
+- [ ] Confirm all unsupported local-outcome game pages remain disabled
 - [ ] Test liquidity routing
 - [ ] Test reserve balance
 - [ ] Test governance functions
@@ -313,20 +323,20 @@ npx hardhat run scripts/check_gas_usage.js --network amoy
 
 ```bash
 # Deploy MTX (if not already deployed)
-npx hardhat run scripts/deploy_mtx.js --network mainnet
+npx hardhat run scripts/deploy_mtx.js --network polygon
 
 # Deploy Casino
-npx hardhat run scripts/deploy_casino.js --network mainnet
+npx hardhat run scripts/deploy_casino.js --network polygon
 ```
 
 ### 8.3 Verify Mainnet Deployment
 
 ```bash
 # Verify contracts
-npx hardhat verify --network mainnet <CONTRACT_ADDRESSES>
+npx hardhat verify --network polygon <CONTRACT_ADDRESSES>
 
 # Check deployment file
-cat deployments/casino-mainnet.json
+cat deployments/casino-polygon.json
 
 # View on Polygonscan
 open https://polygonscan.com/address/<CASINO_CORE_ADDRESS>

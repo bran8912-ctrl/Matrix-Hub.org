@@ -11,7 +11,9 @@ export const navCategory = "casino";
 <Layout title="Casino - Matrix-Hub">
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold mb-6 text-green-400">🎰 MTX Casino</h1>
-    <p class="text-xl text-gray-300 mb-4">Play games to win or spend MTX!</p>
+    <p class="text-xl text-gray-300 mb-4">
+      The first VRF-backed release supports single-round Dice only. Wagers remain disabled until all contracts are deployed and validated.
+    </p>
     
     <div class="mb-8">
       <WalletConnect client:only="react" />
@@ -22,48 +24,48 @@ export const navCategory = "casino";
       <a href="/games/casino/slots" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-green-500 transition-colors">
         <div class="text-5xl mb-3 text-center">🎰</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Slots</h3>
-        <p class="text-gray-300 mb-2">Spin the reels to win MTX!</p>
-        <p class="text-sm text-yellow-400">1 MTX per spin</p>
+        <p class="text-gray-300 mb-2">Disabled until slot outcomes are settled on-chain.</p>
+        <p class="text-sm text-yellow-400">Coming soon</p>
       </a>
 
       <!-- Blackjack -->
       <a href="/games/casino/blackjack" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-green-500 transition-colors">
         <div class="text-5xl mb-3 text-center">🃏</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Blackjack</h3>
-        <p class="text-gray-300 mb-2">Beat the dealer for MTX!</p>
-        <p class="text-sm text-yellow-400">2 MTX per hand</p>
+        <p class="text-gray-300 mb-2">Disabled until hand actions and outcomes are settled on-chain.</p>
+        <p class="text-sm text-yellow-400">Coming soon</p>
       </a>
 
       <!-- Roulette -->
       <a href="/games/casino/roulette" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-green-500 transition-colors">
         <div class="text-5xl mb-3 text-center">🎡</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Roulette</h3>
-        <p class="text-gray-300 mb-2">Bet MTX and spin the wheel!</p>
-        <p class="text-sm text-yellow-400">Min 1 MTX bet</p>
+        <p class="text-gray-300 mb-2">Disabled until wheel outcomes and payouts are settled on-chain.</p>
+        <p class="text-sm text-yellow-400">Coming soon</p>
       </a>
 
       <!-- Plinko -->
       <a href="/games/casino/plinko" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-green-500 transition-colors">
         <div class="text-5xl mb-3 text-center">🎯</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Plinko</h3>
-        <p class="text-gray-300 mb-2">Drop the ball for big wins!</p>
-        <p class="text-sm text-yellow-400">Min 1 MTX bet</p>
+        <p class="text-gray-300 mb-2">Disabled until the VRF-backed game flow is implemented.</p>
+        <p class="text-sm text-yellow-400">Coming soon</p>
       </a>
 
       <!-- Dice -->
       <a href="/games/casino/dice" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-green-500 transition-colors">
         <div class="text-5xl mb-3 text-center">🎲</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Dice</h3>
-        <p class="text-gray-300 mb-2">Roll under your target to win!</p>
-        <p class="text-sm text-yellow-400">Min 1 MTX bet</p>
+        <p class="text-gray-300 mb-2">Single-round Dice; the settled on-chain roll is authoritative.</p>
+        <p class="text-sm text-yellow-400">Unavailable until contract deployment</p>
       </a>
 
       <!-- Mines -->
       <a href="/games/casino/mines" class="bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-green-500 transition-colors">
         <div class="text-5xl mb-3 text-center">💣</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Mines</h3>
-        <p class="text-gray-300 mb-2">Find gems, avoid mines!</p>
-        <p class="text-sm text-yellow-400">Min 1 MTX bet</p>
+        <p class="text-gray-300 mb-2">Disabled until game actions and payouts are settled on-chain.</p>
+        <p class="text-sm text-yellow-400">Coming soon</p>
       </a>
 
       <!-- Crash -->
@@ -80,23 +82,23 @@ export const navCategory = "casino";
       <ul class="space-y-2 text-yellow-100">
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>Spend MTX to play casino games</span>
+          <span>Wagers are disabled until the deployed VRF contracts are validated</span>
         </li>
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>Win MTX by hitting jackpots or winning hands</span>
+          <span>The first supported game will be single-round Dice</span>
         </li>
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>All transactions are on-chain and transparent</span>
+          <span>Dice outcomes and payout claims are recorded on-chain</span>
         </li>
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>Provably fair mechanics ensure honest gameplay</span>
+          <span>Chainlink VRF provides asynchronous randomness for Dice</span>
         </li>
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>Connect your wallet to check MTX balance and play</span>
+          <span>Pending bets cannot be cancelled or rerolled</span>
         </li>
       </ul>
     </div>

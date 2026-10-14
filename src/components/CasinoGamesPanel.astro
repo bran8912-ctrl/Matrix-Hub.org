@@ -10,10 +10,10 @@ const casinoDeployed = Casino.isFullyDeployed;
 
 <Panel title="MTX COIN CASINO" class="casino-panel">
   <div class="panel-text">
-    <strong style="color:var(--theme-primary);">Play Casino Games with MTX</strong><br>
+    <strong style="color:var(--theme-primary);">VRF-backed Casino Games with MTX</strong><br>
     <span style="color:var(--theme-secondary);">
-      The Matrix-Hub Casino lets users play slots, blackjack, roulette, and more using MTX coins.<br>
-      MTX is the exclusive currency for all casino games. Win, spend, and stake MTX to unlock new features and rewards.
+    The first on-chain release is a single-round Dice wager using Chainlink VRF and MTX.<br>
+    Slots, blackjack, roulette, and other games remain disabled until their outcomes and payouts are settled on-chain.
     </span>
   </div>
   
@@ -27,19 +27,17 @@ const casinoDeployed = Casino.isFullyDeployed;
       <li><strong>RNGEngine:</strong> <span class="contract-address">{Casino.contracts.rngEngine.isDeployed ? (<a href={Casino.contracts.rngEngine.blockExplorerUrl} target="_blank" rel="noopener noreferrer" class="contract-link">{Casino.contracts.rngEngine.displayAddress}</a>) : Casino.contracts.rngEngine.displayAddress}</span></li>
     </ul>
     {casinoDeployed ? (
-      <p style="margin-top: 10px;"><strong>Status:</strong> <span class="status-live">Casino contracts deployed on Polygon mainnet (Chain ID 137).</span> Connect your wallet to interact with the MTX Casino.</p>
+      <p style="margin-top: 10px;"><strong>Status:</strong> <span class="status-live">VRF casino contracts are configured on {Casino.chainName}.</span> Only Dice wagers are supported.</p>
     ) : (
-      <p style="margin-top: 10px;"><strong>Status:</strong> Casino contracts deploying to Polygon mainnet — games are playable in preview mode now.</p>
+      <p style="margin-top: 10px;"><strong>Status:</strong> Wagers are disabled until the VRF casino contracts are deployed and validated on {Casino.chainName}. No MTX will be transferred.</p>
     )}
   </div>
   
   <div class="games-list">
     <h3 style="color:var(--theme-primary); font-size: 1.13rem; margin-bottom: 10px;">MTX Casino Games</h3>
     <ul>
-      <li><strong>Dice Roll:</strong> Player selects a target number (0–99). Win if roll is under target. Adjustable risk, transparent odds, fixed edge.</li>
-      <li><strong>Coin Flip:</strong> 50/50 outcome (Heads or Tails). Low variance, ideal onboarding, simple and auditable.</li>
-      <li><strong>Number Match (1–100):</strong> Player selects a number from 1 to 100. Exact match wins. High variance, clear odds, fair EV.</li>
-      <li><strong>Slot Probability Game:</strong> Three-reel weighted symbol system. Tuned RTP, controlled volatility, no hidden multipliers.</li>
+      <li><strong>Dice Roll:</strong> The first supported game. A Chainlink VRF result determines the roll; winners claim settled MTX payouts.</li>
+      <li><strong>Slots, blackjack, roulette, mines, plinko, and crash:</strong> Disabled until their game rules and payouts are implemented on-chain.</li>
       <li><strong>Crash <span style="color:var(--theme-secondary);">(Phase 2)</span>:</strong> Multiplier increases until crash. Cash out before crash. High engagement, volatility limited by reserve, transparent logic.</li>
       <li><strong>PvP Wager Arena <span style="color:var(--theme-secondary);">(Phase 3)</span>:</strong> Player-versus-player MTX wagers. No house edge, MTX utility expansion, community-driven.</li>
     </ul>
@@ -48,11 +46,11 @@ const casinoDeployed = Casino.isFullyDeployed;
   <div class="how-it-works">
     <strong style="color:var(--theme-primary);">How It Works:</strong><br>
     <ol>
-      <li>Connect your wallet and deposit MTX.</li>
-      <li>Choose a casino game and place your bet.</li>
-      <li>Win MTX, stake for rewards, or withdraw anytime.</li>
+      <li>Connect your wallet and approve MTX for the casino contract.</li>
+      <li>Place a single-round Dice bet; Chainlink VRF determines the result asynchronously.</li>
+      <li>Claim an on-chain MTX payout after a winning result is settled.</li>
     </ol>
-    <p style="margin-top: 10px;"><em style="color:var(--theme-secondary);">MTX Coin Casino is built for users—provably fair, secure, and rewarding.</em></p>
+    <p style="margin-top: 10px;"><em style="color:var(--theme-secondary);">A pending VRF wager cannot be cancelled or rerolled.</em></p>
   </div>
   
   <div class="casino-links">

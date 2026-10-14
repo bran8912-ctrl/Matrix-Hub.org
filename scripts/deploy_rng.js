@@ -1,7 +1,9 @@
 /**
  * Deploy RNGEngine to Amoy via injected MetaMask
  * Constructor: address _casinoCore
+ * Disabled: use scripts/deploy_casino.js to deploy and register the VRF consumer.
  */
+throw new Error("This legacy RNG deployer is disabled. Use scripts/deploy_casino.js with a funded Chainlink VRF subscription.");
 
 const fs = require('fs');
 

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * @title CasinoReserve
@@ -10,6 +11,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @dev Manages reserve balance and payout distribution
  */
 contract CasinoReserve {
+    using SafeERC20 for IERC20;
+
     // Custom errors for gas efficiency
     error NotAuthorized();
     error InsufficientReserve();
@@ -17,6 +20,10 @@ contract CasinoReserve {
     error ZeroAddress();
     error ZeroAmount();
     error ExceedsReserveCap();
+
+    /// @notice Emitted when the owner provides initial reserve funding.
+    /// @param amount Amount of MTX added to the reserve.
+    event ReserveFunded(uint256 amount);
 
     /// @notice MTX token contract
     IERC20 public mtx;
@@ -75,8 +82,21 @@ contract CasinoReserve {
      */
     function deposit(uint256 amount) external onlyCasinoCore {
         if (amount == 0) revert ZeroAmount();
-        if (reserveBalance + amount > reserveCap) revert ExceedsReserveCap();
-        reserveBalance += amount;
+        _recordDeposit(amount);
+    }
+
+    /**
+     * @notice Fund the reserve before the casino begins accepting bets.
+     * @dev Pulls MTX from the owner and updates the tracked reserve balance.
+     * @param amount Amount of MTX to add to the reserve.
+     */
+    function fund(uint256 amount) external {
+        if (msg.sender != owner) revert NotAuthorized();
+        if (amount == 0) revert ZeroAmount();
+
+        _recordDeposit(amount);
+        mtx.safeTransferFrom(msg.sender, address(this), amount);
+        emit ReserveFunded(amount);
     }
 
     /**
@@ -100,5 +120,10 @@ contract CasinoReserve {
      */
     function reserveHealth() external view returns (uint256) {
         return reserveBalance;
+    }
+
+    function _recordDeposit(uint256 amount) private {
+        if (reserveBalance + amount > reserveCap) revert ExceedsReserveCap();
+        reserveBalance += amount;
     }
 }

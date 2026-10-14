@@ -11,7 +11,7 @@ export const navCategory = "casino";
 
 <Layout title="Dice - Matrix-Hub Casino">
   <div class="container mx-auto px-4 py-8">
-    <CasinoGameWrapper client:only="react">
+    <CasinoGameWrapper client:only="react" game="dice">
       {(props: any) => <DiceGame {...props} />}
     </CasinoGameWrapper>
   </div>

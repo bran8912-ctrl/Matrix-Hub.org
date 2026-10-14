@@ -54,10 +54,19 @@ try {
 const requiredSections = [
   'DEPLOYMENT_CONFIG',
   'ensureDeploymentsDir',
-  'loadMtxDeployment',
   'deployContract',
   'saveDeploymentInfo',
   'async function main()',
+  'MTX_CONTRACT_ADDRESS',
+  'QUICKSWAP_V2_ROUTER_ADDRESS',
+  'CASINO_MAX_PAYOUT_PER_BET',
+  'VRF_NETWORK_CONFIG',
+  'VRF_SUBSCRIPTION_ID',
+  'getSubscription',
+  'addConsumer',
+  'POLYGON_CASINO_DEPLOYMENT_APPROVED',
+  'setCasinoCore',
+  'provideLiquidity',
 ];
 
 console.log('\n📋 Test 3: Checking required sections...');

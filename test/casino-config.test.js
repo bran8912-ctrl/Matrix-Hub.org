@@ -7,45 +7,35 @@ import {
   createContractInfo,
   getContractAddress
 } from '../src/config/casino.ts';
+import { MTX } from '../src/config/mtx.ts';
 
 describe('Casino Configuration and Deployment Status', () => {
-  it('should expose the expected Polygon mainnet deployed contract addresses by default', () => {
-    expect(Casino.contracts.casinoCore.address).to.equal(
-      '0x2fbee7a063dafc8adadfaa1c351796407454a1e0'
-    );
-    expect(Casino.contracts.casinoReserve.address).to.equal(
-      '0x70561ac30aedee7a09cb3840a1c7e441fd80195f'
-    );
-    expect(Casino.contracts.liquidityRouter.address).to.equal(
-      '0x1d0787d70fc0d3111408c030e5c9de247dc0104b'
-    );
-    expect(Casino.contracts.rngEngine.address).to.equal(
+  it('should use the selected Polygon MTX token by default', () => {
+    expect(MTX.address).to.equal(
       '0x53307e1db6c5cb6773c9495ca140372016dfe266'
     );
   });
 
-  it('should reflect deployed status on Polygon mainnet (Chain ID 137)', () => {
+  it('should leave casino module addresses unavailable until valid deployments exist', () => {
     expect(Casino.chainId).to.equal(137);
     expect(Casino.chainName).to.equal('Polygon');
-    expect(Casino.contracts.casinoCore.isDeployed).to.equal(true);
-    expect(Casino.contracts.casinoReserve.isDeployed).to.equal(true);
-    expect(Casino.contracts.liquidityRouter.isDeployed).to.equal(true);
-    expect(Casino.contracts.rngEngine.isDeployed).to.equal(true);
-    expect(Casino.isFullyDeployed).to.equal(true);
+    expect(Casino.contracts.casinoCore.isDeployed).to.equal(false);
+    expect(Casino.contracts.casinoReserve.isDeployed).to.equal(false);
+    expect(Casino.contracts.liquidityRouter.isDeployed).to.equal(false);
+    expect(Casino.contracts.rngEngine.isDeployed).to.equal(false);
+    expect(Casino.isFullyDeployed).to.equal(false);
     expect(Casino.owner).to.equal('0x9fb4bb44d8d962d695fc93b3dc15f1b287391077');
     expect(Casino.governance).to.equal('0x9fb4bb44d8d962d695fc93b3dc15f1b287391077');
   });
 
-  it('should provide block explorer URLs and display addresses for deployed contracts', () => {
-    expect(Casino.contracts.casinoCore.displayAddress).to.equal(
-      DEPLOYED_CASINO_CONTRACTS.casinoCore
-    );
-    expect(Casino.contracts.casinoCore.blockExplorerUrl).to.equal(
-      `https://polygonscan.com/address/${DEPLOYED_CASINO_CONTRACTS.casinoCore}`
-    );
-    expect(Casino.contracts.casinoReserve.blockExplorerUrl).to.equal(
-      `https://polygonscan.com/address/${DEPLOYED_CASINO_CONTRACTS.casinoReserve}`
-    );
+  it('should show placeholders for unvalidated casino contracts', () => {
+    expect(Casino.contracts.casinoCore.displayAddress).to.equal('Coming Soon');
+    expect(Casino.contracts.casinoCore.blockExplorerUrl).to.equal(undefined);
+    expect(Casino.contracts.casinoReserve.displayAddress).to.equal('Coming Soon');
+    expect(Casino.contracts.casinoReserve.blockExplorerUrl).to.equal(undefined);
+    expect(Casino.contracts.liquidityRouter.displayAddress).to.equal('Coming Soon');
+    expect(Casino.contracts.liquidityRouter.blockExplorerUrl).to.equal(undefined);
+    expect(Casino.contracts.rngEngine.blockExplorerUrl).to.equal(undefined);
   });
 
   it('should validate 40-character EVM addresses and 64-character deployed hashes', () => {
@@ -63,15 +53,16 @@ describe('Casino Configuration and Deployment Status', () => {
     expect(isPlaceholder('Coming Soon')).to.equal(true);
     expect(isPlaceholder(null)).to.equal(true);
     expect(isPlaceholder(undefined)).to.equal(true);
-    expect(isPlaceholder(DEPLOYED_CASINO_CONTRACTS.casinoCore)).to.equal(false);
+    expect(isPlaceholder(DEPLOYED_CASINO_CONTRACTS.casinoCore)).to.equal(true);
     expect(isPlaceholder('0x9fb4bb44d8d962d695fc93b3dc15f1b287391077')).to.equal(false);
   });
 
   it('should create contract info with displayAddress and isDeployed flags', () => {
-    const deployedInfo = createContractInfo(DEPLOYED_CASINO_CONTRACTS.casinoCore);
+    const validAddress = '0x1111111111111111111111111111111111111111';
+    const deployedInfo = createContractInfo(validAddress);
     expect(deployedInfo.isDeployed).to.equal(true);
-    expect(deployedInfo.displayAddress).to.equal(DEPLOYED_CASINO_CONTRACTS.casinoCore);
-    expect(deployedInfo.blockExplorerUrl).to.include(DEPLOYED_CASINO_CONTRACTS.casinoCore);
+    expect(deployedInfo.displayAddress).to.equal(validAddress);
+    expect(deployedInfo.blockExplorerUrl).to.include(validAddress);
 
     const placeholderInfo = createContractInfo('0x0000000000000000000000000000000000000000');
     expect(placeholderInfo.isDeployed).to.equal(false);

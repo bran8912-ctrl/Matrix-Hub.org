@@ -51,13 +51,13 @@ export const GET: APIRoute = async () => {
     const mtxContract = new Contract(MTX.address, mtxAbi.default || mtxAbi, provider);
 
     // Fetch contract data
-    const [totalSupply, decimals, name, symbol, mintingPaused, ethToMtxRate] = await Promise.all([
+    const [totalSupply, decimals, name, symbol, mintingPaused, maticToMtxRate] = await Promise.all([
       mtxContract.totalSupply(),
       mtxContract.decimals(),
       mtxContract.name(),
       mtxContract.symbol(),
       mtxContract.mintingPaused().catch(() => false),
-      mtxContract.ethToMtxRate().catch(() => 100000)
+      mtxContract.maticToMtxRate().catch(() => 1000)
     ]);
 
     // Format values
@@ -82,7 +82,7 @@ export const GET: APIRoute = async () => {
       circulatingSupply,
       burnedSupply,
       mintingPaused,
-      ethToMtxRate: Number(ethToMtxRate),
+      maticToMtxRate: Number(maticToMtxRate),
       contractAddress: MTX.address,
       network: MTX.chainName,
       chainId: MTX.chainId,

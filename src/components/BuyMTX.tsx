@@ -3,10 +3,10 @@ import { MTX } from '../config/mtx';
 import mtxAbi from '../abi/mtx.json';
 
 /**
- * BuyMTX Component - Direct MATIC→MTX mint interface
+ * BuyMTX Component - Direct POL→MTX mint interface
  */
 const BuyMTX: React.FC = () => {
-  const [maticAmount, setMaticAmount] = useState('1.0');
+  const [polAmount, setPolAmount] = useState('1.0');
   const [mtxAmount, setMtxAmount] = useState('0');
   const [rate, setRate] = useState(MTX.maticToMtxRate);
   const [loading, setLoading] = useState(false);
@@ -16,10 +16,10 @@ const BuyMTX: React.FC = () => {
   const [mintingPaused, setMintingPaused] = useState(false);
 
   useEffect(() => {
-    const matic = parseFloat(maticAmount) || 0;
-    const mtx = matic * rate;
+    const pol = parseFloat(polAmount) || 0;
+    const mtx = pol * rate;
     setMtxAmount(mtx.toFixed(4));
-  }, [maticAmount, rate]);
+  }, [polAmount, rate]);
 
   useEffect(() => {
     const fetchContractInfo = async () => {
@@ -57,9 +57,9 @@ const BuyMTX: React.FC = () => {
       return;
     }
 
-    const matic = parseFloat(maticAmount);
-    if (!matic || matic <= 0) {
-      setError('Please enter a valid MATIC amount greater than 0');
+    const pol = parseFloat(polAmount);
+    if (!pol || pol <= 0) {
+      setError('Please enter a valid POL amount greater than 0');
       return;
     }
 
@@ -73,10 +73,14 @@ const BuyMTX: React.FC = () => {
     try {
       const { BrowserProvider, Contract, parseEther } = await import('ethers');
       const provider = new BrowserProvider(window.ethereum as any);
+      const network = await provider.getNetwork();
+      if (Number(network.chainId) !== MTX.chainId) {
+        throw new Error(`Switch your wallet to ${MTX.chainName} (Chain ID: ${MTX.chainId}) to buy MTX.`);
+      }
       const signer = await provider.getSigner();
       const mtxContract = new Contract(MTX.address, mtxAbi, signer);
 
-      const tx = await mtxContract.buyMTX({ value: parseEther(maticAmount) });
+      const tx = await mtxContract.buyMTX({ value: parseEther(polAmount) });
 
       setSuccess(`Transaction sent! Waiting for confirmation...`);
       setTxHash(tx.hash);
@@ -99,7 +103,7 @@ const BuyMTX: React.FC = () => {
   return (
     <div className="buy-mtx">
       <div className="input-row">
-        <input value={maticAmount} onChange={(e) => setMaticAmount(e.target.value)} />
+        <input value={polAmount} onChange={(e) => setPolAmount(e.target.value)} />
         <button onClick={handleBuyMTX} disabled={loading || !MTX.isDeployed}>Buy MTX</button>
       </div>
       {error && <div className="error">{error}</div>}

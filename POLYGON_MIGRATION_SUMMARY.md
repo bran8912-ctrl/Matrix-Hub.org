@@ -2,7 +2,7 @@
 
 ## Overview
 
-All documentation has been successfully migrated from Ethereum to Polygon network references.
+All documentation has been migrated from Ethereum to Polygon network references. This documents the migration work; it does not by itself mean the production website or every on-chain feature is live.
 
 ## Changes Made
 
@@ -13,8 +13,8 @@ All documentation has been successfully migrated from Ethereum to Polygon networ
 - ✅ **Goerli** → **Amoy**
 
 ### Currency
-- ✅ **ETH** → **MATIC** (when referring to currency)
-- ✅ **1 ETH = 100,000 MTX** → **1 MATIC = 1,000 MTX**
+- ✅ **ETH** → **POL**, Polygon's current native gas token (legacy contract method and event names still use `MATIC`)
+- ✅ **1 ETH = 100,000 MTX** → **1 POL = 1,000 MTX**
 
 ### Block Explorers
 - ✅ **Etherscan** → **Polygonscan**
@@ -118,14 +118,21 @@ All user-facing documentation references have been successfully migrated:
 - Correct RPC URLs and faucet links
 - Accurate contract verification instructions
 
+## Live Status (2026-10-14)
+
+- The production website at <https://matrix-hub.org> responds successfully, but its live `/mtx-contract` and `/buy-mtx` pages still omit the selected token address and describe purchases in MATIC. The current local source is configured for the Polygon token and now labels the native currency POL; these changes have not been published.
+- The user-designated MTX token at `0x53307e1db6c5cb6773c9495ca140372016dfe266` has verified source on Polygon (chain ID 137). Read-only checks confirmed its ERC-20 identity and that a small `buyMTX` call succeeds in simulation. Its current supply is zero, the direct-mint function is enabled, and no purchase was submitted.
+- Casino contracts are not configured or live. No casino deployment, liquidity operation, or other transaction was submitted.
+- A production publish and any new contract deployment are blocked from this workspace: deployment wallet credentials are not configured locally and GitHub CLI is not authenticated. Do not put private keys in chat or commit them; configure deployment secrets in the hosting/deployment provider instead.
+
 ## Next Steps
 
-1. ✅ Documentation migration complete
-2. ⏭️ Update smart contracts to target Polygon
-3. ⏭️ Update frontend configuration files (if needed)
-4. ⏭️ Test deployment on Polygon Amoy testnet
-5. ⏭️ Deploy to Polygon mainnet
+1. ✅ Documentation references migrated to Polygon.
+2. ✅ Existing MTX token verified on Polygon; local configuration points to the user-designated address.
+3. ⏭️ Publish the updated site, then verify the live token address, POL purchase labels, and wallet transaction flow.
+4. ⏭️ Test casino contracts on Amoy and complete the required independent security review and Chainlink VRF setup.
+5. ⏭️ Deploy casino contracts to Polygon mainnet only after explicit approval and all prerequisites are ready.
 
 ## Date
 
-Migration completed: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
+Migration completed: 2026-10-14

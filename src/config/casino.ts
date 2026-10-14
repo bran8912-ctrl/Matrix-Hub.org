@@ -27,6 +27,15 @@ const getEnvVar = (name: string): string | undefined => {
   return undefined;
 };
 
+const configuredChainId = Number(getEnvVar('CASINO_CHAIN_ID') || '137');
+if (configuredChainId !== 137 && configuredChainId !== 80002) {
+  throw new Error(`Unsupported CASINO_CHAIN_ID: ${configuredChainId}. Use 137 or 80002.`);
+}
+const casinoChainId = configuredChainId;
+const explorerBase = casinoChainId === 80002
+  ? 'https://amoy.polygonscan.com/address/'
+  : 'https://polygonscan.com/address/';
+
 // Get contract address preferring environment variables over safe defaults
 export const getContractAddress = (
   envVar: string | undefined,
@@ -86,7 +95,7 @@ export const createContractInfo = (address: string): ContractInfo => {
     address,
     isDeployed: deployed,
     displayAddress: deployed ? address : "Coming Soon",
-    blockExplorerUrl: deployed ? `https://polygonscan.com/address/${address}` : undefined
+    blockExplorerUrl: deployed ? `${explorerBase}${address}` : undefined
   };
 };
 
@@ -103,8 +112,7 @@ const allContractsDeployed =
   rngEngineInfo.isDeployed;
 
 if (!allContractsDeployed) {
-  console.warn("⚠️  Casino: Using placeholder addresses. Deploy contracts to get legitimate addresses.");
-  console.warn("    Run: npm run deploy:polygon:casino");
+  console.warn("⚠️  Casino: Required modules are unavailable or unvalidated; casino features are disabled.");
 }
 
 export const Casino = {
@@ -115,8 +123,8 @@ export const Casino = {
     rngEngine: rngEngineInfo
   },
   isFullyDeployed: allContractsDeployed,
-  chainId: 137, // Polygon Mainnet
-  chainName: "Polygon",
+  chainId: casinoChainId,
+  chainName: casinoChainId === 80002 ? "Polygon Amoy" : "Polygon",
   owner: DEPLOYED_CASINO_CONTRACTS.owner,
   governance: DEPLOYED_CASINO_CONTRACTS.governance
 };

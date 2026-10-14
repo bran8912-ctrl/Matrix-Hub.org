@@ -1,22 +1,20 @@
 # MTX Casino Games
 
-## Dice Roll
-Roll under target to win.
+## Available in the first VRF-backed release
 
-## Coin Flip
-50/50 outcome.
+### Dice Roll
 
-## Number Match
-Pick 1–100. Exact match wins.
+The player chooses a wager and a target from 2 through 98. Chainlink VRF
+provides the random word after the bet is recorded. The on-chain roll is from
+1 to 100, and the player wins when the roll is below the selected target.
+Winning MTX is claimed after settlement.
 
-## Slot Probability
-Weighted symbols, fixed [RTP](https://en.wikipedia.org/wiki/Return_to_player).
+## Not yet available
 
-## Crash (Phase 2)
-Multiplier grows until crash.
-
-## PvP Arena (Phase 3)
-Player vs Player wagers.
+Slots, blackjack, roulette, mines, plinko, and crash are disabled. Their current
+browser-side game logic must not be used to determine paid outcomes. Each game
+needs game-specific on-chain rules, asynchronous VRF settlement, payout
+accounting, and tests before it can accept wagers.
 
 ---
 

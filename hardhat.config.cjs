@@ -4,18 +4,44 @@ require("@nomicfoundation/hardhat-toolbox");
 
 module.exports = {
   solidity: {
-    version: "0.8.20",
-    settings: {
-      optimizer: {
-        enabled: true,
-        runs: 200
+    compilers: [
+      {
+        version: "0.8.20",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          }
+        }
+      },
+      {
+        version: "0.8.34",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          },
+          evmVersion: "osaka"
+        }
+      }
+    ],
+    overrides: {
+      "contracts/MatrixHubCoin.sol": {
+        version: "0.8.34",
+        settings: {
+          optimizer: {
+            enabled: true,
+            runs: 200
+          },
+          evmVersion: "osaka"
+        }
       }
     }
   },
   networks: {
     // Polygon Mainnet - PRIMARY NETWORK
     polygon: {
-      url: process.env.POLYGON_RPC_URL || "https://polygon-rpc.com/",
+      url: process.env.POLYGON_RPC_URL || "https://polygon.drpc.org",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 137,
       gasPrice: 50000000000 // 50 gwei - adjust based on network conditions
@@ -33,10 +59,7 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: {
-      polygon: process.env.POLYGONSCAN_API_KEY || "",
-      polygonAmoy: process.env.POLYGONSCAN_API_KEY || ""
-    }
+    apiKey: process.env.POLYGONSCAN_API_KEY || ""
   },
   // Validate Polygonscan API key is set for contract verification
   paths: {
