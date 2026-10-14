@@ -11,16 +11,16 @@ import {
 describe('Casino Configuration and Deployment Status', () => {
   it('should expose the expected Polygon mainnet deployed contract addresses by default', () => {
     expect(Casino.contracts.casinoCore.address).to.equal(
-      '0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9'
+      '0x2fbee7a063dafc8adadfaa1c351796407454a1e0'
     );
     expect(Casino.contracts.casinoReserve.address).to.equal(
-      '0xc35da432aa4ab30790f491bc4ab87b044cffae940df04966438e216a489cef01'
+      '0x70561ac30aedee7a09cb3840a1c7e441fd80195f'
     );
     expect(Casino.contracts.liquidityRouter.address).to.equal(
-      '0xf7aebcb5df8aa402ad96ef88deb64a84df606545e641da7863e05e748af21ef1'
+      '0x1d0787d70fc0d3111408c030e5c9de247dc0104b'
     );
     expect(Casino.contracts.rngEngine.address).to.equal(
-      '0x4915ac24ca2933261d1b6f0f0679c0f5fb99cf398963c3b5a88e7825d922326f'
+      '0x53307e1db6c5cb6773c9495ca140372016dfe266'
     );
   });
 
@@ -50,6 +50,7 @@ describe('Casino Configuration and Deployment Status', () => {
 
   it('should validate 40-character EVM addresses and 64-character deployed hashes', () => {
     expect(isValidAddress('0x9fb4bb44d8d962d695fc93b3dc15f1b287391077')).to.equal(true);
+    expect(isValidAddress('0x2fbee7a063dafc8adadfaa1c351796407454a1e0')).to.equal(true);
     expect(isValidAddress('0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9')).to.equal(true);
     expect(isValidAddress('0x123')).to.equal(false);
     expect(isValidAddress('')).to.equal(false);

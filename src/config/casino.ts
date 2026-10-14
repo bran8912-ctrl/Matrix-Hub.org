@@ -2,14 +2,16 @@
 // Network: Polygon Mainnet (Chain ID: 137)
 // Deployer / Owner / Governance: 0x9fb4bb44d8d962d695fc93b3dc15f1b287391077
 
+import { DEPLOYED_CONTRACTS } from './contracts.js';
+
 // Default deployed contract addresses on Polygon mainnet
 export const DEPLOYED_CASINO_CONTRACTS = {
-  casinoCore: "0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9",
-  casinoReserve: "0xc35da432aa4ab30790f491bc4ab87b044cffae940df04966438e216a489cef01",
-  liquidityRouter: "0xf7aebcb5df8aa402ad96ef88deb64a84df606545e641da7863e05e748af21ef1",
-  rngEngine: "0x4915ac24ca2933261d1b6f0f0679c0f5fb99cf398963c3b5a88e7825d922326f",
-  owner: "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077",
-  governance: "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+  casinoCore: DEPLOYED_CONTRACTS.casinoCore,
+  casinoReserve: DEPLOYED_CONTRACTS.casinoReserve,
+  liquidityRouter: DEPLOYED_CONTRACTS.liquidityRouter,
+  rngEngine: DEPLOYED_CONTRACTS.rngEngine,
+  owner: DEPLOYED_CONTRACTS.deployer,
+  governance: DEPLOYED_CONTRACTS.deployer
 } as const;
 
 // Read environment variables safely in both Node.js and Vite/Astro environments
