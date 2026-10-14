@@ -23,6 +23,10 @@ const MTXDashboard: React.FC<MTXDashboardProps> = ({ address }) => {
 
   const fetchStats = async () => {
     if (!address || !window.ethereum) return;
+    if (!MTX.isDeployed) {
+      setError('MTX contract address is not configured yet.');
+      return;
+    }
     setLoading(true);
     setError('');
 

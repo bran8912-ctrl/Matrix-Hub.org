@@ -8,7 +8,7 @@
 import { spendMTX } from '../../src/utils/mtxTransfer';
 
 // Casino vault address (replace with actual deployed vault address)
-const CASINO_VAULT_ADDRESS = '0x0000000000000000000000000000000000000001';
+const CASINO_VAULT_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 /**
  * Example: Place a casino bet using spendMTX

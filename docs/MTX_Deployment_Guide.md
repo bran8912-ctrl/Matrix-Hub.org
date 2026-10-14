@@ -39,7 +39,8 @@ cp .env.example .env
 
 **For Local Development** - Edit `.env` file:
 ```
-MAINNET_RPC_URL=https://eth.llamarpc.com
+POLYGON_RPC_URL=https://polygon-rpc.com/
+AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
 PRIVATE_KEY=YOUR_DEPLOYER_PRIVATE_KEY_HERE
 ETHERSCAN_API_KEY=YOUR_ETHERSCAN_API_KEY
 MTX_CONTRACT_ADDRESS=  # Leave empty until deployed
@@ -62,19 +63,19 @@ MTX_CONTRACT_ADDRESS=  # Leave empty until deployed
 #### Test Deployment (Polygon Amoy Testnet)
 
 ```bash
-# Get testnet ETH from faucet: https://faucet.polygon.technology/amoy/
+# Get test POL from faucet: https://faucet.polygon.technology/amoy/
 
 # Deploy to testnet
-npm run deploy:sepolia
+npm run deploy:amoy
 ```
 
 #### Production Deployment (Polygon)
 
 ```bash
-# Ensure you have real ETH in your deployer wallet
+# Ensure you have POL in your deployer wallet
 
 # Deploy to mainnet
-npm run deploy:mainnet
+npm run deploy:polygon
 ```
 
 The script will output:
@@ -89,7 +90,7 @@ Contract Owner: 0x9fb4bb44d8d962d695fc93b3dc15f1b287391077
 
 ```bash
 # Verify the contract (replace with your actual address and constructor args)
-npm run verify:mainnet 0xYourActualContractAddress "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:polygon 0xYourActualContractAddress "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 This will make the contract publicly verifiable on Polygonscan.
@@ -103,10 +104,10 @@ export const MTX = {
   address: "0xYourActualContractAddress", // ✅ Real deployed address
   symbol: "MTX",
   decimals: 18,
-  Chain ID: 137, // Polygon
+  chainId: 137, // Polygon
   chainName: "Polygon",
   name: "Matrix Hub Coin",
-  ethToMtxRate: 100000,
+  maticToMtxRate: 1000,
   // ... rest of config
 };
 ```
@@ -139,15 +140,15 @@ Before going live:
 ## Network Information
 
 ### Polygon
-- **Chain ID**: 1
-- **Currency**: ETH
-- **RPC**: https://eth.llamarpc.com
+- **Chain ID**: 137
+- **Currency**: POL (formerly MATIC)
+- **RPC**: https://polygon-rpc.com/
 - **Explorer**: https://polygonscan.com/
 - **DEX**: QuickSwap
 
 ### Polygon Amoy Testnet
 - **Chain ID**: 80002  
-- **Currency**: test MATIC
+- **Currency**: test POL
 - **RPC**: https://rpc-amoy.polygon.technology/
 - **Explorer**: https://amoy.polygonscan.com/
 - **Faucet**: https://faucet.polygon.technology/amoy/

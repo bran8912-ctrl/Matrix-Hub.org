@@ -1,22 +1,22 @@
-# Contract Details Audit - Complete Report
+# Contract Details Audit
 
 ## Executive Summary
 
-**Status**: ✅ **ALL HARDHAT ADDRESSES FOUND AND REMOVED**
+The Hardhat example addresses below are retained only in `docs/index.html` as local-development fixtures. The page labels them as Chain ID 31337 test addresses and refuses to use them on other networks; they are not Polygon deployment addresses.
 
-During a comprehensive audit of the Matrix-Hub codebase, we discovered **multiple Hardhat local testnet default addresses** that would have caused **complete loss of user funds** if used in production. All issues have been identified and resolved.
+The current Polygon MTX and casino deployment addresses remain unconfigured until verified deployment outputs are available.
 
 ## Hardhat Default Addresses Found
 
-Hardhat generates deterministic contract addresses on local test networks. These addresses **ONLY exist on local development environments** and have **NO presence on any live blockchain** (Polygon or any testnet).
+Hardhat generates deterministic contract addresses on local test networks. These addresses are deterministic local Hardhat example addresses. They must not be used as Polygon or testnet deployments.
 
-### Addresses Found and Removed:
+### Local development addresses:
 
 | Address | Type | Location | Status |
 |---------|------|----------|--------|
-| `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0` | MTX Token (Contract #1) | contracts/CasinoCore.sol, contracts/CasinoModules.sol (3 instances) | ✅ REMOVED |
-| `0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9` | CasinoCore (Contract #3) | src/pages/api/place-bet.js | ✅ REMOVED |
-| `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9` | CasinoReserve (Contract #4) | src/components/MTXOwnershipPanel.astro | ✅ REMOVED |
+| `0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0` | Local MTX test fixture | `docs/index.html` | Chain ID 31337 only |
+| `0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9` | Local CasinoCore test fixture | `docs/index.html` | Chain ID 31337 only |
+| `0xCf7Ed3AccA5a467e9e704C703E8D87F634fB0Fc9` | Local CasinoReserve test fixture | `docs/index.html` | Chain ID 31337 only |
 
 ### Why These Addresses Are Dangerous
 

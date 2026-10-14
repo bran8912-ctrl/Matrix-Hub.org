@@ -13,7 +13,7 @@ The MTX token contract is ready for deployment but has not been deployed to any 
 1. Install dependencies: `npm install`
 2. Create `.env` file: `cp .env.example .env`
 3. Add your private key to `.env` (wallet with MATIC for gas)
-4. Get testnet ETH: https://faucet.polygon.technology/amoy/
+4. Get test POL: https://faucet.polygon.technology/amoy/
 
 ### Deploy Commands
 
@@ -21,11 +21,11 @@ The MTX token contract is ready for deployment but has not been deployed to any 
 # Interactive deployment (recommended)
 npm run deploy
 
-# Or deploy directly to testnet
-npm run deploy:sepolia
+# Or deploy directly to Amoy testnet
+npm run deploy:amoy
 
 # Or deploy directly to mainnet (after testing!)
-npm run deploy:mainnet
+npm run deploy:polygon
 ```
 
 ### After Deployment
@@ -33,10 +33,10 @@ npm run deploy:mainnet
 1. **Verify Contract**
    ```bash
    # For testnet
-   npm run verify:sepolia YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+   npm run verify:amoy YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
    
    # For mainnet
-   npm run verify:mainnet YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+   npm run verify:polygon YOUR_CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
    ```
 
 2. **Update Configuration**
@@ -60,15 +60,15 @@ npm run deploy:mainnet
 ## Network Information
 
 ### Polygon (Production)
-- **Chain ID**: 1
-- **Currency**: ETH
-- **RPC**: https://eth.llamarpc.com
+- **Chain ID**: 137
+- **Currency**: POL (formerly MATIC)
+- **RPC**: https://polygon-rpc.com/
 - **Explorer**: https://polygonscan.com/
 - **DEX**: QuickSwap
 
 ### Polygon Amoy Testnet (Testing)
 - **Chain ID**: 80002
-- **Currency**: test MATIC
+- **Currency**: test POL
 - **RPC**: https://rpc-amoy.polygon.technology/
 - **Explorer**: https://amoy.polygonscan.com/
 - **Faucet**: https://faucet.polygon.technology/amoy/
@@ -136,4 +136,4 @@ For detailed instructions, see:
 
 ---
 
-**Ready to deploy? Run: `npm run deploy:sepolia` (testnet) or `npm run deploy:mainnet` (production)**
+**Ready to deploy? Run: `npm run deploy:amoy` (testnet) or `npm run deploy:polygon` (production)**

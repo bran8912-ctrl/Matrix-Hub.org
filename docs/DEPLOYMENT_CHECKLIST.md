@@ -34,13 +34,13 @@ Use this checklist to ensure you have everything ready before deploying the MTX 
 ## Deployment to Amoy (Testnet)
 
 ### Deploy Contract
-- [ ] Run: `npm run deploy:sepolia`
+- [ ] Run: `npm run deploy:amoy`
 - [ ] Deployment successful (no errors)
 - [ ] Contract address saved/noted
 - [ ] Deployment info saved to `deployments/mtx-sepolia.json`
 
 ### Verify Contract
-- [ ] Run: `npm run verify:sepolia CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"`
+- [ ] Run: `npm run verify:amoy CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"`
 - [ ] Verification successful on Amoy Polygonscan
 - [ ] Contract source code visible on Polygonscan
 - [ ] Green checkmark appears on Polygonscan
@@ -73,13 +73,13 @@ Use this checklist to ensure you have everything ready before deploying the MTX 
 - [ ] Real ETH obtained for mainnet deployment (0.1+ ETH recommended)
 
 ### Deploy to Mainnet
-- [ ] Run: `npm run deploy:mainnet`
+- [ ] Run: `npm run deploy:polygon`
 - [ ] Deployment successful (no errors)
 - [ ] **SAVE CONTRACT ADDRESS IMMEDIATELY!**
 - [ ] Deployment info saved to `deployments/mtx-mainnet.json`
 
 ### Verify on Mainnet
-- [ ] Run: `npm run verify:mainnet CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"`
+- [ ] Run: `npm run verify:polygon CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"`
 - [ ] Verification successful on Mainnet Polygonscan
 - [ ] Contract source code visible
 - [ ] Green checkmark on Polygonscan
@@ -133,19 +133,19 @@ cp .env.example .env
 npm run compile
 
 # 3. Deploy
-npm run deploy:sepolia
+npm run deploy:amoy
 
 # 4. Verify (replace CONTRACT_ADDRESS)
-npm run verify:sepolia CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:amoy CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ### Mainnet Deployment
 ```bash
 # 1. Deploy
-npm run deploy:mainnet
+npm run deploy:polygon
 
 # 2. Verify (replace CONTRACT_ADDRESS)
-npm run verify:mainnet CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
+npm run verify:polygon CONTRACT_ADDRESS "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ## Troubleshooting

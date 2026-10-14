@@ -486,7 +486,7 @@
     <span style="color:var(--theme-secondary);">The Matrix-Hub Casino lets users play slots, blackjack, roulette, and more using MTX coins.<br>
     MTX is the exclusive currency for all casino games. Win, spend, and stake MTX to unlock new features and rewards.</span>
     <div style="margin-top: 12px; color:var(--theme-primary); font-size: 1.01rem;">
-      <b>Live Contract Addresses:</b><br>
+      <b>Local Hardhat Test Addresses (Chain ID 31337; not Polygon deployments):</b><br>
       <ul style="margin-left: 20px; font-size: 1em;">
         <li><b>MTX Token (MatrixHubCoin):</b> <span style="color:var(--theme-secondary);">0x9fE46736679d2D9a65F0992F2272dE9f3c7fa6e0</span></li>
         <li><b>CasinoCore:</b> <span style="color:var(--theme-secondary);">0xDc64a140Aa3E981100a9becA4E685f962f0cF6C9</span></li>
@@ -3023,6 +3023,10 @@ SOFTWARE.
       try {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         provider = new ethers.providers.Web3Provider(window.ethereum);
+        const network = await provider.getNetwork();
+        if (network.chainId !== 31337) {
+          throw new Error("Switch to the local Hardhat network (chain ID 31337) to use these test addresses.");
+        }
         signer = provider.getSigner();
         const userAddress = await signer.getAddress();
         walletAddress.textContent = "Connected: " + userAddress.slice(0, 6) + "..." + userAddress.slice(-4);
@@ -3085,6 +3089,10 @@ SOFTWARE.
       try {
         await window.ethereum.request({ method: 'eth_requestAccounts' });
         provider = new ethers.providers.Web3Provider(window.ethereum);
+        const network = await provider.getNetwork();
+        if (network.chainId !== 31337) {
+          throw new Error("Switch to the local Hardhat network (chain ID 31337) to use this test address.");
+        }
         signer = provider.getSigner();
         const address = await signer.getAddress();
         walletAddress.textContent = "Connected: " + address.slice(0, 6) + "..." + address.slice(-4);

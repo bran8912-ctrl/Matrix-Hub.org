@@ -73,7 +73,8 @@ export const GET: APIRoute = async ({ request }) => {
     }
 
     // Create provider using public RPC
-    const provider = new ethers.JsonRpcProvider(MTX.rpcUrls[0]);
+    const { Contract, formatUnits, JsonRpcProvider } = await import('ethers');
+    const provider = new JsonRpcProvider(MTX.rpcUrls[0]);
     
     // Create contract instance
     const mtxContract = new Contract(MTX.address, mtxAbi.default || mtxAbi, provider);

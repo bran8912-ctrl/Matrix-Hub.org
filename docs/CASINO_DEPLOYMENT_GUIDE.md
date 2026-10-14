@@ -9,7 +9,7 @@ Before deploying, ensure you have:
 - [ ] Node.js v18.14+ installed
 - [ ] npm dependencies installed (`npm install`)
 - [ ] Deployer wallet with private key
-- [ ] Sufficient ETH in deployer wallet for gas (0.1+ ETH recommended)
+- [ ] Sufficient POL in deployer wallet for gas
 - [ ] RPC endpoint URL (Alchemy, Infura, or public)
 - [ ] Polygonscan API key (optional, for verification)
 - [ ] MTX token already deployed
@@ -31,7 +31,7 @@ PRIVATE_KEY=your_64_character_hex_private_key_here
 
 # RPC endpoints
 MAINNET_RPC_URL=https://eth-mainnet.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
-SEPOLIA_RPC_URL=https://eth-sepolia.g.alchemy.com/v2/YOUR_ALCHEMY_KEY
+AMOY_RPC_URL=https://rpc-amoy.polygon.technology/
 
 # Polygonscan API key for contract verification
 ETHERSCAN_API_KEY=YOUR_ETHERSCAN_API_KEY
@@ -56,23 +56,23 @@ The casino contracts require the MTX token to be deployed first.
 ### 2.1 Deploy to Amoy (Testnet)
 
 ```bash
-npx hardhat run scripts/deploy_mtx.js --network sepolia
+npx hardhat run scripts/deploy_mtx.js --network amoy
 ```
 
 **Expected Output:**
 ```
 ✅ MatrixHubCoin deployed to: 0x...
-📄 Deployment info saved to: deployments/mtx-sepolia.json
+📄 Deployment info saved to: deployments/mtx-amoy.json
 ```
 
 ### 2.2 Verify MTX Deployment
 
 ```bash
 # Check the deployment file was created
-cat deployments/mtx-sepolia.json
+cat deployments/mtx-amoy.json
 
 # Verify on Polygonscan
-npx hardhat verify --network sepolia <MTX_ADDRESS> "100000000" "0x58e7893356002ac8f8f612f7b3d29d8b181d85b3"
+npx hardhat verify --network amoy <MTX_ADDRESS> "100000000" "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077"
 ```
 
 ## Step 3: Deploy Casino Contracts
@@ -95,7 +95,7 @@ const DEPLOYMENT_CONFIG = {
 ### 3.2 Deploy to Amoy
 
 ```bash
-npx hardhat run scripts/deploy_casino.js --network sepolia
+npx hardhat run scripts/deploy_casino.js --network amoy
 ```
 
 **Expected Output:**
@@ -105,7 +105,7 @@ npx hardhat run scripts/deploy_casino.js --network sepolia
 ╚════════════════════════════════════════════════════════════════╝
 
 📡 Network Information:
-   Network: sepolia
+   Network: amoy
    Chain ID: 80002
 
 👤 Deployer Account:
@@ -155,7 +155,7 @@ npx hardhat run scripts/deploy_casino.js --network sepolia
 💾 Preparing Deployment Information...
 
 📄 Deployment info saved successfully
-   File: /path/to/deployments/casino-sepolia.json
+   File: /path/to/deployments/casino-amoy.json
 
 ╔════════════════════════════════════════════════════════════════╗
 ║                   📋 POST-DEPLOYMENT STEPS                      ║
@@ -168,10 +168,10 @@ npx hardhat run scripts/deploy_casino.js --network sepolia
 
 ```bash
 # Check deployment file
-cat deployments/casino-sepolia.json
+cat deployments/casino-amoy.json
 
 # Verify it contains all contract addresses
-jq '.contracts' deployments/casino-sepolia.json
+jq '.contracts' deployments/casino-amoy.json
 ```
 
 ## Step 4: Verify Contracts on Polygonscan
@@ -180,18 +180,18 @@ Verify each contract for transparency:
 
 ```bash
 # RNGEngine (no constructor args)
-npx hardhat verify --network sepolia <RNG_ADDRESS>
+npx hardhat verify --network amoy <RNG_ADDRESS>
 
 # CasinoReserve
-npx hardhat verify --network sepolia <RESERVE_ADDRESS> \
+npx hardhat verify --network amoy <RESERVE_ADDRESS> \
   "<MTX_ADDRESS>" "<RESERVE_CAP>" "<TEMP_CASINO_CORE>"
 
 # LiquidityRouter
-npx hardhat verify --network sepolia <LIQUIDITY_ADDRESS> \
+npx hardhat verify --network amoy <LIQUIDITY_ADDRESS> \
   "<MTX_ADDRESS>" "<TEMP_DEX_POOL>"
 
 # CasinoCore
-npx hardhat verify --network sepolia <CASINO_CORE_ADDRESS> \
+npx hardhat verify --network amoy <CASINO_CORE_ADDRESS> \
   "<MTX_ADDRESS>" "<LIQUIDITY_ADDRESS>" "<RESERVE_ADDRESS>" "<RNG_ADDRESS>" \
   "<MIN_BET>" "<MAX_BET>" "<DEV_ADDRESS>" "<GOVERNANCE_ADDRESS>"
 ```
@@ -229,7 +229,7 @@ cast send <MTX_ADDRESS> \
   "transfer(address,uint256)" \
   <RESERVE_ADDRESS> \
   100000000000000000000000 \
-  --rpc-url $SEPOLIA_RPC_URL \
+  --rpc-url $AMOY_RPC_URL \
   --private-key $PRIVATE_KEY
 ```
 
@@ -254,7 +254,7 @@ PUBLIC_NETWORK=sepolia
 In your Astro components:
 
 ```typescript
-import casinoDeployment from '../../deployments/casino-sepolia.json';
+import casinoDeployment from '../../deployments/casino-amoy.json';
 
 const {
   casinoCore,
@@ -292,7 +292,7 @@ Track gas costs during testing:
 
 ```bash
 # Check latest transactions
-npx hardhat run scripts/check_gas_usage.js --network sepolia
+npx hardhat run scripts/check_gas_usage.js --network amoy
 ```
 
 ## Step 8: Mainnet Deployment (Production)

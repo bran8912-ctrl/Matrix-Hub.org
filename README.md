@@ -436,13 +436,13 @@ npm install
 cp .env.example .env
 nano .env
 
-# Deploy to Polygon Amoy Testnet (recommended first)
-npm run deploy:sepolia
+# Deploy MTX to Polygon Amoy Testnet (recommended first)
+npm run deploy:amoy
 
-# Get testnet ETH from: https://faucet.polygon.technology/amoy/
+# Get test POL from: https://faucet.polygon.technology/amoy/
 
 # After testing, deploy to Polygon
-npm run deploy:mainnet
+npm run deploy:polygon
 ```
 
 **Deployment Documentation**:
@@ -515,10 +515,10 @@ All commands are run from the root of the project, from a terminal:
 | :------------------------ | :----------------------------------------------- |
 | `npm run compile`         | Compile Solidity contracts                       |
 | `npm run test`            | Run Hardhat tests                                |
-| `npm run deploy:sepolia`  | Deploy MTX contract to Amoy testnet           |
-| `npm run deploy:mainnet`  | Deploy MTX contract to Polygon          |
-| `npm run verify:sepolia`  | Verify contract on Amoy Polygonscan            |
-| `npm run verify:mainnet`  | Verify contract on Mainnet Polygonscan            |
+| `npm run deploy:amoy`     | Deploy MTX contract to Amoy testnet             |
+| `npm run deploy:polygon`  | Deploy MTX contract to Polygon                  |
+| `npm run verify:amoy`     | Verify contract on Amoy Polygonscan             |
+| `npm run verify:polygon`  | Verify contract on Polygonscan                  |
 
 ## Content Workflow Commands
 
