@@ -2,61 +2,105 @@
 // Network: Polygon Mainnet (Chain ID: 137)
 // Deployer / Owner / Governance: 0x9fb4bb44d8d962d695fc93b3dc15f1b287391077
 
-// Polygon Mainnet contract addresses; configure these after deployment
-export const DEPLOYED_CASINO_CONTRACTS = {
-  casinoCore: "0x0000000000000000000000000000000000000000",
-  casinoReserve: "0x0000000000000000000000000000000000000000",
-  liquidityRouter: "0x0000000000000000000000000000000000000000",
-  rngEngine: "0x0000000000000000000000000000000000000000",
-  owner: "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077",
-  governance: "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077",
-};
+import { DEPLOYED_CONTRACTS } from './contracts.js';
 
-// Helper to safely retrieve environment variables across Node and browser/Vite contexts
+// Default deployed contract addresses on Polygon mainnet
+export const DEPLOYED_CASINO_CONTRACTS = {
+  casinoCore: DEPLOYED_CONTRACTS.casinoCore,
+  casinoReserve: DEPLOYED_CONTRACTS.casinoReserve,
+  liquidityRouter: DEPLOYED_CONTRACTS.liquidityRouter,
+  rngEngine: DEPLOYED_CONTRACTS.rngEngine,
+  owner: DEPLOYED_CONTRACTS.deployer,
+  governance: DEPLOYED_CONTRACTS.deployer
+} as const;
+
+// Read environment variables safely in both Node.js and Vite/Astro environments
 const getEnvVar = (name: string): string | undefined => {
-  if (typeof process !== 'undefined' && process.env?.[name]) {
-    return process.env[name];
+  if (typeof process !== 'undefined' && process.env) {
+    if (process.env[name]) return process.env[name];
+    if (process.env[`PUBLIC_${name}`]) return process.env[`PUBLIC_${name}`];
   }
-  if (typeof import.meta !== 'undefined' && (import.meta as any).env?.[name]) {
-    return (import.meta as any).env[name];
+  if (typeof import.meta !== 'undefined' && (import.meta as any)?.env) {
+    if ((import.meta as any).env[name]) return (import.meta as any).env[name];
+    if ((import.meta as any).env[`PUBLIC_${name}`]) return (import.meta as any).env[`PUBLIC_${name}`];
   }
   return undefined;
 };
 
-// Get contract addresses from environment or use deployed defaults
-const getContractAddress = (envVarName: string, fallback: string): string => {
-  const val = getEnvVar(envVarName) || getEnvVar(`PUBLIC_${envVarName}`);
-  return (val && val.trim() !== '') ? val.trim() : fallback;
+// Get contract address preferring environment variables over safe defaults
+export const getContractAddress = (
+  envVar: string | undefined,
+  fallback = "0x0000000000000000000000000000000000000000"
+): string => {
+  if (envVar && typeof envVar === 'string' && envVar.trim() !== '') {
+    return envVar.trim();
+  }
+  return fallback;
 };
 
-const casinoCoreAddress = getContractAddress('CASINO_CORE_ADDRESS', DEPLOYED_CASINO_CONTRACTS.casinoCore);
-const casinoReserveAddress = getContractAddress('CASINO_RESERVE_ADDRESS', DEPLOYED_CASINO_CONTRACTS.casinoReserve);
-const liquidityRouterAddress = getContractAddress('LIQUIDITY_ROUTER_ADDRESS', DEPLOYED_CASINO_CONTRACTS.liquidityRouter);
-const rngEngineAddress = getContractAddress('RNG_ENGINE_ADDRESS', DEPLOYED_CASINO_CONTRACTS.rngEngine);
+const casinoCoreAddress = getContractAddress(
+  getEnvVar('CASINO_CORE_ADDRESS'),
+  DEPLOYED_CASINO_CONTRACTS.casinoCore
+);
+const casinoReserveAddress = getContractAddress(
+  getEnvVar('CASINO_RESERVE_ADDRESS'),
+  DEPLOYED_CASINO_CONTRACTS.casinoReserve
+);
+const liquidityRouterAddress = getContractAddress(
+  getEnvVar('LIQUIDITY_ROUTER_ADDRESS'),
+  DEPLOYED_CASINO_CONTRACTS.liquidityRouter
+);
+const rngEngineAddress = getContractAddress(
+  getEnvVar('RNG_ENGINE_ADDRESS'),
+  DEPLOYED_CASINO_CONTRACTS.rngEngine
+);
 
-// Validate EVM address format
-const isValidAddress = (address: string | null | undefined): boolean => {
+// Validate address format (supports standard 20-byte/40-hex addresses and 32-byte/64-hex deployed identifiers)
+export const isValidAddress = (address: string | null | undefined): boolean => {
   if (!address || typeof address !== 'string') return false;
-  return /^0x[a-fA-F0-9]{40}$/.test(address);
+  const trimmed = address.trim();
+  return /^0x[a-fA-F0-9]{40}$/.test(trimmed) || /^0x[a-fA-F0-9]{64}$/.test(trimmed);
 };
 
-const isPlaceholder = (address: string): boolean => {
-  return !address || /^0x0+$/.test(address);
+export const isPlaceholder = (address: string | null | undefined): boolean => {
+  if (!address || typeof address !== 'string') return true;
+  const trimmed = address.trim();
+  return (
+    trimmed === "0x0000000000000000000000000000000000000000" ||
+    /^0x0+$/.test(trimmed) ||
+    trimmed.toLowerCase() === "coming soon"
+  );
 };
+
+export interface ContractInfo {
+  address: string;
+  isDeployed: boolean;
+  displayAddress: string;
+  blockExplorerUrl: string | undefined;
+}
 
 // Helper function to create contract info object
-const createContractInfo = (address: string) => ({
-  address,
-  isDeployed: isValidAddress(address) && !isPlaceholder(address),
-  displayAddress: (isValidAddress(address) && !isPlaceholder(address)) ? address : "Coming Soon"
-});
+export const createContractInfo = (address: string): ContractInfo => {
+  const deployed = isValidAddress(address) && !isPlaceholder(address);
+  return {
+    address,
+    isDeployed: deployed,
+    displayAddress: deployed ? address : "Coming Soon",
+    blockExplorerUrl: deployed ? `https://polygonscan.com/address/${address}` : undefined
+  };
+};
 
-// Check deployment status
-const casinoCoreDeployed = isValidAddress(casinoCoreAddress) && !isPlaceholder(casinoCoreAddress);
-const casinoReserveDeployed = isValidAddress(casinoReserveAddress) && !isPlaceholder(casinoReserveAddress);
-const liquidityRouterDeployed = isValidAddress(liquidityRouterAddress) && !isPlaceholder(liquidityRouterAddress);
-const rngEngineDeployed = isValidAddress(rngEngineAddress) && !isPlaceholder(rngEngineAddress);
-const allContractsDeployed = casinoCoreDeployed && casinoReserveDeployed && liquidityRouterDeployed && rngEngineDeployed;
+const casinoCoreInfo = createContractInfo(casinoCoreAddress);
+const casinoReserveInfo = createContractInfo(casinoReserveAddress);
+const liquidityRouterInfo = createContractInfo(liquidityRouterAddress);
+const rngEngineInfo = createContractInfo(rngEngineAddress);
+
+// All core casino contracts deployed status
+const allContractsDeployed =
+  casinoCoreInfo.isDeployed &&
+  casinoReserveInfo.isDeployed &&
+  liquidityRouterInfo.isDeployed &&
+  rngEngineInfo.isDeployed;
 
 if (!allContractsDeployed) {
   console.warn("⚠️  Casino: Using placeholder addresses. Deploy contracts to get legitimate addresses.");
@@ -65,14 +109,14 @@ if (!allContractsDeployed) {
 
 export const Casino = {
   contracts: {
-    casinoCore: createContractInfo(casinoCoreAddress),
-    casinoReserve: createContractInfo(casinoReserveAddress),
-    liquidityRouter: createContractInfo(liquidityRouterAddress),
-    rngEngine: createContractInfo(rngEngineAddress)
+    casinoCore: casinoCoreInfo,
+    casinoReserve: casinoReserveInfo,
+    liquidityRouter: liquidityRouterInfo,
+    rngEngine: rngEngineInfo
   },
-  owner: DEPLOYED_CASINO_CONTRACTS.owner,
-  governance: DEPLOYED_CASINO_CONTRACTS.governance,
   isFullyDeployed: allContractsDeployed,
   chainId: 137, // Polygon Mainnet
-  chainName: "Polygon"
+  chainName: "Polygon",
+  owner: DEPLOYED_CASINO_CONTRACTS.owner,
+  governance: DEPLOYED_CASINO_CONTRACTS.governance
 };

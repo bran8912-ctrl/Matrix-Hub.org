@@ -20,14 +20,14 @@ const casinoDeployed = Casino.isFullyDeployed;
   <div class="contract-info">
     <strong>Contract Addresses:</strong><br>
     <ul>
-      <li><strong>MTX Token (MatrixHubCoin):</strong> <span class="contract-address">{mtxDeployed ? MTX.address : "Pending Deployment"}</span></li>
-      <li><strong>CasinoCore:</strong> <span class="contract-address">{Casino.contracts.casinoCore.displayAddress}</span></li>
-      <li><strong>CasinoReserve:</strong> <span class="contract-address">{Casino.contracts.casinoReserve.displayAddress}</span></li>
-      <li><strong>LiquidityRouter:</strong> <span class="contract-address">{Casino.contracts.liquidityRouter.displayAddress}</span></li>
-      <li><strong>RNGEngine:</strong> <span class="contract-address">{Casino.contracts.rngEngine.displayAddress}</span></li>
+      <li><strong>MTX Token (MatrixHubCoin):</strong> <span class="contract-address">{mtxDeployed ? (<a href={MTX.blockExplorerUrl} target="_blank" rel="noopener noreferrer" class="contract-link">{MTX.address}</a>) : "Pending Deployment"}</span></li>
+      <li><strong>CasinoCore:</strong> <span class="contract-address">{Casino.contracts.casinoCore.isDeployed ? (<a href={Casino.contracts.casinoCore.blockExplorerUrl} target="_blank" rel="noopener noreferrer" class="contract-link">{Casino.contracts.casinoCore.displayAddress}</a>) : Casino.contracts.casinoCore.displayAddress}</span></li>
+      <li><strong>CasinoReserve:</strong> <span class="contract-address">{Casino.contracts.casinoReserve.isDeployed ? (<a href={Casino.contracts.casinoReserve.blockExplorerUrl} target="_blank" rel="noopener noreferrer" class="contract-link">{Casino.contracts.casinoReserve.displayAddress}</a>) : Casino.contracts.casinoReserve.displayAddress}</span></li>
+      <li><strong>LiquidityRouter:</strong> <span class="contract-address">{Casino.contracts.liquidityRouter.isDeployed ? (<a href={Casino.contracts.liquidityRouter.blockExplorerUrl} target="_blank" rel="noopener noreferrer" class="contract-link">{Casino.contracts.liquidityRouter.displayAddress}</a>) : Casino.contracts.liquidityRouter.displayAddress}</span></li>
+      <li><strong>RNGEngine:</strong> <span class="contract-address">{Casino.contracts.rngEngine.isDeployed ? (<a href={Casino.contracts.rngEngine.blockExplorerUrl} target="_blank" rel="noopener noreferrer" class="contract-link">{Casino.contracts.rngEngine.displayAddress}</a>) : Casino.contracts.rngEngine.displayAddress}</span></li>
     </ul>
     {casinoDeployed ? (
-      <p style="margin-top: 10px;"><strong>Status:</strong> Casino contracts deployed on Polygon mainnet (Chain ID 137). Connect your wallet to interact with the MTX Casino.</p>
+      <p style="margin-top: 10px;"><strong>Status:</strong> <span class="status-live">Casino contracts deployed on Polygon mainnet (Chain ID 137).</span> Connect your wallet to interact with the MTX Casino.</p>
     ) : (
       <p style="margin-top: 10px;"><strong>Status:</strong> Casino contracts deploying to Polygon mainnet — games are playable in preview mode now.</p>
     )}
@@ -98,6 +98,23 @@ const casinoDeployed = Casino.isFullyDeployed;
     color: var(--theme-secondary);
     font-family: 'Courier New', monospace;
     font-size: 0.95em;
+    word-break: break-all;
+  }
+
+  .contract-link {
+    color: var(--theme-secondary);
+    text-decoration: underline;
+    word-break: break-all;
+    transition: color 0.2s ease;
+  }
+
+  .contract-link:hover {
+    color: var(--theme-primary);
+  }
+
+  .status-live {
+    color: var(--theme-primary);
+    font-weight: bold;
   }
   
   .games-list {

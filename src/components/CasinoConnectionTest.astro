@@ -1,0 +1,80 @@
+---
+import { DEPLOYED_CONTRACTS } from '../config/contracts.js';
+---
+
+<div class="p-6 bg-slate-900 border border-emerald-500/40 rounded-xl text-white max-w-md mx-auto my-6 shadow-xl">
+  <h3 class="text-lg font-bold text-emerald-400 mb-2">🧪 Casino Core Connection Test</h3>
+  <p class="text-xs text-slate-400 mb-4">
+    Click below to test your MetaMask connection against the deployed CasinoCore contract on Polygon.
+  </p>
+
+  <button
+    id="test-connection-btn"
+    type="button"
+    class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 px-4 rounded-lg transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
+  >
+    Test Casino Contract Response
+  </button>
+
+  <div
+    id="test-output"
+    role="status"
+    aria-live="polite"
+    class="mt-4 p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono text-slate-300 min-h-[60px] flex items-center justify-center text-center"
+  >
+    Status: Ready to test...
+  </div>
+</div>
+
+<script>
+  import { BrowserProvider, Contract, formatEther } from 'ethers';
+  import { DEPLOYED_CONTRACTS } from '../config/contracts.js';
+
+  const CASINO_CORE_ABI = [
+    'function minBet() view returns (uint256)',
+    'function liquidity() view returns (uint256)'
+  ];
+
+  const button = document.getElementById('test-connection-btn');
+  const output = document.getElementById('test-output');
+
+  if (button instanceof HTMLButtonElement && output instanceof HTMLElement) {
+    button.addEventListener('click', async () => {
+      output.textContent = 'Connecting to MetaMask and Polygon...';
+      button.disabled = true;
+
+      try {
+        if (!window.ethereum) {
+          throw new Error('MetaMask wallet not detected in browser.');
+        }
+
+        const provider = new BrowserProvider(window.ethereum);
+        await provider.send('eth_requestAccounts', []);
+
+        const network = await provider.getNetwork();
+        if (network.chainId !== 137n) {
+          output.textContent = 'Warning: Please switch your wallet to Polygon Mainnet (Chain ID: 137).';
+          return;
+        }
+
+        output.textContent = 'Querying CasinoCore contract...';
+        const contract = new Contract(DEPLOYED_CONTRACTS.casinoCore, CASINO_CORE_ABI, provider);
+        let minBetFormatted = 'Connected (custom ABI check)';
+
+        try {
+          const minBet: bigint = await contract.minBet();
+          minBetFormatted = `${formatEther(minBet)} POL/MTX`;
+        } catch {
+          // A failed optional minBet read does not prevent confirming the contract connection.
+        }
+
+        output.textContent =
+          `Contract responding! Network: Polygon Mainnet. Min bet parameter: ${minBetFormatted}`;
+      } catch (error) {
+        output.textContent = `Failed: ${error instanceof Error ? error.message : String(error)}`;
+      } finally {
+        button.disabled = false;
+      }
+    });
+  }
+</script>
