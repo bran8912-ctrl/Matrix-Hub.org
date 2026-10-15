@@ -1,0 +1,2 @@
+<!-- Example usage in your Astro components -->
+<img src="/images/mtx-logo.svg" alt="MTX Coin Logo" class="w-12 h-12 object-contain" />
