@@ -1,6 +1,6 @@
 ---
 import Layout from "../components/Layout.astro";
-import Wallet from "../components/Wallet.jsx";
+import WalletIsland from "../components/Wallet.jsx";
 
 export const prerender = true;
 
@@ -17,7 +17,7 @@ export const navCategory = "mtx-token";
     
     <!-- Wallet Component - React Island -->
     <div class="wallet-section">
-      <Wallet client:only="react" />
+      <WalletIsland client:only="react" />
     </div>
 
     <div class="info-section">

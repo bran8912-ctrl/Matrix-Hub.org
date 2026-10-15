@@ -6,6 +6,7 @@ import MTXOwnershipPanel from "../components/MTXOwnershipPanel.astro";
 import DonateBanner from "../components/DonateBanner.astro";
 import TelegramWidget from "../components/TelegramWidget.astro";
 import MTXStatsWidget from "../components/MTXStatsWidget.tsx";
+import CasinoConnectionTest from "../components/CasinoConnectionTest.astro";
 
 export const prerender = true;
 
@@ -25,6 +26,8 @@ export const navCategory = "casino";
   <div class="stats-widget-container">
     <MTXStatsWidget client:load />
   </div>
+
+  <CasinoConnectionTest />
 
   <!-- MTX Ecosystem Section -->
   <MTXEcosystem />

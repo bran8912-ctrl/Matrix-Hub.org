@@ -33,6 +33,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      DEPLOYMENT_TYPE: ${{ inputs.deployment_type }}
+      AMOY_MTX_CONTRACT_ADDRESS: ${{ vars.AMOY_MTX_CONTRACT_ADDRESS }}
+      AMOY_QUICKSWAP_V2_ROUTER_ADDRESS: ${{ vars.AMOY_QUICKSWAP_V2_ROUTER_ADDRESS }}
+      AMOY_CASINO_MAX_PAYOUT_PER_BET: ${{ vars.AMOY_CASINO_MAX_PAYOUT_PER_BET }}
+      AMOY_VRF_SUBSCRIPTION_ID: ${{ vars.AMOY_VRF_SUBSCRIPTION_ID }}
 
     steps:
       - name: Validate testnet-only
@@ -45,6 +51,31 @@ jobs:
           echo "**Deployment Type:** \`${{ inputs.deployment_type }}\`" >> $GITHUB_STEP_SUMMARY
           echo "**Triggered by:** @${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "$DEPLOYMENT_TYPE" == "casino-only" || "$DEPLOYMENT_TYPE" == "full-deployment" ]]; then
+            missing=()
+            [[ -n "$AMOY_QUICKSWAP_V2_ROUTER_ADDRESS" ]] || missing+=(AMOY_QUICKSWAP_V2_ROUTER_ADDRESS)
+            [[ -n "$AMOY_CASINO_MAX_PAYOUT_PER_BET" ]] || missing+=(AMOY_CASINO_MAX_PAYOUT_PER_BET)
+            [[ -n "$AMOY_VRF_SUBSCRIPTION_ID" ]] || missing+=(AMOY_VRF_SUBSCRIPTION_ID)
+            if [[ "$DEPLOYMENT_TYPE" == "casino-only" && -z "$AMOY_MTX_CONTRACT_ADDRESS" ]]; then
+              missing+=(AMOY_MTX_CONTRACT_ADDRESS)
+            fi
+            if (( ${#missing[@]} > 0 )); then
+              printf 'Missing required repository variables: %s\n' "${missing[*]}" >&2
+              exit 1
+            fi
+            if ! [[ "$AMOY_QUICKSWAP_V2_ROUTER_ADDRESS" =~ ^0x[[:xdigit:]]{40}$ ]]; then
+              echo "AMOY_QUICKSWAP_V2_ROUTER_ADDRESS must be a 20-byte EVM address." >&2
+              exit 1
+            fi
+            if ! [[ "$AMOY_CASINO_MAX_PAYOUT_PER_BET" =~ ^[0-9]+([.][0-9]+)?$ ]] || [[ "$AMOY_CASINO_MAX_PAYOUT_PER_BET" == "0" ]]; then
+              echo "AMOY_CASINO_MAX_PAYOUT_PER_BET must be a positive MTX amount." >&2
+              exit 1
+            fi
+            if ! [[ "$AMOY_VRF_SUBSCRIPTION_ID" =~ ^[1-9][0-9]*$ ]]; then
+              echo "AMOY_VRF_SUBSCRIPTION_ID must be a positive integer." >&2
+              exit 1
+            fi
+          fi
           echo "✅ Testnet deployment validated" >> $GITHUB_STEP_SUMMARY
 
   compile-contracts:
@@ -124,6 +155,7 @@ jobs:
           AMOY_RPC_URL: ${{ secrets.AMOY_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
+          set -o pipefail
           echo "## 🚀 Deploying MTX Token to Polygon Amoy" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Network:** amoy (Chain ID: 80002)" >> $GITHUB_STEP_SUMMARY
@@ -152,12 +184,14 @@ jobs:
           fi
 
       - name: Upload MTX deployment artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mtx-deployment-amoy-${{ github.run_number }}
           path: |
             deployments/mtx-amoy.json
             deploy_mtx_amoy_output.log
+          if-no-files-found: ignore
           retention-days: 30
 
   deploy-casino:
@@ -202,12 +236,32 @@ jobs:
       - name: Create deployments directory
         run: mkdir -p deployments
 
+      - name: Select MTX token for casino deployment
+        env:
+          DEPLOYMENT_TYPE: ${{ inputs.deployment_type }}
+          AMOY_MTX_CONTRACT_ADDRESS: ${{ vars.AMOY_MTX_CONTRACT_ADDRESS }}
+        run: |
+          if [[ "$DEPLOYMENT_TYPE" == "full-deployment" ]]; then
+            MTX_ADDRESS=$(node -p "require('./deployments/mtx-amoy.json').contractAddress")
+          else
+            MTX_ADDRESS="$AMOY_MTX_CONTRACT_ADDRESS"
+          fi
+          if ! [[ "$MTX_ADDRESS" =~ ^0x[[:xdigit:]]{40}$ ]]; then
+            echo "No valid Amoy MTX token address is available." >&2
+            exit 1
+          fi
+          echo "MTX_CONTRACT_ADDRESS=$MTX_ADDRESS" >> "$GITHUB_ENV"
+
       - name: Deploy Casino Contracts to Polygon Amoy
         env:
           PRIVATE_KEY: ${{ secrets.TESTNET_PRIVATE_KEY }}
           AMOY_RPC_URL: ${{ secrets.AMOY_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          QUICKSWAP_V2_ROUTER_ADDRESS: ${{ vars.AMOY_QUICKSWAP_V2_ROUTER_ADDRESS }}
+          CASINO_MAX_PAYOUT_PER_BET: ${{ vars.AMOY_CASINO_MAX_PAYOUT_PER_BET }}
+          VRF_SUBSCRIPTION_ID: ${{ vars.AMOY_VRF_SUBSCRIPTION_ID }}
         run: |
+          set -o pipefail
           echo "## 🎰 Deploying Casino Contracts to Polygon Amoy" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Network:** amoy (Chain ID: 80002)" >> $GITHUB_STEP_SUMMARY
@@ -222,12 +276,14 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Casino deployment artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: casino-deployment-amoy-${{ github.run_number }}
           path: |
             deployments/casino-amoy.json
             deploy_casino_amoy_output.log
+          if-no-files-found: ignore
           retention-days: 30
 
   distribute-mtx:
@@ -285,6 +341,7 @@ jobs:
           AMOY_RPC_URL: ${{ secrets.AMOY_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
+          set -o pipefail
           echo "## 💰 Distributing MTX Tokens on Polygon Amoy" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Network:** amoy (Chain ID: 80002)" >> $GITHUB_STEP_SUMMARY
@@ -299,12 +356,14 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Distribution artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: mtx-distribution-amoy-${{ github.run_number }}
           path: |
             deployments/mtx-distribution-amoy.json
             distribute_mtx_amoy_output.log
+          if-no-files-found: ignore
           retention-days: 30
 
   deployment-summary:

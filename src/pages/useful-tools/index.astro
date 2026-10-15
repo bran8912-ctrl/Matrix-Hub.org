@@ -404,13 +404,13 @@ const CATEGORIES = [
 <!-- ── TradingView + category filter (non-blocking) ──────────────────────────── -->
 <script is:inline>
 (function () {
-  var DEFAULT_SYM = 'BINANCE:BTCUSDT';
-  var FALLBACK_MSG = 'TradingView chart could not be loaded. ' +
+  const DEFAULT_SYM = 'BINANCE:BTCUSDT';
+  const FALLBACK_MSG = 'TradingView chart could not be loaded. ' +
     'Please check your network connection or disable ad blockers.';
 
   /* ── Advanced Chart (requires tv.js — called from onload) ──────────── */
   function buildChart(sym) {
-    var el = document.getElementById('tv-advanced-chart');
+    const el = document.getElementById('tv-advanced-chart');
     if (!el) return;
     el.innerHTML = '';
     if (!window.TradingView || typeof window.TradingView.widget !== 'function') {
@@ -418,7 +418,6 @@ const CATEGORIES = [
       return;
     }
     try {
-      /* eslint-disable no-new */
       new window.TradingView.widget({
         container_id:        'tv-advanced-chart',
         symbol:              sym || DEFAULT_SYM,
@@ -438,25 +437,25 @@ const CATEGORIES = [
       });
     } catch (e) {
       console.error('Failed to initialize TradingView widget:', e);
-      var el2 = document.getElementById('tv-advanced-chart');
+      const el2 = document.getElementById('tv-advanced-chart');
       if (el2) el2.textContent = FALLBACK_MSG;
     }
   }
 
   /* ── Load tv.js asynchronously; build chart in onload ──────────────── */
-  var tvScript = document.createElement('script');
+  const tvScript = document.createElement('script');
   tvScript.src = 'https://s3.tradingview.com/tv.js';
   tvScript.async = true;
   tvScript.onload = function () { buildChart(DEFAULT_SYM); };
   tvScript.onerror = function () {
-    var el = document.getElementById('tv-advanced-chart');
+    const el = document.getElementById('tv-advanced-chart');
     if (el) el.textContent = FALLBACK_MSG;
   };
   document.head.appendChild(tvScript);
 
   /* ── Symbol quick-switch buttons (delegate; chart init is async) ───── */
   document.addEventListener('click', function (e) {
-    var btn = e.target.closest('.sym-btn');
+    const btn = e.target.closest('.sym-btn');
     if (!btn) return;
     document.querySelectorAll('.sym-btn').forEach(function (b) { b.classList.remove('active'); });
     btn.classList.add('active');
@@ -465,9 +464,9 @@ const CATEGORIES = [
 
   /* ── Crypto Screener (self-loading embed — no tv.js dependency) ─────── */
   (function () {
-    var screenerEl = document.getElementById('tv-screener');
+    const screenerEl = document.getElementById('tv-screener');
     if (!screenerEl) return;
-    var s = document.createElement('script');
+    const s = document.createElement('script');
     s.type = 'text/javascript';
     s.async = true;
     s.src = 'https://s3.tradingview.com/external-embedding/embed-widget-screener.js';
@@ -484,19 +483,19 @@ const CATEGORIES = [
 
   /* ── GitHub tools category filter (no tv.js dependency) ────────────── */
   (function () {
-    var grid      = document.getElementById('tools-grid');
-    var noResults = document.getElementById('no-results');
-    var filterNav = document.getElementById('filter-nav');
+    const grid      = document.getElementById('tools-grid');
+    const noResults = document.getElementById('no-results');
+    const filterNav = document.getElementById('filter-nav');
     if (!grid || !noResults || !filterNav) return;
     filterNav.addEventListener('click', function (e) {
-      var btn = e.target.closest('.filter-btn');
+      const btn = e.target.closest('.filter-btn');
       if (!btn) return;
-      var cat = btn.dataset.category;
+      const cat = btn.dataset.category;
       filterNav.querySelectorAll('.filter-btn').forEach(function (b) { b.classList.remove('active'); });
       btn.classList.add('active');
-      var visible = 0;
+      let visible = 0;
       grid.querySelectorAll('.tool-card').forEach(function (card) {
-        var matches = cat === 'all' || card.dataset.category === cat;
+        const matches = cat === 'all' || card.dataset.category === cat;
         card.style.display = matches ? '' : 'none';
         if (matches) visible++;
       });

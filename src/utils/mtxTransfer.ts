@@ -1,5 +1,6 @@
 import { MTX } from '../config/mtx';
 import mtxAbi from '../abi/mtx.json';
+import { getEthereumProvider } from './ethereumProvider';
 
 /**
  * Utility function to spend/transfer MTX tokens from the connected wallet
@@ -17,13 +18,14 @@ export async function spendMTX(to: string, amount: string): Promise<string> {
   const numericAmount = parseFloat(normalizedAmount);
   if (!Number.isFinite(numericAmount) || numericAmount <= 0) throw new Error('Amount must be a valid number greater than zero.');
 
-  if (typeof window === 'undefined' || !window.ethereum) {
+  const ethereum = getEthereumProvider();
+  if (!ethereum) {
     throw new Error('Polygon wallet not found. Please install MetaMask or compatible wallet.');
   }
 
   try {
     const { BrowserProvider, Contract, parseUnits } = await import('ethers');
-    const provider = new BrowserProvider(window.ethereum as any);
+    const provider = new BrowserProvider(ethereum);
     const signer = await provider.getSigner();
 
     const mtxContract = new Contract(MTX.address, mtxAbi, signer);
@@ -53,23 +55,24 @@ export async function spendMTX(to: string, amount: string): Promise<string> {
 }
 
 export async function ensureEthereum(): Promise<void> {
-  if (typeof window === 'undefined' || !window.ethereum) throw new Error('Polygon wallet not found. Please install MetaMask or compatible wallet.');
+  const ethereum = getEthereumProvider();
+  if (!ethereum) throw new Error('Polygon wallet not found. Please install MetaMask or compatible wallet.');
 
   try {
     const { BrowserProvider } = await import('ethers');
-    const provider = new BrowserProvider(window.ethereum as any);
+    const provider = new BrowserProvider(ethereum);
     const network = await provider.getNetwork();
 
     if (network.chainId !== BigInt(MTX.chainId)) {
       try {
-        await window.ethereum.request({
+        await ethereum.request({
           method: 'wallet_switchEthereumChain',
           params: [{ chainId: `0x${MTX.chainId.toString(16)}` }],
         });
       } catch (switchError: any) {
         if (switchError.code === 4902) {
           try {
-            await window.ethereum.request({
+            await ethereum.request({
               method: 'wallet_addEthereumChain',
               params: [{
                 chainId: `0x${MTX.chainId.toString(16)}`,

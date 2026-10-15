@@ -1,4 +1,7 @@
 // Simple deploy script for KeccakHasher
+declare const ethers: { version?: string };
+declare const web3: unknown;
+
 (async () => {
   try {
     console.log("Script started");

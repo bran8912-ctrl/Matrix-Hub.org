@@ -27,7 +27,9 @@ const getEnvVar = (name: string): string | undefined => {
   return undefined;
 };
 
-const configuredChainId = Number(getEnvVar('CASINO_CHAIN_ID') || '137');
+const configuredChainId = Number(
+  getEnvVar('CASINO_CHAIN_ID') || getEnvVar('PUBLIC_CASINO_CHAIN_ID') || '137'
+);
 if (configuredChainId !== 137 && configuredChainId !== 80002) {
   throw new Error(`Unsupported CASINO_CHAIN_ID: ${configuredChainId}. Use 137 or 80002.`);
 }

@@ -129,9 +129,11 @@ async function deployContract(contractName, constructorArgs = []) {
  */
 function saveDeploymentInfo(deploymentInfo, deploymentsDir) {
   const deploymentFile = path.join(deploymentsDir, `casino-${hre.network.name}.json`);
+  const temporaryFile = `${deploymentFile}.tmp`;
   
   try {
-    fs.writeFileSync(deploymentFile, JSON.stringify(deploymentInfo, null, 2));
+    fs.writeFileSync(temporaryFile, JSON.stringify(deploymentInfo, null, 2));
+    fs.renameSync(temporaryFile, deploymentFile);
     console.log("\n📄 Deployment info saved successfully");
     console.log(`   File: ${deploymentFile}`);
   } catch (error) {
@@ -266,6 +268,16 @@ async function main() {
   console.log("   Max Payout:", hre.ethers.formatUnits(MAX_PAYOUT_PER_BET, 18), "MTX");
   console.log("   Dev Address:", DEV_ADDRESS);
   console.log("   Governance Address:", GOVERNANCE_ADDRESS);
+
+  const deploymentInfo = {
+    network: hre.network.name,
+    chainId: hre.network.config.chainId,
+    deployer: deployer.address,
+    deploymentTime: new Date().toISOString(),
+    status: "in_progress",
+    contracts: { mtxToken: MTX_ADDRESS }
+  };
+  saveDeploymentInfo(deploymentInfo, deploymentsDir);
   
   // Step 7: Deploy Contracts
   console.log("\n🎰 Starting Casino Contracts Deployment...");
@@ -279,6 +291,8 @@ async function main() {
     VRF_CALLBACK_GAS_LIMIT,
     VRF_REQUEST_CONFIRMATIONS,
   ]);
+  deploymentInfo.contracts.rngEngine = rngAddress;
+  saveDeploymentInfo(deploymentInfo, deploymentsDir);
 
   // Deploy 2: CasinoReserve (CasinoCore is wired after deployment)
   console.log("\n2️⃣  CasinoReserve");
@@ -286,6 +300,8 @@ async function main() {
     "CasinoReserve",
     [MTX_ADDRESS, RESERVE_CAP, hre.ethers.ZeroAddress]
   );
+  deploymentInfo.contracts.casinoReserve = reserveAddress;
+  saveDeploymentInfo(deploymentInfo, deploymentsDir);
   
   // Deploy 3: LiquidityRouter (the V2 router creates a pair on first liquidity provision)
   console.log("\n3️⃣  LiquidityRouter");
@@ -293,6 +309,8 @@ async function main() {
     "LiquidityRouter",
     [MTX_ADDRESS, QUICKSWAP_V2_ROUTER_ADDRESS]
   );
+  deploymentInfo.contracts.liquidityRouter = liquidityAddress;
+  saveDeploymentInfo(deploymentInfo, deploymentsDir);
   
   // Deploy 4: CasinoCore (depends on all previous contracts)
   console.log("\n4️⃣  CasinoCore");
@@ -310,6 +328,8 @@ async function main() {
       GOVERNANCE_ADDRESS
     ]
   );
+  deploymentInfo.contracts.casinoCore = casinoCoreAddress;
+  saveDeploymentInfo(deploymentInfo, deploymentsDir);
 
   await (await reserve.setCasinoCore(casinoCoreAddress)).wait();
   await (await rng.setCasinoCore(casinoCoreAddress)).wait();
@@ -326,15 +346,16 @@ async function main() {
   console.log("║                    ✅ DEPLOYMENT SUCCESSFUL                     ║");
   console.log("╚════════════════════════════════════════════════════════════════╝");
   
-  // Step 8: Prepare Deployment Information
+  // Step 8: Finalize Deployment Information
   console.log("\n💾 Preparing Deployment Information...");
-  
-  const deploymentInfo = {
+
+  Object.assign(deploymentInfo, {
     // Metadata
     network: hre.network.name,
     chainId: hre.network.config.chainId,
     deployer: deployer.address,
-    deploymentTime: new Date().toISOString(),
+    deploymentTime: deploymentInfo.deploymentTime,
+    status: "deployed",
     
     // Deployed Contract Addresses
     contracts: {
@@ -373,7 +394,7 @@ async function main() {
       liquidityRouterSetup: "Casino MTX fees queue in LiquidityRouter. The owner must supply POL and call provideLiquidity to add MTX/WMATIC liquidity through QuickSwap V2.",
       reserveFunding: "CasinoReserve must be funded with MTX tokens before casino operations can begin."
     }
-  };
+  });
   
   // Step 9: Save Deployment Information
   saveDeploymentInfo(deploymentInfo, deploymentsDir);

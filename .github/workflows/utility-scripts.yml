@@ -61,6 +61,7 @@ jobs:
       - name: Run get-matrix-music
         if: inputs.script == 'get-matrix-music'
         run: |
+          set -o pipefail
           echo "## 🎵 Download Matrix Music Assets" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
@@ -76,6 +77,7 @@ jobs:
       - name: Run fix-casino-deploy
         if: inputs.script == 'fix-casino-deploy'
         run: |
+          set -o pipefail
           echo "## 🎰 Fix Casino Deploy" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           

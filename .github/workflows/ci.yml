@@ -68,6 +68,7 @@ jobs:
       
       - name: Run content scan
         run: |
+          set -o pipefail
           echo "## 🔍 Content Scan" >> $GITHUB_STEP_SUMMARY
           npm run content:scan 2>&1 | tee scan-output.txt
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -77,6 +78,7 @@ jobs:
       
       - name: Generate content feeds
         run: |
+          set -o pipefail
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📝 Generate Feeds" >> $GITHUB_STEP_SUMMARY
           npm run content:generate 2>&1 | tee generate-output.txt
@@ -87,6 +89,7 @@ jobs:
       
       - name: Generate analytics
         run: |
+          set -o pipefail
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📊 Analytics" >> $GITHUB_STEP_SUMMARY
           npm run content:analytics 2>&1 | tee analytics-output.txt
@@ -127,6 +130,7 @@ jobs:
       
       - name: Compile smart contracts
         run: |
+          set -o pipefail
           echo "## 🔨 Compiling Smart Contracts" >> $GITHUB_STEP_SUMMARY
           npm run compile 2>&1 | tee compile-output.txt
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -162,15 +166,15 @@ jobs:
       
       - name: Run Hardhat tests
         run: |
+          set -o pipefail
           echo "## 🧪 Running Tests" >> $GITHUB_STEP_SUMMARY
-          npm run test 2>&1 | tee test-output.txt || true
+          npm run test 2>&1 | tee test-output.txt
           echo "" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           cat test-output.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
-        continue-on-error: true
       
       - name: Test summary
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Note:** Tests run with continue-on-error as some tests may require network configuration" >> $GITHUB_STEP_SUMMARY
+          echo "Hardhat test failures fail this workflow." >> $GITHUB_STEP_SUMMARY

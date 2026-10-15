@@ -337,6 +337,29 @@ audited. The deployment script supports Polygon and Amoy, automatically
 registers the RNG consumer, and requires a Polygon release flag after Amoy
 end-to-end testing and independent security review.
 
+### Continuation check (2026-10-14)
+
+A fresh read-only check through `https://polygon.drpc.org` at block `95531165`
+confirmed the launch blockers are unchanged: chain ID 137; the selected MTX
+contract still has owner `0x9fb4bb44d8d962d695fc93b3dc15f1b287391077`, zero
+total supply, and a 100 million MTX cap; the deployer held about 45.07 POL;
+and the QuickSwap V2 MTX/WMATIC pair address is still zero. Casino module
+addresses remain zero in the app configuration and no casino deployment
+artifact exists. This is a point-in-time RPC snapshot, not an authorization to
+use the deployer's balance.
+
+The live `/games/casino/` route returns HTTP 200 and presents Dice as
+unavailable until deployment, with the other casino games marked as coming
+soon or disabled. `/mtx-contract` and `/buy-mtx` redirect to their trailing-
+slash routes; those redirects are not application failures. Local environment
+checks found no usable deployer key, VRF subscription ID, maximum payout, or
+Polygon deployment approval flag. No transaction was sent.
+
+The focused casino contract tests pass (13 tests), the full Hardhat suite
+passes (28 tests), and `npm run build` completes. These checks validate local
+logic and build output only; they do not substitute for Amoy end-to-end testing,
+real-subscription VRF validation, or independent security review.
+
 ### Chainlink VRF v2.5 configuration
 
 The following values were checked against Chainlink's
@@ -368,6 +391,177 @@ maximum-payout policy. The launch then requires minting within the token cap,
 funding the reserve, seeding the initial pool, deploying and verifying the
 modules, and only then updating frontend addresses. The current deployer
 balance is a read-only snapshot and is not authorization to spend it.
+
+### Scripts and workflow audit (2026-10-14)
+
+All 14 active GitHub Actions workflow files parse, and every embedded Bash
+`run` block passes `bash -n`. All JavaScript/CommonJS/MJS, shell, and Python
+scripts pass syntax parsing; `npx eslint scripts --quiet` is clean. The casino
+deployment self-check passes, contract compilation succeeds, and the full
+Hardhat suite passes (28 tests). Solidity lint reports 311 warnings and no
+errors.
+
+The audit fixed masked failures from `tee` pipelines, removed the CI test
+workflow's unconditional success-on-failure behavior, and wired Amoy/Polygon
+casino deployment variables and release gates. The mainnet workflow now offers
+casino-only deployment against the selected MTX token and targets the
+`polygon-production` GitHub Environment; repository administrators must
+configure that environment with required reviewers. Casino deployment JSON is
+now atomically checkpointed after each successful contract deployment, and
+failure artifacts are uploaded even when a later deployment step fails.
+
+The obsolete manual verifier scripts that contained a hard-coded Polygonscan
+API key and stale contract parameters now delegate to the canonical
+environment-key-based verifier. The key value was present in tracked source;
+removing it from the current worktree does not remove it from Git history.
+Revoke/rotate that Polygonscan key in the provider dashboard.
+
+Two existing project-wide quality gates remain red outside the deployment
+scripts: ESLint reports 24 errors in three Astro files, and `astro check`
+reports 33 TypeScript/Astro errors across wallet, content, and UI files. These
+were not changed as part of the deployment-workflow audit. The production
+casino remains disabled until the required Amoy test, independent security
+review, VRF subscription, owner-approved payout/reserve/pool settings, and
+Polygon deployment are complete.
+
+### GitHub launch-path check (2026-10-14)
+
+GitHub CLI is authenticated, but this workspace token cannot list repository
+Actions secrets or variables (HTTP 403). The `polygon-production` environment
+does not exist (HTTP 404), so no required-reviewer rule is currently active.
+The successful Amoy casino job from 2026-01-14 has expired logs (HTTP 410) and
+no retained artifacts; it does not establish that the current VRF Dice source
+was tested. There is no `workflow_dispatch` Polygon deployment run. The
+recently edited safe workflows are local changes and must be merged/pushed to
+`Hub10` before GitHub Actions can execute them.
+
+No safe remote or local signer path is available from this workspace. Do not
+trigger the older remote deployment workflow: it predates the current VRF,
+token-selection, and mainnet release gates. The owner must configure the
+secrets/variables and protected environment, publish the audited workflow
+changes, and complete Amoy testing before a Polygon deployment can proceed.
+
+### Casino integration continuation (2026-10-14)
+
+A fresh read-only check through `https://polygon.drpc.org` at block
+`95533597` reconfirmed Polygon chain ID 137 and the selected MTX contract
+identity (`Matrix-HubCoin`, `MTX`, 18 decimals). Its total supply remains zero
+against a 100 million MTX cap, and direct minting is enabled. The live-check
+script reports CasinoCore as unconfigured and skips casino contract checks;
+it does not establish that any casino module is deployed. No deployment or
+other transaction was sent.
+
+The frontend previously read `CASINO_CHAIN_ID` but ignored the documented
+`PUBLIC_CASINO_CHAIN_ID` build setting in the MTX config. This could leave the
+casino configured for Amoy while MTX and wallet tooling still targeted
+Polygon. Reown AppKit also omitted Polygon Amoy from its supported networks.
+Both configs now honor the public chain setting, and AppKit includes Amoy and
+selects it as the default when chain ID 80002 is configured. MTX remains an
+unset zero address on Amoy unless an Amoy MTX token is explicitly configured,
+so the change does not make test or production wagers appear live.
+The casino connection diagnostic now uses the same selected network and
+configured CasinoCore address, checks deployed bytecode, and fails explicitly
+when the contracts are unavailable instead of defaulting to the zero-address
+Polygon entry.
+
+The browser game wrapper continues to allow only Dice, and only when all
+casino modules are configured; all other game pages remain disabled rather
+than presenting locally generated outcomes as on-chain wagers. This does not
+make the casino live: Polygon CasinoCore, CasinoReserve, LiquidityRouter, and
+the current VRFEngine deployment are not a valid connected deployment set.
+Amoy end-to-end validation, independent security review, a funded VRF
+subscription, owner-approved reserve/pool parameters, and a protected Polygon
+release remain required before deployment.
+
+The updated MTX/casino chain selection was checked at both 137 and 80002; the
+Amoy case keeps MTX at the zero-address placeholder when no test token is
+configured. The full `npm test` suite passed, the public casino index, Dice,
+and MTX Casino routes returned HTTP 200, and targeted editor diagnostics found
+no errors in the changed configuration or connection-diagnostic files. An
+Amoy-configured build completed 78 pages before the final connection-diagnostic
+edit; the subsequent full build attempt was terminated with exit 143 after
+Vite's initial build stage, so a successful build of the exact final tree is
+still outstanding.
+
+### Launch-status recheck (2026-10-14, later)
+
+- `scripts/test-polygon-live.js` at Polygon block `95534066`: chain 137
+  reachable, MTX `0x53307e1db6c5cb6773c9495ca140372016dfe266` confirmed
+  (`Matrix-HubCoin`, `MTX`, 18 decimals), total supply 0 of 100M, owner
+  `0x9FB4BB44D8d962D695FC93b3Dc15F1b287391077`, direct minting enabled.
+  CasinoCore is still unconfigured, so no casino contract exists to check.
+- `scripts/test-mtx-and-wallets.js` found 19 wallet-hooked files but reports the
+  MTX address as a placeholder because no MTX address is supplied through its
+  environment/config path; this is a configuration gap in the test, not
+  evidence of a deployment problem.
+- The exact final tree now builds successfully (`npm run build`: 78 pages),
+  closing the outstanding build item from the previous section.
+- `gh` is not authenticated in this workspace, so remote workflow runs and
+  secrets could not be inspected or dispatched.
+
+Result: **neither the casino nor MTX is live.** MTX exists as a verified
+contract but has zero supply; the casino has no deployed, connected contract
+set. The remaining steps are owner-controlled by design (deployer signer,
+protected-environment approval, funded VRF subscription, reserve/pool
+parameters, Amoy validation, security review). They were deliberately not
+bypassed: skipping them would mean deploying real-value contracts without
+review or using keys/approvals not granted to this session. The safe fast
+path is: authenticate `gh`, set the secrets/variables, push `Hub10`, run the
+testnet workflow on Amoy, then dispatch the mainnet workflow and approve the
+protected environment.
+
+### MTX Casino connection-test completion (2026-10-14)
+
+The Casino Connection Test component is now included on the MTX Casino page
+and runs a read-only check on page load, with a manual retry button. It uses
+the selected network's public RPC without requesting wallet access. It checks
+the chain ID, MTX contract bytecode and ERC-20 identity, decimals, and current
+supply against the configured token cap. When all casino addresses are
+configured, it also checks bytecode for each module and verifies that
+CasinoCore's MTX, reserve, liquidity, and RNG references match configuration;
+it checks the reserve/liquidity token and core links plus the RNG core link.
+Failures are shown explicitly; a missing casino deployment is reported as
+`BLOCKED`, rather than being presented as a successful casino connection.
+
+The current Polygon result remains partial by design: MTX's chain/token check
+can pass, but casino checks are blocked because CasinoCore, CasinoReserve,
+LiquidityRouter, and RNGEngine are not configured as a valid deployed set.
+This diagnostic does not sign, submit, or approve transactions. Deployment,
+VRF subscription registration/funding, reserve and pool funding, security
+review, and protected production approval still require the designated owner
+or administrators; no authorization or token holders' approvals were
+circumvented. The check is automated, but it does not turn the undeployed
+casino into a live integration.
+
+The read-only live check at block `95534354` confirmed Polygon chain ID 137,
+the MTX contract bytecode and `Matrix-HubCoin` / `MTX` / 18-decimal identity,
+zero current supply against the 100 million MTX cap, and no configured
+CasinoCore. The focused casino configuration and VRF/reserve test files pass
+(12 tests); editor diagnostics report no errors in the component or page.
+Astro's Vite entrypoint compilation completes, but four full build attempts
+were terminated with exit 143 during static page generation, including one
+with Node's heap capped. A successful full build of this exact tree remains
+unverified.
+
+### Launch automation (2026-10-14)
+
+Release gates were left in place; the scripts below remove the manual work
+around them.
+
+- `test/mtx-casino-e2e.test.cjs`: deploys the real `MatrixHubCoin` and the full
+  casino stack locally, asserts the same module links the connection test
+  reads, then plays a Dice bet through mock-VRF settlement and payout. Passes.
+- `npm run bootstrap:amoy` (`scripts/amoy_bootstrap.js`): Amoy only and
+  re-runnable. Deploys a test MTX, creates and LINK-funds a VRF subscription
+  (waits for faucet LINK), runs `deploy_casino.js`, and funds the reserve with
+  test MTX. Needs a throwaway `PRIVATE_KEY`, Amoy POL, Amoy LINK from the
+  Chainlink faucet, and `QUICKSWAP_V2_ROUTER_ADDRESS`. Not executed here: the
+  sandbox cannot reach the Amoy RPC and has no testnet key.
+- `npm run preflight:mainnet` (`scripts/preflight_mainnet.js`): read-only
+  checklist of signer, balances, MTX ownership, VRF subscription, owner policy
+  values, release flag, Amoy evidence, security sign-off
+  (`docs/SECURITY_REVIEW_SIGNOFF.md`), and the `polygon-production` reviewer
+  rule. Current result: 9 blockers; it exits non-zero until all clear.
 
 ## Files relevant to the investigation
 

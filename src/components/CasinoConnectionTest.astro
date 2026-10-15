@@ -1,11 +1,10 @@
 ---
-import { DEPLOYED_CONTRACTS } from '../config/contracts.js';
 ---
 
 <div class="p-6 bg-slate-900 border border-emerald-500/40 rounded-xl text-white max-w-md mx-auto my-6 shadow-xl">
-  <h3 class="text-lg font-bold text-emerald-400 mb-2">🧪 Casino Core Connection Test</h3>
+  <h3 class="text-lg font-bold text-emerald-400 mb-2">MTX and Casino Connection Test</h3>
   <p class="text-xs text-slate-400 mb-4">
-    Click below to test your MetaMask connection against the deployed CasinoCore contract on Polygon.
+    Checks the selected Polygon network and MTX contract using read-only RPC calls. No wallet connection or transaction is requested.
   </p>
 
   <button
@@ -13,68 +12,169 @@ import { DEPLOYED_CONTRACTS } from '../config/contracts.js';
     type="button"
     class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 px-4 rounded-lg transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
   >
-    Test Casino Contract Response
+    Run connection check
   </button>
 
   <div
     id="test-output"
     role="status"
     aria-live="polite"
-    class="mt-4 p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono text-slate-300 min-h-[60px] flex items-center justify-center text-center"
+    class="mt-4 p-3 bg-slate-950 rounded border border-slate-800 text-xs font-mono text-slate-300 min-h-[60px] whitespace-pre-wrap"
   >
-    Status: Ready to test...
+    Checking network and MTX connection...
   </div>
 </div>
 
 <script>
-  import { BrowserProvider, Contract, formatEther } from 'ethers';
-  import { DEPLOYED_CONTRACTS } from '../config/contracts.js';
+  import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
+  import { Casino } from '../config/casino';
+  import { MTX } from '../config/mtx';
+  import mtxAbi from '../abi/mtx.json';
 
   const CASINO_CORE_ABI = [
     'function minBet() view returns (uint256)',
-    'function liquidity() view returns (uint256)'
+    'function mtx() view returns (address)',
+    'function reserve() view returns (address)',
+    'function liquidity() view returns (address)',
+    'function rng() view returns (address)'
+  ];
+  const CASINO_MODULE_ABI = [
+    'function casinoCore() view returns (address)',
+    'function mtx() view returns (address)',
+    'function MTX() view returns (address)'
   ];
 
   const button = document.getElementById('test-connection-btn');
   const output = document.getElementById('test-output');
 
   if (button instanceof HTMLButtonElement && output instanceof HTMLElement) {
-    button.addEventListener('click', async () => {
-      output.textContent = 'Connecting to MetaMask and Polygon...';
+    const runConnectionTest = async () => {
       button.disabled = true;
+      const results: string[] = [];
+      output.textContent = 'Checking selected network and MTX token...';
 
       try {
-        if (!window.ethereum) {
-          throw new Error('MetaMask wallet not detected in browser.');
+        if (MTX.chainId !== Casino.chainId) {
+          throw new Error(`MTX and casino configurations target different networks (${MTX.chainId} and ${Casino.chainId}).`);
         }
 
-        const provider = new BrowserProvider(window.ethereum);
-        await provider.send('eth_requestAccounts', []);
+        if (!MTX.isDeployed) {
+          throw new Error(`MTX is not configured on ${MTX.chainName}.`);
+        }
 
+        const provider = new JsonRpcProvider(MTX.rpcUrls[0]);
         const network = await provider.getNetwork();
-        if (network.chainId !== 137n) {
-          output.textContent = 'Warning: Please switch your wallet to Polygon Mainnet (Chain ID: 137).';
+        if (network.chainId !== BigInt(MTX.chainId)) {
+          throw new Error(`RPC network mismatch: expected ${MTX.chainName} (${MTX.chainId}), received chain ${network.chainId}.`);
+        }
+        results.push(`PASS: Connected to ${MTX.chainName} (chain ID ${MTX.chainId}).`);
+
+        const mtxCode = await provider.getCode(MTX.address);
+        if (mtxCode === '0x') {
+          throw new Error(`No MTX contract bytecode found at ${MTX.address} on ${MTX.chainName}.`);
+        }
+
+        const token = new Contract(MTX.address, mtxAbi, provider);
+        const [name, symbol, decimals, supply, maxSupply] = await Promise.all([
+          token.name(),
+          token.symbol(),
+          token.decimals(),
+          token.totalSupply(),
+          token.MAX_SUPPLY()
+        ]);
+        if (name !== MTX.name || symbol !== MTX.symbol || Number(decimals) !== MTX.decimals) {
+          throw new Error(`Unexpected MTX identity: ${name} (${symbol}), ${decimals} decimals.`);
+        }
+        results.push(
+          `PASS: ${name} (${symbol}), ${decimals} decimals; supply ${formatUnits(supply, decimals)} / ${formatUnits(maxSupply, decimals)} MTX.`
+        );
+
+        if (!Casino.isFullyDeployed) {
+          results.push(`BLOCKED: Casino contracts are not fully configured on ${Casino.chainName}; no casino call was attempted.`);
+          output.textContent = results.join('\n');
           return;
         }
 
-        output.textContent = 'Querying CasinoCore contract...';
-        const contract = new Contract(DEPLOYED_CONTRACTS.casinoCore, CASINO_CORE_ABI, provider);
-        let minBetFormatted = 'Connected (custom ABI check)';
-
-        try {
-          const minBet: bigint = await contract.minBet();
-          minBetFormatted = `${formatEther(minBet)} POL/MTX`;
-        } catch {
-          // A failed optional minBet read does not prevent confirming the contract connection.
+        for (const [name, contractInfo] of Object.entries(Casino.contracts)) {
+          const code = await provider.getCode(contractInfo.address);
+          if (code === '0x') {
+            throw new Error(`No ${name} contract bytecode found at ${contractInfo.address} on ${Casino.chainName}.`);
+          }
         }
 
-        output.textContent =
-          `Contract responding! Network: Polygon Mainnet. Min bet parameter: ${minBetFormatted}`;
+        const coreAddress = Casino.contracts.casinoCore.address;
+        const core = new Contract(coreAddress, CASINO_CORE_ABI, provider);
+        const [
+          coreMtxAddress,
+          coreReserveAddress,
+          coreLiquidityAddress,
+          coreRngAddress,
+          minBet
+        ] = await Promise.all([
+          core.mtx(),
+          core.reserve(),
+          core.liquidity(),
+          core.rng(),
+          core.minBet()
+        ]);
+        const expectedCoreLinks = [
+          ['MTX', coreMtxAddress, MTX.address],
+          ['CasinoReserve', coreReserveAddress, Casino.contracts.casinoReserve.address],
+          ['LiquidityRouter', coreLiquidityAddress, Casino.contracts.liquidityRouter.address],
+          ['RNGEngine', coreRngAddress, Casino.contracts.rngEngine.address]
+        ] as const;
+        for (const [name, actual, expected] of expectedCoreLinks) {
+          if (actual.toLowerCase() !== expected.toLowerCase()) {
+            throw new Error(`CasinoCore links to ${name} ${actual}, but configuration specifies ${expected}.`);
+          }
+        }
+
+        const reserve = new Contract(
+          Casino.contracts.casinoReserve.address,
+          CASINO_MODULE_ABI,
+          provider
+        );
+        const liquidity = new Contract(
+          Casino.contracts.liquidityRouter.address,
+          CASINO_MODULE_ABI,
+          provider
+        );
+        const rng = new Contract(
+          Casino.contracts.rngEngine.address,
+          ['function casinoCore() view returns (address)'],
+          provider
+        );
+        const [reserveCore, reserveMtx, liquidityCore, liquidityMtx, rngCore] = await Promise.all([
+          reserve.casinoCore(),
+          reserve.mtx(),
+          liquidity.casinoCore(),
+          liquidity.MTX(),
+          rng.casinoCore()
+        ]);
+        const expectedModuleLinks = [
+          ['CasinoReserve -> CasinoCore', reserveCore, coreAddress],
+          ['CasinoReserve -> MTX', reserveMtx, MTX.address],
+          ['LiquidityRouter -> CasinoCore', liquidityCore, coreAddress],
+          ['LiquidityRouter -> MTX', liquidityMtx, MTX.address],
+          ['RNGEngine -> CasinoCore', rngCore, coreAddress]
+        ] as const;
+        for (const [link, actual, expected] of expectedModuleLinks) {
+          if (actual.toLowerCase() !== expected.toLowerCase()) {
+            throw new Error(`${link} is ${actual}, but expected ${expected}.`);
+          }
+        }
+        results.push(
+          `PASS: CasinoCore and all module links match the configured MTX, reserve, liquidity, and RNG addresses. Minimum bet: ${formatUnits(minBet, MTX.decimals)} MTX.`
+        );
+        output.textContent = results.join('\n');
       } catch (error) {
-        output.textContent = `Failed: ${error instanceof Error ? error.message : String(error)}`;
+        output.textContent = `FAILED: ${error instanceof Error ? error.message : String(error)}${results.length ? `\n${results.join('\n')}` : ''}`;
       } finally {
         button.disabled = false;
       }
-    });
+    };
+
+    button.addEventListener('click', () => void runConnectionTest());
+    void runConnectionTest();
   }
 </script>

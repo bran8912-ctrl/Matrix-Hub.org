@@ -141,7 +141,7 @@ const endpointPath = '/api/n8n-webhook';
 </Layout>
 
 <script>
-  const form = document.getElementById('n8n-cta-form');
+  const form = document.getElementById('n8n-cta-form') as HTMLFormElement | null;
   const resultNode = document.getElementById('n8n-demo-result');
   const webhookState = document.getElementById('n8n-webhook-state');
   const endpointPath = form?.getAttribute('data-endpoint') || '/api/n8n-webhook';
@@ -157,7 +157,7 @@ const endpointPath = '/api/n8n-webhook';
       }
 
       const formData = new FormData(form);
-      const automationNeeds = Array.from(form.querySelectorAll('input[name="automationNeeds"]:checked'))
+      const automationNeeds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="automationNeeds"]:checked'))
         .map((checkbox) => checkbox.value);
 
       const payload = {

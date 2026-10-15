@@ -1,6 +1,6 @@
 ---
 import Layout from "../components/Layout.astro";
-import MoneyPrinter from "../components/MoneyPrinter.tsx";
+import MoneyPrinterIsland from "../components/MoneyPrinter.tsx";
 
 export const prerender = true;
 
@@ -16,7 +16,7 @@ export const navCategory = "mtx-token";
       Find out how much MTX your stack can generate.
     </p>
 
-    <MoneyPrinter client:load />
+    <MoneyPrinterIsland client:load />
   </div>
 </Layout>
 

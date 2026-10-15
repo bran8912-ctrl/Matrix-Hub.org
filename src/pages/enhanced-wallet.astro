@@ -1,8 +1,6 @@
 ---
 import Layout from "../components/Layout.astro";
 import Wallet from "../components/Wallet.jsx";
-import MTXDashboard from "../components/MTXDashboard.tsx";
-import MTXTransactionHistory from "../components/MTXTransactionHistory.tsx";
 
 export const prerender = true;
 
@@ -96,15 +94,17 @@ export const navCategory = "mtx-token";
   import { BrowserProvider } from 'ethers';
   import MTXDashboard from '../components/MTXDashboard.tsx';
   import MTXTransactionHistory from '../components/MTXTransactionHistory.tsx';
+  import { getEthereumProvider } from '../utils/ethereumProvider';
   import { createRoot } from 'react-dom/client';
   import { createElement } from 'react';
 
   // Function to update dashboard and transaction history with connected address
   async function updateDashboardComponents() {
-    if (!window.ethereum) return;
+    const ethereum = getEthereumProvider();
+    if (!ethereum) return;
 
     try {
-      const provider = new BrowserProvider(window.ethereum);
+      const provider = new BrowserProvider(ethereum);
       const signer = await provider.getSigner();
       const address = await signer.getAddress();
 
@@ -139,8 +139,9 @@ export const navCategory = "mtx-token";
     }, 1000);
 
     // Also check on account change
-    if (window.ethereum) {
-      window.ethereum.on('accountsChanged', () => {
+    const ethereum = getEthereumProvider();
+    if (ethereum?.on) {
+      ethereum.on('accountsChanged', () => {
         // Clear and re-render
         const dashboardEl = document.getElementById('mtx-dashboard');
         const transactionsEl = document.getElementById('mtx-transactions');

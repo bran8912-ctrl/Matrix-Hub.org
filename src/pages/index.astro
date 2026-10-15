@@ -237,6 +237,7 @@ export const navExclude = true;
         const phrases = ['Wake up, Neo...', 'The Matrix has you.', 'Follow the white rabbit.'];
         let pi = 0, ci = 0, deleting = false, wait = 0;
         function tick() {
+          if (!el) return;
           const phrase = phrases[pi];
           if (wait > 0) { wait--; setTimeout(tick, 80); return; }
           if (!deleting) {

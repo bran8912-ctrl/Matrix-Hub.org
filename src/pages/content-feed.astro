@@ -7,12 +7,30 @@ export const prerender = true;
 export const title = "Content Feed";
 export const navCategory = "resources";
 
+interface FeedItem {
+  title: string;
+  path: string;
+  modified: string;
+  description: string;
+  category: string;
+  wordCount: number;
+  tags: string[];
+}
+
+interface FeedData {
+  generated: string;
+  totalFiles: number;
+  categories: Record<string, number>;
+  recentUpdates: Array<Pick<FeedItem, 'title' | 'path' | 'modified'>>;
+  content: FeedItem[];
+}
+
 // This page demonstrates the content workflow by displaying the public feed
 const feedPath = '/public-feed.json';
 
 // Check if feed exists, otherwise show placeholder
-let feedData = null;
-let feedError = null;
+let feedData: FeedData | null = null;
+let feedError: string | null = null;
 
 try {
   // Try to load the feed at build time
@@ -21,7 +39,7 @@ try {
   // Check if file exists using async access
   await access(feedFile);
   const content = await readFile(feedFile, 'utf-8');
-  feedData = JSON.parse(content);
+  feedData = JSON.parse(content) as FeedData;
 } catch (error) {
   feedError = 'Feed not yet generated. Run `npm run content:generate` to create it.';
 }

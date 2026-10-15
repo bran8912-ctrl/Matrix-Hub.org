@@ -43,6 +43,8 @@
     "deploy:testnet:mtx": "hardhat run scripts/deploy_mtx.js --network amoy",
     "deploy:testnet:casino": "hardhat run scripts/deploy_casino.js --network amoy",
     "deploy:testnet:distribute": "hardhat run scripts/distribute_mtx.js --network amoy",
+    "bootstrap:amoy": "hardhat run scripts/amoy_bootstrap.js --network amoy",
+    "preflight:mainnet": "node scripts/preflight_mainnet.js",
     "deploy:testnet:full": "npm run deploy:testnet:mtx && npm run deploy:testnet:casino && npm run deploy:testnet:distribute",
     "dev": "astro dev",
     "start": "node dist/server/entry.mjs",

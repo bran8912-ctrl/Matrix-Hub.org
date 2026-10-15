@@ -83,7 +83,8 @@ jobs:
           if [ -n "$(git status --porcelain)" ]; then
             git config user.name "matrix-hub-bot"
             git config user.email "matrix-hub-bot@users.noreply.github.com"
-            git add src scripts public
+            git add -- src/config/mtx.ts src/config/casino.ts
+            git add -u -- src/config/mtx.ts src/config/casino.ts
             git commit -m "chore(bot): auto-fix issues found by Matrix-Hub bot" || exit 0
             git push
           fi
