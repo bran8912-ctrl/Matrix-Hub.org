@@ -232,7 +232,7 @@ import Panel from './Panel.astro';
   }
 
   async function runScanner() {
-    if (!scanBtn || !scannerOutput || !decodedDeals) return;
+    if (!(scanBtn instanceof HTMLButtonElement) || !scannerOutput || !decodedDeals) return;
     
     scanBtn.disabled = true;
     scanBtn.textContent = 'SCANNING...';

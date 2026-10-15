@@ -40,6 +40,7 @@ jobs:
       - name: TypeScript Type Checking
         id: typecheck
         run: |
+          set -o pipefail
           echo "## 🔍 TypeScript Type Checking" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           if npm run typecheck 2>&1 | tee typecheck-output.txt; then
@@ -59,6 +60,7 @@ jobs:
       - name: ESLint Analysis
         id: eslint
         run: |
+          set -o pipefail
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🔎 ESLint Code Quality" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -78,6 +80,7 @@ jobs:
       - name: Solidity Linting
         id: solhint
         run: |
+          set -o pipefail
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🔐 Solidity Contract Linting" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -94,6 +97,7 @@ jobs:
 
       - name: Compile smart contracts
         run: |
+          set -o pipefail
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 🔨 Smart Contract Compilation" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY

@@ -3,6 +3,8 @@ import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/re
 import { MTX } from '../config/mtx';
 import mtxAbi from '../abi/mtx.json';
 import { ensureEthereum } from '../utils/mtxTransfer';
+import { getEthereumProvider } from '../utils/ethereumProvider';
+import type { BrowserProvider as EthersBrowserProvider, Eip1193Provider } from 'ethers';
 
 /**
  * Wallet component - React island for wallet connection and MTX balance display
@@ -13,15 +15,13 @@ const Wallet = () => {
   const { open } = useAppKit()
   
   // State management
-  const [balance, setBalance] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState<string | null>(null);
   const [error, setError] = useState('');
-  const [provider, setProvider] = useState(null);
 
   /**
    * Fetch MTX token balance for the connected address
    */
-  const fetchBalance = useCallback(async (ethersProvider, userAddress) => {
+  const fetchBalance = useCallback(async (ethersProvider: EthersBrowserProvider, userAddress: string) => {
     try {
       const { Contract, formatUnits } = await import('ethers');
       const mtxContract = new Contract(MTX.address, mtxAbi, ethersProvider);
@@ -31,7 +31,7 @@ const Wallet = () => {
       setBalance(formattedBalance);
     } catch (err) {
       console.error('Error fetching balance:', err);
-      setError('Failed to fetch MTX balance.');
+      setError(err instanceof Error ? err.message : 'Failed to fetch MTX balance.');
     }
   }, []);
 
@@ -42,14 +42,12 @@ const Wallet = () => {
     const updateBalance = async () => {
       if (!isConnected || !address || !walletProvider) {
         setBalance(null)
-        setProvider(null)
         return
       }
 
       try {
         const { BrowserProvider } = await import('ethers');
-        const ethersProvider = new BrowserProvider(walletProvider as any)
-        setProvider(ethersProvider)
+        const ethersProvider = new BrowserProvider(walletProvider as Eip1193Provider)
         
         // Ensure we're on the correct network
         await ensureEthereum() // Ensure we're on the correct network (Polygon)
@@ -57,7 +55,7 @@ const Wallet = () => {
         await fetchBalance(ethersProvider, address)
       } catch (err) {
         console.error('Error setting up wallet:', err)
-        setError(err.message || 'Failed to set up wallet connection.')
+        setError(err instanceof Error ? err.message : 'Failed to set up wallet connection.')
       }
     }
 
@@ -69,13 +67,14 @@ const Wallet = () => {
    */
   const addTokenToWallet = async () => {
     setError('');
-    if (!window.ethereum) {
+    const ethereum = getEthereumProvider();
+    if (!ethereum) {
       setError('Polygon wallet not found.');
       return;
     }
 
     try {
-      const wasAdded = await window.ethereum.request({
+      const wasAdded = await ethereum.request({
         method: 'wallet_watchAsset',
         params: {
           type: 'ERC20',

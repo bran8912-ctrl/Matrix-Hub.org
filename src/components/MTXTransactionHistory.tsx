@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { MTX } from '../config/mtx';
 import mtxAbi from '../abi/mtx.json';
+import { getEthereumProvider } from '../utils/ethereumProvider';
 
 interface Transaction {
   hash: string;
@@ -23,7 +24,8 @@ const MTXTransactionHistory: React.FC<MTXTransactionHistoryProps> = ({ address, 
   const [error, setError] = useState('');
 
   const fetchTransactions = async () => {
-    if (!address || !window.ethereum) return;
+    const ethereum = getEthereumProvider();
+    if (!address || !ethereum) return;
     if (!MTX.isDeployed) {
       setError('MTX contract address is not configured yet.');
       return;
@@ -33,7 +35,7 @@ const MTXTransactionHistory: React.FC<MTXTransactionHistoryProps> = ({ address, 
 
     try {
       const { BrowserProvider, Contract, formatUnits } = await import('ethers');
-      const provider = new BrowserProvider(window.ethereum as any);
+      const provider = new BrowserProvider(ethereum);
       const mtxContract = new Contract(MTX.address, mtxAbi, provider);
       const decimals = await mtxContract.decimals();
 
@@ -55,6 +57,7 @@ const MTXTransactionHistory: React.FC<MTXTransactionHistoryProps> = ({ address, 
       const txs = await Promise.all(uniqueEvents.slice(0, maxItems).map(async (event: any) => {
         const args = event.args as { from: string; to: string; value: bigint };
         const block = await provider.getBlock(event.blockNumber);
+        if (!block) return null;
         const value = formatUnits(args.value, decimals);
         let type: Transaction['type'] = 'send';
         if (args.from === address) type = args.to === '0x000000000000000000000000000000000000dEaD' ? 'burn' : 'send';
@@ -71,7 +74,7 @@ const MTXTransactionHistory: React.FC<MTXTransactionHistoryProps> = ({ address, 
         } as Transaction;
       }));
 
-      setTransactions(txs);
+      setTransactions(txs.filter((transaction): transaction is Transaction => transaction !== null));
     } catch (err) {
       console.error('Error fetching transactions:', err);
       setError('Failed to load transactions');

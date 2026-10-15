@@ -67,23 +67,6 @@ jobs:
           cat script-output.txt >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           
-          # Handle compile/test failures gracefully (expected network failures in CI)
-          case "${{ inputs.script }}" in
-            compile|test)
-              if [ $EXIT_CODE -ne 0 ]; then
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "⚠️ **Note:** The \`${{ inputs.script }}\` script requires downloading the Solidity compiler." >> $GITHUB_STEP_SUMMARY
-                echo "This may fail in CI environments with network restrictions." >> $GITHUB_STEP_SUMMARY
-                echo "Pre-compiled artifacts are available in the \`artifacts/\` directory." >> $GITHUB_STEP_SUMMARY
-                echo "" >> $GITHUB_STEP_SUMMARY
-                echo "✅ **Workflow continues:** This is expected behavior for Hardhat scripts in CI." >> $GITHUB_STEP_SUMMARY
-                # Don't fail the workflow for expected failures
-                exit 0
-              fi
-              ;;
-          esac
-          
-          # For other scripts, exit with the actual exit code
           exit $EXIT_CODE
       
       - name: Upload artifacts

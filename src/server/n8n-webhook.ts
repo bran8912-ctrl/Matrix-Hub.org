@@ -25,9 +25,14 @@ export const POST: APIRoute = async ({ request }) => {
   }
 
   try {
-    const body = await request.json();
+    const parsedBody: unknown = await request.json();
+    const body = typeof parsedBody === 'object' && parsedBody !== null && !Array.isArray(parsedBody)
+      ? parsedBody as Record<string, unknown>
+      : {};
     const automationNeeds = Array.isArray(body?.automationNeeds)
-      ? body.automationNeeds.filter((item: unknown) => typeof item === 'string').map((item) => item.trim())
+      ? body.automationNeeds
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
       : [];
 
     const payload = {

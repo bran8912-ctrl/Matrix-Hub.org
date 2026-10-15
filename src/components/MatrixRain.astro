@@ -64,9 +64,9 @@
 
     // ── Column / drop initialisation ─────────────────────────────────────
     let cols = Math.floor(window.innerWidth / fontSize);
-    let drops: number[] = Array.from({ length: cols }, () =>
-      Math.random() * INITIAL_DROP_OFFSET
-    );
+    const drops: number[] = Array.from({ length: cols }, () =>
+    Math.random() * INITIAL_DROP_OFFSET
+  );
 
     function handleResize() {
       canvas.width  = window.innerWidth;

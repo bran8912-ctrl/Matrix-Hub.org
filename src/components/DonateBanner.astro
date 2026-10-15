@@ -46,7 +46,7 @@
     walletItems.forEach(item => {
       item.addEventListener('click', async () => {
         const address = item.getAttribute('data-address');
-        const label = item.querySelector('.wallet-label');
+        const label = item.querySelector<HTMLElement>('.wallet-label');
         
         if (address && label) {
           try {

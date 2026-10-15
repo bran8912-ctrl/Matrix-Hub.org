@@ -86,8 +86,8 @@ Guided workflow for deploying smart contracts:
 **NEW:** Comprehensive automated workflow for testnet deployments of MTX token, casino contracts, and token distribution.
 
 **Features:**
-- ✅ Automated deployment to Sepolia testnet
-- ✅ Sequential deployment: MTX → Casino → Distribution
+- ✅ Automated deployment to Polygon Amoy testnet (chain ID 80002)
+- ✅ Requires Amoy end-to-end testing and independent security-review confirmation
 - ✅ Artifact uploads with deployment JSON files
 - ✅ Detailed deployment summaries
 - ✅ Safety checks and validations
@@ -99,14 +99,16 @@ Guided workflow for deploying smart contracts:
 - `distribute-only` - Distribute tokens only (requires both deployments)
 - `full-deployment` - Complete deployment sequence (recommended)
 
-**Networks:**
-- `sepolia` - Sepolia testnet (recommended for testing)
-- `localhost` - Local Hardhat network
-
 **Required Secrets:**
 - `TESTNET_PRIVATE_KEY`: Deployer wallet private key (testnet only)
-- `SEPOLIA_RPC_URL`: RPC endpoint for Sepolia
-- `ETHERSCAN_API_KEY`: For contract verification (optional)
+- `AMOY_RPC_URL`: RPC endpoint for Polygon Amoy (optional; public fallback is configured)
+- `POLYGONSCAN_API_KEY`: For contract verification (optional)
+
+**Required repository variables for casino deployments:**
+- `AMOY_QUICKSWAP_V2_ROUTER_ADDRESS`: Amoy QuickSwap V2 router
+- `AMOY_CASINO_MAX_PAYOUT_PER_BET`: Maximum payout in MTX
+- `AMOY_VRF_SUBSCRIPTION_ID`: Existing, LINK-funded Amoy subscription owned by the deployer
+- `AMOY_MTX_CONTRACT_ADDRESS`: Required for `casino-only`; `full-deployment` uses its newly deployed token
 
 **Artifacts Generated:**
 - `mtx-deployment-{network}-{run_number}` - MTX deployment info and logs
@@ -118,16 +120,17 @@ Guided workflow for deploying smart contracts:
 1. Go to the "Actions" tab in GitHub
 2. Select "Contract Deployment - Testnet"
 3. Click "Run workflow"
-4. Choose deployment type (recommend `full-deployment` for first run)
-5. Choose network (`sepolia` recommended)
+5. Choose `full-deployment` to deploy an Amoy test token and casino, or `casino-only` to use an existing Amoy token
 6. Optionally skip compilation if using cached artifacts
 7. Click "Run workflow"
 8. Monitor progress and download artifacts when complete
 
+The workflow does not fund the reserve or seed liquidity. Test VRF-backed wagers and settlement on Amoy before a Polygon release.
+
 **Output Files:**
-- `deployments/mtx-sepolia.json` - MTX contract address and metadata
-- `deployments/casino-sepolia.json` - Casino contract addresses and metadata
-- `deployments/mtx-distribution-sepolia.json` - Distribution records
+- `deployments/mtx-amoy.json` - MTX contract address and metadata
+- `deployments/casino-amoy.json` - Casino contract addresses and metadata
+- `deployments/mtx-distribution-amoy.json` - Distribution records
 
 See `DEPLOYMENT_GUIDE.md` for complete deployment documentation.
 
@@ -138,39 +141,41 @@ See `DEPLOYMENT_GUIDE.md` for complete deployment documentation.
 **🚨 CRITICAL:** Protected mainnet deployment workflow with multiple safeguards.
 
 **Features:**
-- ✅ Automated deployment to Ethereum mainnet
+- ✅ Casino-only deployment to Polygon mainnet (chain ID 137), using the selected existing MTX token
 - ✅ Multiple confirmation requirements before execution
 - ✅ Sequential deployment: MTX → Casino → Distribution
 - ✅ Artifact uploads with 90-day retention
 - ✅ Detailed deployment summaries
-- 🔒 **Requires two confirmation strings to prevent accidents**
+- 🔒 **Requires three confirmation strings and should use a protected `polygon-production` GitHub environment**
 
 **Required Confirmations:**
-1. **confirmation_string:** Must type `DEPLOY-TO-MAINNET-CONFIRMED`
+1. **confirmation_string:** Must type `DEPLOY-TO-POLYGON-CONFIRMED`
 2. **double_check:** Must type `I-UNDERSTAND-THIS-IS-IRREVERSIBLE`
+3. **casino_release_confirmation:** Must type `POLYGON-CASINO-AFTER-AMOY-AND-AUDIT` only after both release gates are complete
 
-**Deployment Types:**
-- `mtx-only` - Deploy only MTX token contract
-- `casino-only` - Deploy only casino contracts (requires existing MTX deployment)
-- `distribute-only` - Distribute tokens only (requires both deployments)
-- `full-deployment` - Complete deployment sequence (recommended)
+**Deployment Type:**
+- `casino-only` - Deploy casino modules against the selected existing MTX token
 
 **Required Secrets:**
-- `MAINNET_PRIVATE_KEY`: Deployer wallet private key (mainnet)
-- `MAINNET_RPC_URL`: RPC endpoint for Ethereum mainnet
-- `ETHERSCAN_API_KEY`: For contract verification
+- `POLYGON_PRIVATE_KEY`: Deployer wallet private key
+- `POLYGON_RPC_URL`: Polygon RPC endpoint
+- `POLYGONSCAN_API_KEY`: For contract verification
+
+**Required repository variables:**
+- `POLYGON_MTX_CONTRACT_ADDRESS`: The selected canonical MTX token
+- `POLYGON_QUICKSWAP_V2_ROUTER_ADDRESS`: Polygon QuickSwap V2 router
+- `POLYGON_CASINO_MAX_PAYOUT_PER_BET`: Owner-approved maximum payout in MTX
+- `POLYGON_VRF_SUBSCRIPTION_ID`: Existing Polygon VRF v2.5 subscription owned by the deployer and funded with official Polygon LINK
 
 **Security Features:**
-- ⚠️ Requires exact confirmation strings (case-insensitive)
+- ⚠️ Requires exact confirmation strings
 - ⚠️ Fails immediately if confirmations don't match
 - ⚠️ Separate secrets for mainnet (never use testnet keys)
 - ⚠️ 90-day artifact retention for critical mainnet deployments
 - ⚠️ Detailed post-deployment action checklist
 
 **Artifacts Generated:**
-- `mtx-deployment-mainnet-{run_number}` - MTX deployment info and logs (90 days)
-- `casino-deployment-mainnet-{run_number}` - Casino deployment info and logs (90 days)
-- `mtx-distribution-mainnet-{run_number}` - Distribution info and logs (90 days)
+- `casino-deployment-polygon-{run_number}` - Casino deployment info and logs (90 days)
 - `compiled-contracts-mainnet-{run_number}` - Compiled contract artifacts (7 days)
 
 **How to Use:**
@@ -178,14 +183,14 @@ See `DEPLOYMENT_GUIDE.md` for complete deployment documentation.
 2. Select "Contract Deployment - Mainnet (Protected)"
 3. Click "Run workflow"
 4. Choose deployment type
-5. Type `DEPLOY-TO-MAINNET-CONFIRMED` in confirmation field
+5. Type `DEPLOY-TO-POLYGON-CONFIRMED` in confirmation field
 6. Type `I-UNDERSTAND-THIS-IS-IRREVERSIBLE` in double-check field
-7. Click "Run workflow"
-8. **IMMEDIATELY** download and backup all artifacts after completion
-9. Verify contracts on Etherscan
-10. Test thoroughly before announcing
+7. Type `POLYGON-CASINO-AFTER-AMOY-AND-AUDIT` only after completing Amoy testing and independent review
+8. Ensure the `polygon-production` environment requires an authorized reviewer
+9. Click "Run workflow" and download the deployment artifact
+10. Verify contracts, fund the reserve, seed liquidity at the approved ratio, test live wagers, and only then update frontend addresses
 
-**⚠️  WARNING:** This deploys to mainnet with real funds. Transactions are irreversible. Always test on Sepolia first.
+**⚠️ WARNING:** Polygon transactions are irreversible. Contract deployment alone does not enable wagers; reserve funding, pool seeding, contract verification, and frontend configuration are separate release steps. Test the complete flow on Amoy first.
 
 ### 6. Content Validation (`content-validation.yml`)
 

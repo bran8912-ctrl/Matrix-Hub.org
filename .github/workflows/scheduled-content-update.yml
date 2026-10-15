@@ -31,6 +31,7 @@ jobs:
       
       - name: Scan content
         run: |
+          set -o pipefail
           echo "## 📅 Scheduled Content Update - $(date)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔍 Content Scan" >> $GITHUB_STEP_SUMMARY
@@ -54,6 +55,7 @@ jobs:
       
       - name: Generate analytics
         run: |
+          set -o pipefail
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 📊 Generate Analytics" >> $GITHUB_STEP_SUMMARY
           npm run content:analytics 2>&1 | tee analytics-output.txt

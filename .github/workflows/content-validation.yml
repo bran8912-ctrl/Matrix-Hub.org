@@ -35,6 +35,7 @@ jobs:
       - name: Scan content files
         id: scan
         run: |
+          set -o pipefail
           echo "## Content Scan Results" >> $GITHUB_STEP_SUMMARY
           npm run content:scan 2>&1 | tee scan-output.txt
           
@@ -52,6 +53,7 @@ jobs:
       
       - name: Generate analytics
         run: |
+          set -o pipefail
           npm run content:analytics 2>&1 | tee analytics-output.txt
           
           echo "## Content Analytics" >> $GITHUB_STEP_SUMMARY

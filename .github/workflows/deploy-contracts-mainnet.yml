@@ -16,16 +16,17 @@ on:
         required: true
         type: choice
         options:
-          - 'mtx-only'
           - 'casino-only'
-          - 'distribute-only'
-          - 'full-deployment'
       confirmation_string:
         description: 'Type "DEPLOY-TO-POLYGON-CONFIRMED" to proceed'
         required: true
         type: string
       double_check:
         description: 'Type "I-UNDERSTAND-THIS-IS-IRREVERSIBLE" to proceed'
+        required: true
+        type: string
+      casino_release_confirmation:
+        description: 'Type POLYGON-CASINO-AFTER-AMOY-AND-AUDIT only after both release gates are complete'
         required: true
         type: string
       skip_compilation:
@@ -40,6 +41,10 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    env:
+      CONFIRMATION_STRING: ${{ inputs.confirmation_string }}
+      DOUBLE_CHECK: ${{ inputs.double_check }}
+      CASINO_RELEASE_CONFIRMATION: ${{ inputs.casino_release_confirmation }}
 
     steps:
       - name: Validate confirmation strings
@@ -49,20 +54,23 @@ jobs:
           echo "⚠️  **CRITICAL: This will deploy to POLYGON MAINNET with REAL MATIC**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
-          CONFIRMATION=$(echo "${{ inputs.confirmation_string }}" | tr '[:lower:]' '[:upper:]' | xargs)
-          DOUBLE_CHECK=$(echo "${{ inputs.double_check }}" | tr '[:lower:]' '[:upper:]' | xargs)
+          CONFIRMATION=$(printf '%s' "$CONFIRMATION_STRING" | tr '[:lower:]' '[:upper:]' | xargs)
+          DOUBLE_CHECK_NORMALIZED=$(printf '%s' "$DOUBLE_CHECK" | tr '[:lower:]' '[:upper:]' | xargs)
 
           if [ "$CONFIRMATION" != "DEPLOY-TO-POLYGON-CONFIRMED" ]; then
             echo "❌ **VALIDATION FAILED**: Incorrect confirmation string" >> $GITHUB_STEP_SUMMARY
             echo "Expected: \`DEPLOY-TO-POLYGON-CONFIRMED\`" >> $GITHUB_STEP_SUMMARY
-            echo "Received: \`${{ inputs.confirmation_string }}\`" >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
-          if [ "$DOUBLE_CHECK" != "I-UNDERSTAND-THIS-IS-IRREVERSIBLE" ]; then
+          if [ "$DOUBLE_CHECK_NORMALIZED" != "I-UNDERSTAND-THIS-IS-IRREVERSIBLE" ]; then
             echo "❌ **VALIDATION FAILED**: Incorrect double-check string" >> $GITHUB_STEP_SUMMARY
             echo "Expected: \`I-UNDERSTAND-THIS-IS-IRREVERSIBLE\`" >> $GITHUB_STEP_SUMMARY
-            echo "Received: \`${{ inputs.double_check }}\`" >> $GITHUB_STEP_SUMMARY
+            exit 1
+          fi
+
+          if [ "$CASINO_RELEASE_CONFIRMATION" != "POLYGON-CASINO-AFTER-AMOY-AND-AUDIT" ]; then
+            echo "❌ **VALIDATION FAILED**: Casino deployment requires completed Amoy E2E tests and independent security review." >> $GITHUB_STEP_SUMMARY
             exit 1
           fi
 
@@ -151,6 +159,7 @@ jobs:
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
+          set -o pipefail
           echo "## 🚀 Deploying MTX Token to Polygon Mainnet" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "⚠️  **DEPLOYING TO POLYGON MAINNET WITH REAL MATIC**" >> $GITHUB_STEP_SUMMARY
@@ -168,7 +177,7 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Verify contract on PolygonScan
-        if: ${{ secrets.POLYGONSCAN_API_KEY != '' }}
+        if: ${{ env.POLYGONSCAN_API_KEY != '' }}
         env:
           PRIVATE_KEY: ${{ secrets.POLYGON_PRIVATE_KEY }}
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
@@ -212,6 +221,7 @@ jobs:
   deploy-casino-polygon:
     name: Deploy Casino Contracts to Polygon Mainnet
     runs-on: ubuntu-latest
+    environment: polygon-production
     needs: [validate-mainnet-deployment, compile-contracts, deploy-mtx-polygon]
     if: |
       always() &&
@@ -256,7 +266,13 @@ jobs:
           PRIVATE_KEY: ${{ secrets.POLYGON_PRIVATE_KEY }}
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          MTX_CONTRACT_ADDRESS: ${{ vars.POLYGON_MTX_CONTRACT_ADDRESS }}
+          QUICKSWAP_V2_ROUTER_ADDRESS: ${{ vars.POLYGON_QUICKSWAP_V2_ROUTER_ADDRESS }}
+          CASINO_MAX_PAYOUT_PER_BET: ${{ vars.POLYGON_CASINO_MAX_PAYOUT_PER_BET }}
+          VRF_SUBSCRIPTION_ID: ${{ vars.POLYGON_VRF_SUBSCRIPTION_ID }}
+          POLYGON_CASINO_DEPLOYMENT_APPROVED: YES
         run: |
+          set -o pipefail
           echo "## 🎰 Deploying Casino Contracts to Polygon Mainnet" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Network:** polygon (Chain ID: 137)" >> $GITHUB_STEP_SUMMARY
@@ -271,12 +287,14 @@ jobs:
           echo '```' >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Casino deployment artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: casino-deployment-polygon-${{ github.run_number }}
           path: |
             deployments/casino-polygon.json
             deploy_casino_polygon_output.log
+          if-no-files-found: ignore
           retention-days: 90
 
   distribute-mtx-polygon:
@@ -334,6 +352,7 @@ jobs:
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
         run: |
+          set -o pipefail
           echo "## 💰 Distributing MTX Tokens on Polygon Mainnet" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "⚠️  **IRREVERSIBLE TRANSACTION ON POLYGON MAINNET**" >> $GITHUB_STEP_SUMMARY
