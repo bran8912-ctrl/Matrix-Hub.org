@@ -44,9 +44,6 @@ async function main() {
   }
   const [deployer] = await ethers.getSigners();
   if (!deployer) throw new Error("Set PRIVATE_KEY to a throwaway Amoy testnet key.");
-  if (!process.env.QUICKSWAP_V2_ROUTER_ADDRESS) {
-    throw new Error("Set QUICKSWAP_V2_ROUTER_ADDRESS to the Amoy QuickSwap V2 router.");
-  }
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log(`Deployer ${deployer.address}, balance ${ethers.formatEther(balance)} POL`);
   if (balance === 0n) {
@@ -54,6 +51,19 @@ async function main() {
   }
 
   const state = loadState();
+
+  // Amoy has no official QuickSwap; deploy a mock router when none is supplied.
+  if (!process.env.QUICKSWAP_V2_ROUTER_ADDRESS) {
+    if (!state.mockRouter) {
+      const Mock = await ethers.getContractFactory("MockQuickSwapV2Router");
+      const mock = await Mock.deploy(ethers.ZeroAddress);
+      await mock.waitForDeployment();
+      state.mockRouter = await mock.getAddress();
+      saveState(state);
+      console.log(`Deployed MockQuickSwapV2Router ${state.mockRouter}`);
+    }
+    process.env.QUICKSWAP_V2_ROUTER_ADDRESS = state.mockRouter;
+  }
 
   // 1. Test MTX token
   let mtxAddress = process.env.MTX_CONTRACT_ADDRESS || state.mtxToken;
