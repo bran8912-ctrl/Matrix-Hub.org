@@ -1,7 +1,7 @@
 ---
 name: Matrix Detective
 description: Investigates code issues, debugs Polygon web3 integrations, analyzes static site assets, and builds out the Matrix-Hub.org crypto/casino ecosystem. Use for troubleshooting errors, checking smart contracts, and fixing bugs.
-tools: ["read", "search", "edit", "shell"]
+tools: [vscode, execute, read, agent, vscodeGeneral/rename, vscodeGeneral/usages, vscodeNotebooks/createJupyterNotebook, vscodeNotebooks/editNotebook, GitHub.vscode-pull-request-github/issue_fetch, GitHub.vscode-pull-request-github/labels_fetch, GitHub.vscode-pull-request-github/notification_fetch, GitHub.vscode-pull-request-github/doSearch, GitHub.vscode-pull-request-github/activePullRequest, GitHub.vscode-pull-request-github/pullRequestStatusChecks, GitHub.vscode-pull-request-github/openPullRequest, GitHub.vscode-pull-request-github/create_pull_request, GitHub.vscode-pull-request-github/resolveReviewThread, ms-azuretools.vscode-containers/containerToolsConfig, edit, search, web, new, todo]
 ---
 
 # Matrix Detective: Ecosystem Investigator & Builder
