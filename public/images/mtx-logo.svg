@@ -1,2 +1,53 @@
-<!-- Example usage in your Astro components -->
-<img src="/images/mtx-logo.svg" alt="MTX Coin Logo" class="w-12 h-12 object-contain" />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Neon Emerald Glow Gradients -->
+    <linearGradient id="neonGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00ffcc" />
+      <stop offset="50%" stop-color="#00e676" />
+      <stop offset="100%" stop-color="#00b0ff" />
+    </linearGradient>
+    <linearGradient id="darkBg" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#050b09" />
+      <stop offset="100%" stop-color="#010302" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Background Layer -->
+  <rect width="512" height="512" rx="100" fill="url(#darkBg)" />
+
+  <!-- Cybernetic Grid Lines -->
+  <g opacity="0.15" stroke="#00ffcc" stroke-width="1">
+    <line x1="0" y1="128" x2="512" y2="128" />
+    <line x1="0" y1="256" x2="512" y2="256" />
+    <line x1="0" y1="384" x2="512" y2="384" />
+    <line x1="128" y1="0" x2="128" y2="512" />
+    <line x1="256" y1="0" x2="256" y2="512" />
+    <line x1="384" y1="0" x2="384" y2="512" />
+  </g>
+
+  <!-- Hexagonal / Cube Outer Frame -->
+  <g filter="url(#glow)" fill="none" stroke="url(#neonGlow)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round">
+    <polygon points="256,60 410,148 410,324 256,412 102,324 102,148" />
+    <polyline points="256,60 256,236 410,148" />
+    <polyline points="256,236 102,148" />
+    <polyline points="256,236 256,412" />
+  </g>
+
+  <!-- MTX Monogram Typography -->
+  <g fill="url(#neonGlow)" filter="url(#glow)">
+    <!-- M Letter Form -->
+    <path d="M150,280 L150,190 L175,220 L200,190 L200,280 L185,280 L185,225 L175,238 L165,225 L165,280 Z" />
+    <!-- T Letter Form -->
+    <path d="M225,190 L285,190 L285,205 L262,205 L262,280 L247,280 L247,205 L225,205 Z" />
+    <!-- X Letter Form -->
+    <path d="M305,190 L325,190 L340,225 L355,190 L375,190 L350,235 L375,280 L355,280 L340,245 L325,280 L305,280 L330,235 Z" />
+  </g>
+
+  <!-- Subtitle Text -->
+  <text x="256" y="455" font-family="monospace" font-size="16" font-weight="bold" fill="#00ffcc" letter-spacing="4" text-anchor="middle" opacity="0.9">MTX COIN</text>
+  <text x="256" y="475" font-family="sans-serif" font-size="10" fill="#009977" letter-spacing="2" text-anchor="middle">DEFI &amp; GAMING PROTOCOL</text>
+</svg>
