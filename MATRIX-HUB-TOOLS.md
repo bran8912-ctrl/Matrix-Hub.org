@@ -29,6 +29,7 @@ npm install
 ```
 
 This installs:
+
 - `fast-glob` (v3.3.3) - Fast file pattern matching
 - `gray-matter` (v4.0.3) - Frontmatter parsing for markdown files
 - `chokidar` (latest) - File system watcher for live updates
@@ -36,16 +37,19 @@ This installs:
 ### First Run
 
 1. Scan your content:
+
    ```bash
    node content-workflow.js scan
    ```
 
 2. Generate public feeds:
+
    ```bash
    node content-workflow.js generate
    ```
 
 3. View analytics:
+
    ```bash
    node content-workflow.js analytics
    ```
@@ -61,6 +65,7 @@ This installs:
 ### Purpose
 
 A comprehensive content management tool that:
+
 - Automatically discovers and indexes content files
 - Generates public JSON feeds for marketing and SEO
 - Provides detailed analytics and metrics
@@ -76,6 +81,7 @@ node content-workflow.js scan
 ```
 
 **What it does:**
+
 - Scans all markdown (.md), MDX (.mdx), and Astro (.astro) files
 - Parses frontmatter metadata
 - Counts words and collects file statistics
@@ -90,6 +96,7 @@ node content-workflow.js generate
 ```
 
 **What it does:**
+
 - Scans content (same as scan command)
 - Generates `public/public-feed.json` with:
   - File paths and titles
@@ -101,6 +108,7 @@ node content-workflow.js generate
 **Output:** `public/public-feed.json`
 
 **Use cases:**
+
 - Marketing team content inventory
 - SEO tools and search engine indexing
 - External API integrations
@@ -113,6 +121,7 @@ node content-workflow.js analytics
 ```
 
 **What it does:**
+
 - Comprehensive content analysis including:
   - Total files, words, and size metrics
   - Category breakdowns with averages
@@ -122,6 +131,7 @@ node content-workflow.js analytics
 **Output:** `public/content-analytics.json`
 
 **Use cases:**
+
 - Investor presentations
 - Content strategy planning
 - Quality assurance
@@ -134,6 +144,7 @@ node content-workflow.js watch
 ```
 
 **What it does:**
+
 - Monitors content directories for changes
 - Auto-regenerates feeds when files are added, changed, or removed
 - Debounces updates (1 second delay)
@@ -142,6 +153,7 @@ node content-workflow.js watch
 **Output:** Live updates to both JSON files
 
 **Use cases:**
+
 - Development environments
 - Live content editing
 - Real-time feed updates
@@ -166,6 +178,7 @@ Displays usage information and command reference.
 **Usage in script:** Discovers content files across multiple directories
 
 **Features:**
+
 - Parallel file scanning
 - Gitignore-style patterns
 - Cross-platform support
@@ -177,6 +190,7 @@ Displays usage information and command reference.
 **Usage in script:** Extracts metadata (title, description, tags) from files
 
 **Features:**
+
 - YAML, JSON, and TOML frontmatter support
 - Custom delimiters
 - Excerpt support
@@ -188,6 +202,7 @@ Displays usage information and command reference.
 **Usage in script:** Monitors file changes in watch mode
 
 **Features:**
+
 - Cross-platform compatibility
 - Efficient CPU usage
 - Debouncing support
@@ -199,6 +214,7 @@ Displays usage information and command reference.
 ### 1. public/public-feed.json
 
 **Structure:**
+
 ```json
 {
   "generated": "2025-12-31T00:00:00.000Z",
@@ -233,6 +249,7 @@ Displays usage information and command reference.
 **Access:** `https://matrix-hub.org/public-feed.json` (when deployed)
 
 **Uses:**
+
 - External API consumption
 - Marketing automation
 - SEO tools
@@ -241,6 +258,7 @@ Displays usage information and command reference.
 ### 2. public/content-analytics.json
 
 **Structure:**
+
 ```json
 {
   "generated": "2025-12-31T00:00:00.000Z",
@@ -271,6 +289,7 @@ Displays usage information and command reference.
 ```
 
 **Uses:**
+
 - Investor presentations
 - Content strategy
 - Quality assurance
@@ -279,12 +298,14 @@ Displays usage information and command reference.
 ### 3. content-workflow-errors.log
 
 **Format:**
+
 ```
 [2025-12-31T00:00:00.000Z] [context] Error message
 Stack trace...
 ```
 
 **Purpose:**
+
 - Debug issues with file processing
 - Track problematic content files
 - Monitor script health
@@ -381,6 +402,7 @@ The Owners Portal provides:
 ### Security Note
 
 Password is checked client-side for convenience. For production use with sensitive data, consider:
+
 - Server-side authentication
 - Environment variables for password
 - Session management
@@ -397,6 +419,7 @@ Password is checked client-side for convenience. For production use with sensiti
 **Integration Examples:**
 
 1. **Marketing Automation:**
+
    ```javascript
    fetch('https://matrix-hub.org/public-feed.json')
      .then(res => res.json())
@@ -407,6 +430,7 @@ Password is checked client-side for convenience. For production use with sensiti
    ```
 
 2. **SEO Sitemap Generation:**
+
    ```javascript
    const feed = require('./public/public-feed.json');
    const urls = feed.content.map(item => ({
@@ -431,6 +455,7 @@ Password is checked client-side for convenience. For production use with sensiti
 5. **Content Health:** Quality metrics
 
 **Investor Presentation Points:**
+
 - Total content volume (shows scale)
 - Category diversity (shows breadth)
 - Recent activity (shows momentum)
@@ -447,6 +472,7 @@ Password is checked client-side for convenience. For production use with sensiti
 **Problem:** Dependencies not installed
 
 **Solution:**
+
 ```bash
 npm install
 ```
@@ -456,6 +482,7 @@ npm install
 **Problem:** Content directories empty or patterns don't match
 
 **Solution:**
+
 - Check that content exists in `src/content`, `docs`, or `src/pages`
 - Verify file extensions are `.md`, `.mdx`, or `.astro`
 - Check `CONFIG.contentDirs` in `content-workflow.js`
@@ -465,6 +492,7 @@ npm install
 **Problem:** No write access to `public/` directory
 
 **Solution:**
+
 ```bash
 mkdir -p public
 chmod 755 public
@@ -475,6 +503,7 @@ chmod 755 public
 **Problem:** File system watcher limitations
 
 **Solution:**
+
 - Restart watch mode
 - Check file system limits: `ulimit -n`
 - Reduce number of watched directories
@@ -484,6 +513,7 @@ chmod 755 public
 **Problem:** Repeated errors
 
 **Solution:**
+
 ```bash
 # Archive old log
 mv content-workflow-errors.log content-workflow-errors.log.old
@@ -511,6 +541,7 @@ if (DEBUG) console.log('Debug: operation details...');
 ### Content Organization
 
 1. **Use Frontmatter:** Always include title, description, and tags
+
    ```markdown
    ---
    title: "My Document"
@@ -532,6 +563,7 @@ if (DEBUG) console.log('Debug: operation details...');
 ### Workflow Automation
 
 1. **Pre-commit Hooks:** Regenerate feeds before commits
+
    ```bash
    # .git/hooks/pre-commit
    #!/bin/bash
@@ -540,6 +572,7 @@ if (DEBUG) console.log('Debug: operation details...');
    ```
 
 2. **CI Integration:** Include in build pipeline
+
    ```yaml
    # .github/workflows/build.yml
    - name: Generate feeds
@@ -547,6 +580,7 @@ if (DEBUG) console.log('Debug: operation details...');
    ```
 
 3. **Scheduled Updates:** Use cron for periodic regeneration
+
    ```bash
    # Regenerate every hour
    0 * * * * cd /path/to/project && node content-workflow.js generate
@@ -614,6 +648,7 @@ node content-workflow.js generate
 ```
 
 **Available environment variables:**
+
 - `CONTENT_DIRS` - Directories to scan (default: `src/content,docs,src/pages`)
 - `OUTPUT_DIR` - Output directory (default: `public`)
 - `PUBLIC_FEED_FILE` - Public feed path (default: `public/public-feed.json`)
