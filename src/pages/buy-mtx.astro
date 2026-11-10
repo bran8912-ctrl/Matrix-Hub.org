@@ -11,15 +11,14 @@ export const navCategory = "mtx-token";
 // Check if contract is deployed
 const isDeployed = MTX.isDeployed;
 const contractAddress = MTX.address;
-const uniswapUrl = MTX.uniswapUrl;
 ---
 
 <Layout title="Buy MTX - Matrix Hub">
   <div class="buy-mtx-page">
     <h1 class="page-title">Buy MTX</h1>
     <p class="page-description">
-      Purchase MTX tokens directly with POL using our secure direct mint feature,
-      or buy on QuickSwap for instant liquidity.
+      Purchase MTX tokens directly with POL using our secure direct mint feature.
+      There is no QuickSwap pool for MTX yet, so direct mint is the way to buy MTX right now.
     </p>
     
     <!-- Direct Mint Component -->
@@ -28,7 +27,7 @@ const uniswapUrl = MTX.uniswapUrl;
     </div>
 
     <div class="info-section">
-      <h2>Two Ways to Buy MTX</h2>
+      <h2>How to Buy MTX</h2>
       
       <div class="purchase-options">
         <div class="option-card">
@@ -46,31 +45,33 @@ const uniswapUrl = MTX.uniswapUrl;
         </div>
 
         <div class="option-card">
-          <h3>💱 QuickSwap DEX (Public Market)</h3>
+          <h3>💱 QuickSwap DEX (Not Available Yet)</h3>
           <ul>
-            <li><strong>Market Rate:</strong> Pricing based on liquidity pool</li>
-            <li><strong>High Liquidity:</strong> Swap any amount instantly</li>
-            <li><strong>Trusted Platform:</strong> Battle-tested DEX protocol</li>
-            <li><strong>Perfect For:</strong> Large purchases, market trading</li>
-            <li><strong>Flexibility:</strong> Swap from any ERC-20 token</li>
+            <li><strong>No pool yet:</strong> There is no MTX liquidity pool on QuickSwap, so no MTX can be bought there right now.</li>
+            <li><strong>Planned:</strong> A 100,000 MTX + 100 POL pool at the direct-mint price, once the pool is created.</li>
+            <li><strong>Until then:</strong> Use direct mint above — it is the only way to buy MTX at the moment.</li>
           </ul>
           <div class="cta">
-            {isDeployed ? (
-              <a 
-                href={uniswapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="cta-button uniswap"
-              >
-                Buy on QuickSwap →
-              </a>
-            ) : (
-              <span class="cta-button uniswap disabled">
-                QuickSwap — Coming Soon
-              </span>
-            )}
+            <span class="cta-button uniswap disabled">
+              QuickSwap — No Pool Yet
+            </span>
           </div>
         </div>
+      </div>
+
+      <div class="token-facts">
+        <h3>📋 Token Facts — Verified On-Chain Nov 10, 2026</h3>
+        <ul>
+          <li><strong>Contract:</strong> {contractAddress} (<a href={`https://polygonscan.com/address/${contractAddress}`} target="_blank" rel="noopener noreferrer">view on PolygonScan</a>)</li>
+          <li><strong>Direct mint:</strong> Live — minting is not paused</li>
+          <li><strong>Fixed rate:</strong> 1 POL = 1,000 MTX</li>
+          <li><strong>Max supply:</strong> 100,000,000 MTX (hard cap)</li>
+          <li><strong>Total supply:</strong> 0 MTX — no MTX has been minted yet</li>
+          <li><strong>QuickSwap:</strong> No liquidity pool exists for MTX</li>
+          <li><strong>Slippage:</strong> Direct mint uses the fixed contract rate, so there is no slippage on a mint. If a pool is ever created, check its price before swapping — pool prices can move.</li>
+          <li><strong>No guaranteed value:</strong> MTX has no guaranteed value and is not an investment. Only buy what you can afford to lose; MTX is for use on Matrix Hub.</li>
+        </ul>
+        <p class="facts-note">Figures verified against the live contract on Polygon (block 97058365, Nov 10, 2026). Supply figures change as MTX is minted.</p>
       </div>
 
       <div class="security-notice">
@@ -105,7 +106,7 @@ const uniswapUrl = MTX.uniswapUrl;
         <ol>
           <li><strong>Add MTX to Wallet:</strong> Use the "Add MTX to Wallet" button to track your balance</li>
           <li><strong>Connect Wallet:</strong> Visit the <a href="/wallet">wallet page</a> to view your MTX holdings</li>
-          <li><strong>Explore Features:</strong> Use MTX to access premium tools, play casino games, and more</li>
+          <li><strong>Explore Features:</strong> Use MTX to access premium tools and more</li>
           <li><strong>Join Community:</strong> Connect with other users on Telegram and Discord</li>
         </ol>
       </div>
@@ -249,7 +250,8 @@ const uniswapUrl = MTX.uniswapUrl;
 
   .security-notice,
   .testnet-notice,
-  .next-steps {
+  .next-steps,
+  .token-facts {
     margin-top: 2rem;
     padding: 1.5rem;
     background: rgba(0, 255, 153, 0.05);
@@ -264,14 +266,22 @@ const uniswapUrl = MTX.uniswapUrl;
 
   .security-notice ul,
   .testnet-notice ul,
-  .next-steps ol {
+  .next-steps ol,
+  .token-facts ul {
     color: var(--theme-text);
     line-height: 1.8;
   }
 
   .security-notice li,
-  .testnet-notice li {
+  .testnet-notice li,
+  .token-facts li {
     margin-bottom: 0.5rem;
+  }
+
+  .facts-note {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    opacity: 0.8;
   }
 
   .next-steps ol {
