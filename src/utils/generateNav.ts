@@ -45,6 +45,7 @@ const EXCLUDED_PATHS = [
   
   // Private & Admin Portals
   '**/owners.astro',              // Owners portal - direct URL access only
+  '**/owners/**',                 // Owner tools (e.g. deploy console) - direct URL access only, never in nav
   '**/admin/**',                  // Admin section
   '**/admin.{astro,ts,tsx}',      // Admin pages
   '**/internal/**',               // Internal use only
