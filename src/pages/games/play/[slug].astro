@@ -24,7 +24,7 @@ const sandboxPolicy = isLocal
 ---
 
 <Layout title={`Play ${game.name} | Matrix Hub`}>
-  <div class="play-page">
+  <div class="play-page" data-game-slug={game.slug}>
     <!-- Top bar -->
     <div class="play-bar">
       <a href="/games" class="back-link">← Games</a>
@@ -235,6 +235,13 @@ const sandboxPolicy = isLocal
 
   const frame = document.getElementById('game-frame') as HTMLIFrameElement;
   const fallback = document.getElementById('iframe-fallback') as HTMLDivElement;
+
+  // Analytics: one game_start per page load (game_id = slug). Guarded — no-op if Umami is blocked/absent.
+  const playPage = document.querySelector('.play-page') as HTMLDivElement | null;
+  const gameSlug = playPage?.getAttribute('data-game-slug');
+  if (gameSlug) {
+    (window as any).trackMatrixEvent?.('game_start', { game_id: gameSlug });
+  }
 
   if (frame && fallback) {
     // Use getAttribute to read the original src attribute before the browser
