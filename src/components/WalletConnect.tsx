@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { BrowserProvider, formatUnits, parseUnits, Contract } from 'ethers';
 import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
@@ -47,9 +47,18 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     return 'Bronze'; 
   };
 
+  // Tracks the previous connected state so wallet_connect success fires once per connect.
+  const prevConnectedRef = useRef(false);
+
   // Fetch MTX balance when wallet is connected
   useEffect(() => {
     const fetchBalance = async () => {
+      // Track a successful wallet connection once per connect (transition false → true).
+      if (isConnected && !prevConnectedRef.current) {
+        (window as any).trackMatrixEvent?.('wallet_connect', { result: 'success' });
+      }
+      prevConnectedRef.current = isConnected;
+
       if (!isConnected || !address || !walletProvider) {
         setBalance(null)
         setTier('')
@@ -322,7 +331,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
           </div>
         </>
       ) : (
-        <button onClick={() => open()} disabled={loading} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+        <button onClick={() => { (window as any).trackMatrixEvent?.('wallet_connect', { result: 'attempt' }); open(); }} disabled={loading} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
           {loading ? 'Connecting...' : 'Connect Wallet'}
         </button>
       )}

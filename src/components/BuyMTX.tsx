@@ -42,6 +42,7 @@ const BuyMTX: React.FC = () => {
 
         const paused = await mtxContract.mintingPaused();
         setMintingPaused(paused);
+        if (paused) (window as any).trackMatrixEvent?.('mint_paused_shown', {});
         setContractReadError('');
       } catch (err) {
         console.error('Error fetching contract info:', err);
@@ -78,6 +79,7 @@ const BuyMTX: React.FC = () => {
       return;
     }
 
+    (window as any).trackMatrixEvent?.('mint_attempt', {});
     setLoading(true);
 
     try {

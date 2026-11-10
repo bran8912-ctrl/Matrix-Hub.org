@@ -54,6 +54,23 @@ const { title } = Astro.props;
       gtag('js', new Date());
       gtag('config', 'G-CKWFL856MZ');
     </script>
+    <!-- Umami Cloud analytics (Hobby plan, free) — privacy-friendly, no cookies.
+         Website ID comes from the Umami dashboard after the account is created:
+         replace UMAMI_WEBSITE_ID below with the real UUID. Page views are
+         tracked automatically; custom events go through window.trackMatrixEvent.
+         NOTE: gtag (G-CKWFL856MZ) stays until Umami is verified firing AND
+         Brandon confirms whether that GA property is his — then gtag is removed
+         in a follow-up commit. Do not run two analytics tools silently. -->
+    <script defer src="https://cloud.umami.is/script.js" data-website-id="10f62543-406f-447f-8fba-052ee037e3a9"></script>
+    <script is:inline>
+      window.trackMatrixEvent = function (name, props) {
+        try {
+          if (typeof window.umami !== 'undefined' && window.umami.track) {
+            window.umami.track(name, props || {});
+          }
+        } catch (error) {}
+      };
+    </script>
     <title>{title}</title>
     <!-- Note: External scripts (Google Analytics, Telegram Widget) are loaded without integrity hashes 
          as they are dynamically updated by their providers. Consider implementing CSP headers for additional security. -->
