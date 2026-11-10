@@ -87,7 +87,6 @@ export const GET: APIRoute = async () => {
       network: MTX.chainName,
       chainId: MTX.chainId,
       blockExplorer: MTX.blockExplorerUrl,
-      uniswapUrl: MTX.uniswapUrl,
       deployed: true,
       timestamp: currentBlock?.timestamp || Math.floor(Date.now() / 1000),
       lastBlockNumber: currentBlock?.number || 0
