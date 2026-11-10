@@ -328,3 +328,56 @@ All documentation and active code files now either:
 **Updated**: January 1, 2026  
 **Auditor**: GitHub Copilot Workspace Agent  
 **Status**: ✅ COMPLETE - All Active Files Clear for Deployment
+---
+
+## Addendum: 2026-11-10 — Verified Polygon addresses; earlier claims corrected
+
+**Auditor note (2026-11-10):** The Executive Summary above is now stale in two material ways, corrected below. The rest of this document's history (Hardhat test fixtures, remediation of local addresses) is unchanged.
+
+### 1. "MTX unconfigured" is no longer true
+
+The live MTX token is deployed and verified on Polygon. Verified on PolygonScan 2026-11-10:
+
+| Field | Verified value |
+|---|---|
+| Token | MatrixHubCoin (MTX), verified source, compiler v0.8.34 |
+| Address | `0x53307e1db6c5cb6773c9495ca140372016dfe266` |
+| Deployer / owner | `0x9fb4bb44d8d962d695fc93b3dc15f1b287391077` |
+| On-chain activity | 4 transactions, all from the deployer: Set Matic To Mtx Rate (x3), Set Minting Paused |
+| Mechanics | `buyMTX()` payable mints at the set rate (default 1,000 MTX per POL); owner-only `mintToEcosystem()` and `withdrawMATIC()`; `MAX_SUPPLY()` read on-chain = 100,000,000 MTX (the 100M config claim is correct; the 1B figure in an old script is wrong); `totalSupply()` = 0, `mintingPaused()` = false as of a single-source PolygonScan Read Contract browser read 2026-11-09/10 — two-source certification still pending |
+| Config | `src/config/contracts.js` `mtxToken` — correct, do not change |
+
+### 2. "No hardcoded live addresses" is no longer true
+
+Two live-address problems were found and fixed 2026-11-10 (blanket Tier C approval):
+
+- **Root `verify_mtx.js` (deleted 2026-11-10):** hardcoded the flagged fake-token address `0xDCb51dE3359C946364F707556aC8e6C6f2e69A8a` as the contract to verify AND contained an exposed PolygonScan API key in plain text. The file was deleted entirely; nothing imported it. **Revocation update (2026-11-10):** the exposed key's owner account was identified as bran8912@gmail.com and revocation is in progress; a fresh key has already been issued on a new Etherscan account and stored only as the GitHub Actions secret `POLYGONSCAN_API_KEY`, never in a file.
+- **`src/config/contracts.js` (fixed 2026-11-10):** `matrixHubCoin` was `0x7Ee41D8A25641000661B1EF5E6AE8A00400466B0` — that is a SafeProxy multisig (Smart Account by Safe, ~$1.39M POL), not MatrixHubCoin. `interfaces` was `0xf92401e65236e8bb2f016742fe24a9a49969ee32` — a second, unused MatrixHubCoin copy, not an interfaces layer. Both were reset to `0x0000000000000000000000000000000000000000`. Casino fields (`casinoReserve`, `rngEngine`, `liquidityRouter`, `casinoCore`) remain `0x0` and casino features stay disabled.
+
+### 3. GitHub issue #167's address list is wrong — do not use it
+
+Issue #167 ("I believe these are the correct addresses") was checked address-by-address on PolygonScan 2026-11-10. Only `mtxToken` was right, and it was listed under the wrong field (`rngEngine`).
+
+| #167 claims | Actual identity on PolygonScan | Verdict |
+|---|---|---|
+| mtxToken `0xDCb51dE3359C946364F707556aC8e6C6f2e69A8a` | Fake token, reported by HashDit; label Fake_Phishing8012348, "Phish / Hack" | **DO NOT USE** |
+| matrixHubCoin `0x7Ee41D8A25641000661B1EF5E6AE8A00400466B0` | SafeProxy multisig, not a token | Wrong |
+| casinoReserve `0x70561ac30aedee7a09cb3840a1c7e441fd80195f` | RNGEngine (casinoCore arg `0x0`, no txs) | Wrong |
+| rngEngine `0x53307e1db6c5cb6773c9495ca140372016dfe266` | Real MTX MatrixHubCoin (see §1) | Right token, wrong field |
+| liquidityRouter `0x1d0787d70fc0d3111408c030e5c9de247dc0104b` | MatrixHubCoin copy (no txs) | Wrong |
+| casinoCore `0x2fbee7a063dafc8adadfaa1c351796407454a1e0` | RNGEngine (casinoCore arg `0x0`, no txs) | Wrong |
+| interfaces `0xf92401e65236e8bb2f016742fe24a9a49969ee32` | MatrixHubCoin copy (no txs) | Wrong |
+
+**No CasinoCore, CasinoReserve, or LiquidityRouter exists on-chain.** A candidate LiquidityRouter `0x80e59c11f4c94f3f80593895da300e1e7ec01aea` is misconfigured (wrong MTX clone, dexPool = deployer, immutable) and must **never** be configured. Treasury control is single-key (deployer EOA only) — no multisig, timelock, or treasury address exists.
+
+### Verified address table (2026-11-10)
+
+| Name | Address | Status |
+|---|---|---|
+| MTX MatrixHubCoin | `0x53307e1db6c5cb6773c9495ca140372016dfe266` | Verified, live |
+| Deployer / owner | `0x9fb4bb44d8d962d695fc93b3dc15f1b287391077` | Verified |
+| matrixHubCoin, interfaces, casinoReserve, rngEngine, liquidityRouter, casinoCore | `0x0000000000000000000000000000000000000000` | Unset by design |
+
+**Audit Date**: December 29, 2025
+**Addendum**: November 10, 2026 — Contract Auditor (verified on PolygonScan)
+**Status**: ✅ Corrected — see table above; exposed-key revocation in progress (owner account bran8912@gmail.com, identified 2026-11-10)
