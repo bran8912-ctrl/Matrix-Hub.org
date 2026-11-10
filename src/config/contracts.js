@@ -6,12 +6,14 @@ export const DEPLOYED_CONTRACTS = {
   mtxToken: "0x53307e1db6c5cb6773c9495ca140372016dfe266",
 
   // Casino modules stay unset until deployed with the Chainlink VRF flow.
-  matrixHubCoin: "0x7Ee41D8A25641000661B1EF5E6AE8A00400466B0",
+  // 2026-11-10: matrixHubCoin was a SafeProxy multisig (0x7Ee4...), NOT MatrixHubCoin — reset to unset.
+  matrixHubCoin: "0x0000000000000000000000000000000000000000",
   casinoReserve: "0x0000000000000000000000000000000000000000",
   rngEngine: "0x0000000000000000000000000000000000000000",
   liquidityRouter: "0x0000000000000000000000000000000000000000",
   casinoCore: "0x0000000000000000000000000000000000000000",
 
   // Additional interface and governance layer
-  interfaces: "0xf92401e65236e8bb2f016742fe24a9a49969ee32"
+  // 2026-11-10: interfaces was an unused MatrixHubCoin copy (0xf924...), not an interfaces layer — reset to unset.
+  interfaces: "0x0000000000000000000000000000000000000000"
 };
