@@ -96,3 +96,17 @@ export const navCategory = "casino";
     </div>
   </div>
 </Layout>
+
+<script>
+  // Analytics: clicks on disabled casino game cards (demand/confusion signal).
+  // The cards link to pages that themselves say wagers are disabled — the click is the signal.
+  document.querySelectorAll('a[href^="/games/casino/"]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      try {
+        const href = el.getAttribute('href') || '';
+        const game = href.split('/').pop() || '';
+        (window as any).trackMatrixEvent?.('casino_click_disabled', { location: 'casino-index:' + game });
+      } catch (e) {}
+    });
+  });
+</script>
