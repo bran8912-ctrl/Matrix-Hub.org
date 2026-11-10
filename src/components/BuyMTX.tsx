@@ -75,7 +75,7 @@ const BuyMTX: React.FC = () => {
     }
 
     if (mintingPaused) {
-      setError('Direct minting is currently paused. Minting is unavailable right now — please check back later. There is no QuickSwap pool for MTX, so there is no alternative way to buy at the moment.');
+      setError('Direct minting is currently paused. Minting is unavailable right now — please check back later. You can still buy MTX on the QuickSwap pool meanwhile (see below).');
       return;
     }
 
@@ -83,13 +83,26 @@ const BuyMTX: React.FC = () => {
     setLoading(true);
 
     try {
-      const { BrowserProvider, Contract, parseEther } = await import('ethers');
+      const { BrowserProvider, Contract, parseEther, formatEther } = await import('ethers');
       const provider = new BrowserProvider(window.ethereum as any);
       const network = await provider.getNetwork();
       if (Number(network.chainId) !== MTX.chainId) {
         throw new Error(`Switch your wallet to ${MTX.chainName} (Chain ID: ${MTX.chainId}) to buy MTX.`);
       }
       const signer = await provider.getSigner();
+
+      // Pre-flight balance check: minting more POL than the wallet holds
+      // reverts at gas estimation with a raw CALL_EXCEPTION. Catch it here
+      // with a plain message instead of dumping the ethers error on screen.
+      const walletAddress = await signer.getAddress();
+      const walletBalance = await provider.getBalance(walletAddress);
+      const mintValue = parseEther(polAmount);
+      const gasBuffer = parseEther('0.01');
+      if (walletBalance < mintValue + gasBuffer) {
+        setError(`Your wallet has ${Number(formatEther(walletBalance)).toFixed(3)} POL — not enough for ${polAmount} POL plus gas. Lower the amount or top up your wallet first.`);
+        return;
+      }
+
       const mtxContract = new Contract(MTX.address, mtxAbi, signer);
 
       const tx = await mtxContract.buyMTX({ value: parseEther(polAmount) });
@@ -106,7 +119,18 @@ const BuyMTX: React.FC = () => {
       }
     } catch (err: any) {
       console.error('BuyMTX error:', err);
-      setError(err?.message || 'Transaction error');
+      // Never dump the raw ethers error on the page — show a short human message.
+      const msg = String(err?.message || '');
+      const code = String(err?.code || '');
+      if (msg.startsWith('Switch your wallet')) {
+        setError(msg);
+      } else if (/user rejected|user denied/i.test(msg)) {
+        setError('Transaction cancelled in your wallet — nothing was sent.');
+      } else if (code === 'CALL_EXCEPTION' || /insufficient funds|missing revert data/i.test(msg)) {
+        setError('The mint could not go through — your wallet does not have enough POL for that amount plus gas. Lower the amount or top up your wallet first.');
+      } else {
+        setError('Something went wrong placing the mint. Check your wallet balance and that you are on Polygon (Chain ID 137), then try again.');
+      }
     } finally {
       setLoading(false);
     }
