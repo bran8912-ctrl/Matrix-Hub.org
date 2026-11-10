@@ -9,9 +9,14 @@ name: Treasury Check — MTX Certification
 # artifact only: Hub10 is a protected branch (GH013 — changes must go
 # through a PR, verified signatures required), so no workflow step may
 # commit back to the repo. Do NOT re-add a commit-back step.
-# No secret is ever printed: treasury_check.py reads the API key from
-# the environment only and never logs it, and the step logs contain no
-# key material.
+# No secret is ever printed: treasury_check.py reads the API key and
+# the RPC URLs from the environment only and redacts any key material
+# in every log line and in the evidence packet (see sanitize_rpc and
+# _sanitize_url). Source 2 is a second authenticated JSON-RPC endpoint
+# (POLYGON_RPC_URL_2, Ankr) — the Etherscan proxy is retired (run
+# 42767395120: Etherscan API V2 rejects proxy eth_call with "Missing
+# Or invalid Action name"); the Etherscan key now feeds only a
+# non-blocking ABI preflight and the verdict never depends on it.
 
 "on":
   workflow_dispatch:
@@ -36,6 +41,10 @@ jobs:
 
       - name: Run treasury check (RPC fallback)
         env:
+          # Etherscan key: feeds ONLY the non-blocking ABI preflight.
+          # The verdict never depends on Etherscan (its proxy is
+          # retired — run 42767395120 proved API V2 rejects proxy
+          # eth_call with "Missing Or invalid Action name").
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
           # Optional authenticated Polygon RPC (Alchemy). When the
           # POLYGON_RPC_URL secret is configured it is tried FIRST;
@@ -43,13 +52,20 @@ jobs:
           # public RPCs below are tried. The URL carries its key in
           # the path, so it is NEVER echoed raw — see sanitize_rpc.
           POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
+          # REQUIRED second independent JSON-RPC endpoint (Ankr).
+          # When the POLYGON_RPC_URL_2 secret is absent the variable
+          # is empty and the check fails UNKNOWN with a clear
+          # message — there is NO public-RPC fallback for source 2.
+          # The URL carries its key in the path, so it is NEVER
+          # echoed raw — see sanitize_rpc.
+          POLYGON_RPC_URL_2: ${{ secrets.POLYGON_RPC_URL_2 }}
         run: |
           set +e
           set +o pipefail
           # Redact an API-key-like trailing path segment (e.g. Alchemy
-          # /v2/<key>) so the key never appears in logs. Mirrors
-          # _sanitize_url() in treasury_check.py. Hostnames and short
-          # segments (e.g. /matic) are untouched.
+          # /v2/<key>, Ankr /polygon/<key>) so the key never appears in
+          # logs. Mirrors _sanitize_url() in treasury_check.py.
+          # Hostnames and short segments (e.g. /matic) are untouched.
           sanitize_rpc() {
             printf '%s' "$1" | sed -E 's#(/[^/]+/)[A-Za-z0-9_-]{16,}$#\1<redacted>#'
           }
@@ -69,6 +85,10 @@ jobs:
           # polygon-mainnet.public.blastapi.io (BlastAPI public endpoint
           # retired — "Blast API is no longer available", run
           # 42765953276) are NOT in this list.
+          # Source 2 is the same on every attempt: the authenticated
+          # POLYGON_RPC_URL_2 (Ankr). If it is unset, the script fails
+          # UNKNOWN with a clear message and the loop stops — there is
+          # no public-RPC fallback for source 2.
           RPCS=(
             https://polygon-bor-rpc.publicnode.com
             https://1rpc.io/matic
@@ -79,7 +99,8 @@ jobs:
           fi
           for rpc in "${RPCS[@]}"; do
             echo "--- trying RPC: $(sanitize_rpc "$rpc")"
-            python3 scripts/treasury_check.py --rpc "$rpc" --out treasury-check.json 2>&1 | tee treasury-check.log
+            echo "--- source 2 RPC: $(sanitize_rpc "${POLYGON_RPC_URL_2:-<unset>}")"
+            python3 scripts/treasury_check.py --rpc "$rpc" --rpc2 "${POLYGON_RPC_URL_2:-}" --out treasury-check.json 2>&1 | tee treasury-check.log
             rc=${PIPESTATUS[0]}
             if [ "$rc" -eq 0 ]; then
               echo "Treasury check PASSED with RPC $(sanitize_rpc "$rpc")"
