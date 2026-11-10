@@ -390,6 +390,8 @@ const CATEGORIES = [
             target="_blank"
             rel="noopener noreferrer"
             class="deal-cta"
+            data-deal={deal.title}
+            data-category={deal.category}
             aria-label={`Open ${deal.title}`}
           >
             GET THIS DEAL
@@ -877,3 +879,17 @@ const CATEGORIES = [
     }
   }
 </style>
+
+<script>
+  // Analytics: affiliate_click with deal + category (no PII, no destination data).
+  document.querySelectorAll('a.deal-cta').forEach(function (el) {
+    el.addEventListener('click', function () {
+      try {
+        (window as any).trackMatrixEvent?.('affiliate_click', {
+          deal: el.getAttribute('data-deal') || '',
+          category: el.getAttribute('data-category') || '',
+        });
+      } catch (e) {}
+    });
+  });
+</script>
