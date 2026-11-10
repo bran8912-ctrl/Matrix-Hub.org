@@ -183,9 +183,13 @@ commands; this section is the copy to run from.
 
 ```bash
 # RNGEngine: coordinator, subscription id, keyHash, callback gas, confirmations
+# NOTE (2026-11-10): these are the MOCK values for the mock-VRF Amoy deploy
+# (mock coordinator 0x03A4B3CE…, subscription "1", keyHash 0x1111…1).
+# The REAL-VRF values (coordinator 0x343300b5…, keyHash 0x816bedba…)
+# apply only to a future real-VRF RNGEngine — do NOT use them here.
 npx hardhat verify --network amoy <RNG_ENGINE> \
-  "0x343300b5d84D444B2ADc9116FEF1bED02BE49Cf2" "<SUBSCRIPTION_ID>" \
-  "0x816bedba8a50b294e5cbd47842baf240c2385f2eaf719edbd4f250a137a8c899" \
+  "0x03A4B3CE58aCD7374e037d49D271014783D3aF25" "1" \
+  "0x1111111111111111111111111111111111111111111111111111111111111111" \
   "250000" "3"
 
 # CasinoReserve: MTX, reserve cap (1,000,000 MTX in wei), CasinoCore wired
