@@ -141,44 +141,43 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
   return (
     <div>
       {!isConnected || !address ? (
-        <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-green-500 text-center">
-          <h3 className="text-2xl font-bold text-green-400 mb-4">Connect Your Wallet</h3>
-          <p className="text-gray-300 mb-6">Connect your wallet to check your MTX balance and play casino games.</p>
-          <button
-            onClick={async () => { setLoading(true); await open(); setLoading(false); }}
-            disabled={loading}
-            className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-lg transition-colors"
-          >
-            {loading ? 'Connecting...' : 'Connect Wallet'}
-          </button>
+        <div className="max-w-lg mx-auto p-3 bg-gray-900 rounded-lg border border-green-500 text-center mb-4">
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <span className="text-green-400 font-bold">Connect your wallet to play Dice</span>
+            <button
+              onClick={async () => { setLoading(true); await open(); setLoading(false); }}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+            >
+              {loading ? 'Connecting...' : 'Connect Wallet'}
+            </button>
+          </div>
           {error && (
-            <div className="mt-4 text-red-400">{error}</div>
+            <div className="mt-2 text-red-400 text-sm">{error}</div>
           )}
         </div>
       ) : (
-        <>
-          <div className="mb-4 p-4 bg-gray-800 rounded-lg border border-green-500">
-            <div className="flex justify-between items-center">
-              <div>
-                <span className="text-gray-400">Wallet: </span>
-                <span className="text-green-400 font-mono">{address.slice(0, 6)}...{address.slice(-4)}</span>
-              </div>
-              <div>
-                <span className="text-gray-400">MTX Balance: </span>
-                <span className="text-yellow-400 font-bold">{balance.toFixed(2)} MTX</span>
-              </div>
+        <div className="mb-4 p-4 bg-gray-800 rounded-lg border border-green-500">
+          <div className="flex justify-between items-center">
+            <div>
+              <span className="text-gray-400">Wallet: </span>
+              <span className="text-green-400 font-mono">{address.slice(0, 6)}...{address.slice(-4)}</span>
+            </div>
+            <div>
+              <span className="text-gray-400">MTX Balance: </span>
+              <span className="text-yellow-400 font-bold">{balance.toFixed(2)} MTX</span>
             </div>
           </div>
-          {children({
-            walletAddress: address,
-            mtxBalance: balance,
-            placeBet: handlePlaceBet,
-            getBetStatus: handleGetBetStatus,
-            claimPayout: handleClaimPayout,
-            refreshBalance: fetchBalance,
-          })}
-        </>
+        </div>
       )}
+      {children({
+        walletAddress: address,
+        mtxBalance: balance,
+        placeBet: handlePlaceBet,
+        getBetStatus: handleGetBetStatus,
+        claimPayout: handleClaimPayout,
+        refreshBalance: fetchBalance,
+      })}
     </div>
   );
 }
