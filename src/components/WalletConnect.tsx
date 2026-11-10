@@ -40,6 +40,23 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   const [locked, setLocked] = useState<number>(0);
   const [lockUntil, setLockUntil] = useState<number>(0);
 
+  // Minimizable: the header wallet box was too big on phones and crowded
+  // the nav. Keep a slim bar always visible; the full panel opens behind
+  // a toggle. Preference persists across pages; small screens start minimized.
+  const [minimized, setMinimized] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const saved = window.localStorage.getItem('matrixhub:wallet:minimized');
+      if (saved !== null) return saved === '1';
+    } catch {}
+    return window.innerWidth < 768;
+  });
+  const toggleMinimized = (): void => {
+    const next = !minimized;
+    try { window.localStorage.setItem('matrixhub:wallet:minimized', next ? '1' : '0'); } catch {}
+    setMinimized(next);
+  };
+
   const getTier = (bal: number): string => {
     for (let i = TIERS.length - 1; i >= 0; i--) {
       if (bal >= TIERS[i].threshold) return TIERS[i].name;
@@ -229,9 +246,9 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     setLockUntil(0);
   };
 
-  // 2026-11-10: wallet connect is explicitly disabled — no Reown project
-  // ID is configured, so no wallet can be connected. Show that honestly
-  // instead of a connect button that cannot work.
+  // Wallet connect is live on the production build (Reown project ID wired
+  // via astro.yml). A local build without the env var shows it disabled,
+  // which is expected — not a bug.
   if (!walletConnectEnabled) {
     return (
       <div style={{ padding: '1rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
@@ -242,12 +259,23 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   }
 
   return (
-    <div style={{ padding: '1rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
-      <h3>Wallet Connect</h3>
-      {isConnected && address ? (
-        <>
-          <div><strong>Address:</strong> {address.slice(0, 6)}...{address.slice(-4)}</div>
-          <div><strong>MTX Balance:</strong> {balance !== null ? balance : 'Loading...'}</div>
+    <div style={{ padding: '0.5rem 0.75rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'space-between' }}>
+        {isConnected && address ? (
+          <span style={{ fontSize: '0.875rem' }}>{address.slice(0, 6)}...{address.slice(-4)} · {balance !== null ? balance : '…'} MTX</span>
+        ) : (
+          <button onClick={() => { (window as any).trackMatrixEvent?.('wallet_connect', { result: 'attempt' }); open(); }} disabled={loading} style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            {loading ? 'Connecting...' : 'Connect Wallet'}
+          </button>
+        )}
+        {isConnected && address && (
+          <button onClick={toggleMinimized} aria-label={minimized ? 'Expand wallet panel' : 'Minimize wallet panel'} style={{ padding: '0.2rem 0.5rem', fontSize: '0.9rem', background: 'transparent', color: '#00ff99', border: '1px solid #333', borderRadius: '4px', cursor: 'pointer' }}>
+            {minimized ? '▸' : '▾'}
+          </button>
+        )}
+      </div>
+      {isConnected && address && !minimized && (
+        <div style={{ marginTop: '0.5rem', borderTop: '1px solid #333', paddingTop: '0.5rem' }}>
           <div><strong>Tier:</strong> {tier}</div>
           {/* MTX: Add MTX to Wallet button */}
           <div style={{ marginTop: '0.5rem' }}>
@@ -308,11 +336,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
               Lock 50 MTX (30 days)
             </button>
           </div>
-        </>
-      ) : (
-        <button onClick={() => { (window as any).trackMatrixEvent?.('wallet_connect', { result: 'attempt' }); open(); }} disabled={loading} style={{ padding: '0.5rem 1rem', fontSize: '1rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-          {loading ? 'Connecting...' : 'Connect Wallet'}
-        </button>
+        </div>
       )}
       {error && <div style={{ color: 'red', marginTop: '0.5rem' }}>{error}</div>}
     </div>
