@@ -25,6 +25,17 @@ contract CasinoReserve {
     /// @param amount Amount of MTX added to the reserve.
     event ReserveFunded(uint256 amount);
 
+    /// @notice Emitted when reserve ownership moves (G-03: deploy script
+    /// transfers ownership to the governance address after deployment).
+    /// @param previousOwner Previous owner address.
+    /// @param newOwner New owner address.
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /// @notice Emitted when the reserve refunds a stuck bet (G-04).
+    /// @param player Player refunded in full.
+    /// @param amount MTX returned.
+    event ReserveRefundPaid(address indexed player, uint256 amount);
+
     /// @notice MTX token contract
     IERC20 public mtx;
     
@@ -76,6 +87,22 @@ contract CasinoReserve {
     }
 
     /**
+     * @notice G-03: transfer reserve ownership (e.g. to the multisig
+     * governance address). Owner only. The deploy script calls this after
+     * wiring setCasinoCore when a non-deployer governance address was
+     * configured. After transfer, only the new owner can call fund() and
+     * setCasinoCore().
+     * @param newOwner Address of the new owner.
+     */
+    function transferOwnership(address newOwner) external {
+        if (msg.sender != owner) revert NotAuthorized();
+        if (newOwner == address(0)) revert ZeroAddress();
+        address previousOwner = owner;
+        owner = newOwner;
+        emit OwnershipTransferred(previousOwner, newOwner);
+    }
+
+    /**
      * @notice Deposit MTX coins to reserve
      * @dev Only callable by CasinoCore, enforces reserve cap
      * @param amount Amount of MTX to deposit
@@ -111,6 +138,26 @@ contract CasinoReserve {
         if (reserveBalance < amount) revert InsufficientReserve();
         reserveBalance -= amount;
         if (!mtx.transfer(player, amount)) revert MTXTransferFailed();
+    }
+
+    /**
+     * @notice G-04: refund a stuck bet in full to the player. Only callable
+     * by CasinoCore (refundStuckBet). The refund is the player's whole
+     * stake, even though only 92% of it was deposited here at bet time —
+     * the reserve absorbs the 8% already routed to liquidity/dev. Reverts
+     * if the tracked reserve balance cannot cover the refund (fund the
+     * reserve first); the accounting invariant reserveBalance >=
+     * lockedPayouts means this passes in every reachable state.
+     * @param player Address of the player to refund.
+     * @param amount Full stake amount of MTX to return.
+     */
+    function refundBet(address player, uint256 amount) external onlyCasinoCore {
+        if (player == address(0)) revert ZeroAddress();
+        if (amount == 0) revert ZeroAmount();
+        if (reserveBalance < amount) revert InsufficientReserve();
+        reserveBalance -= amount;
+        mtx.safeTransfer(player, amount);
+        emit ReserveRefundPaid(player, amount);
     }
 
     /**

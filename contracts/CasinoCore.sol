@@ -13,6 +13,7 @@ interface ILiquidityRouter {
 interface ICasinoReserve {
     function deposit(uint256 amount) external;
     function payWinner(address to, uint256 amount) external;
+    function refundBet(address player, uint256 amount) external;
     function reserveHealth() external view returns (uint256);
 }
 
@@ -43,12 +44,16 @@ contract CasinoCore is ReentrancyGuard {
     error AmountTooLarge();
     error ActiveBetsPreventModuleChange();
     error DuplicateRandomnessRequest();
+    error BetNotRefundable();
+    error RefundTooEarly();
+    error EmergencyWithdrawExceedsCap();
 
     enum BetStatus {
         None,
         Pending,
         Settled,
-        Claimed
+        Claimed,
+        Refunded
     }
 
     struct Bet {
@@ -60,6 +65,8 @@ contract CasinoCore is ReentrancyGuard {
         uint8 roll;
         BetStatus status;
         bool win;
+        uint256 placedAt;
+        uint256 requestId;
     }
 
     event BetPlaced(
@@ -81,16 +88,30 @@ contract CasinoCore is ReentrancyGuard {
     event MaxPayoutUpdated(uint256 oldMaxPayout, uint256 newMaxPayout);
     event PauseChanged(bool paused);
     event MaxBetsPerBlockUpdated(uint256 oldLimit, uint256 newLimit);
+    event BetRefunded(uint256 indexed betId, address indexed player, uint256 amount);
+    event EmergencyWithdrawal(address indexed to, uint256 amount);
+    event MaxEmergencyWithdrawUpdated(uint256 oldMax, uint256 newMax);
+    event GovernanceUpdated(address indexed previousGovernance, address indexed newGovernance);
+    event DevUpdated(address indexed previousDev, address indexed newDev);
+
+    // Fee routing (G-01): these four numbers describe how each bet's MTX is
+    // ROUTED on receipt — they are NOT a player-payout split. `payoutPercent`
+    // is a reserve-routing share (kept under this name to avoid breaking the
+    // public getter ABI): payoutPercent (88) + reservePercent (4) = 92% of
+    // every bet is transferred to CasinoReserve. Player payouts are set only
+    // by dice maths (_calculateDicePayout, 98% RTP), never by these numbers.
+    // No MTX is ever burned by the casino flow.
+    uint256 public payoutPercent = 88;
+    uint256 public liquidityPercent = 6;
+    uint256 public reservePercent = 4;
+    uint256 public devPercent = 2;
+    uint256 public maxEmergencyWithdraw;
 
     IERC20 public mtx;
     ILiquidityRouter public liquidity;
     ICasinoReserve public reserve;
     IRNGEngine public rng;
 
-    uint256 public payoutPercent = 88;
-    uint256 public liquidityPercent = 6;
-    uint256 public reservePercent = 4;
-    uint256 public devPercent = 2;
     uint256 public maxPayoutPerBet;
     uint256 public minBet;
     uint256 public maxBet;
@@ -111,6 +132,25 @@ contract CasinoCore is ReentrancyGuard {
     uint8 public constant MAX_TARGET = 98;
     uint256 public constant HOUSE_RETURN_BPS = 9800;
     uint256 private constant BPS_DENOMINATOR = 10000;
+
+    /// @notice G-04: a bet still Pending after this long may be refunded in
+    /// full by governance (refundStuckBet). 1 hour: Chainlink VRF on Polygon
+    /// normally fulfils within minutes (3 confirmations + callback), so 1h
+    /// is ~12x the normal latency — long enough to rule out a slow callback,
+    /// short enough that a player's stake is never stranded for a day. A bet
+    /// stuck past this point means the VRF path is dead (subscription out of
+    /// LINK, wrong keyHash/consumer, coordinator outage), not slow.
+    uint256 public constant STUCK_BET_REFUND_TIMEOUT = 1 hours;
+
+    /// @notice G-03: default per-call cap for emergencyWithdraw, 100 MTX
+    /// (18 decimals). CasinoCore normally holds only rounding dust (sub-1-MTX
+    /// remainders per bet), so 100 MTX is ~100x any legitimate dust recovery
+    /// while far below reserve scale (1,000,000 MTX cap). A compromised
+    /// governance key can drain at most this much per call from Core itself;
+    /// reserve funds are NOT reachable through emergencyWithdraw. Governance
+    /// may raise the cap via setMaxEmergencyWithdraw if a genuine larger
+    /// recovery is ever needed; every call is evented.
+    uint256 public constant DEFAULT_MAX_EMERGENCY_WITHDRAW = 100 ether;
 
     mapping(address => mapping(uint256 => uint256)) private _betsInBlock;
     mapping(uint256 => uint256) public requestToBetId;
@@ -147,6 +187,7 @@ contract CasinoCore is ReentrancyGuard {
         maxPayoutPerBet = _maxPayoutPerBet;
         dev = _dev;
         governance = _governance;
+        maxEmergencyWithdraw = DEFAULT_MAX_EMERGENCY_WITHDRAW;
     }
 
     modifier onlyGovernance() {
@@ -187,6 +228,11 @@ contract CasinoCore is ReentrancyGuard {
 
         mtx.safeTransferFrom(msg.sender, address(this), amount);
 
+        // Fee routing (G-01): payoutPercent is a RESERVE-routing share, not
+        // a player payout. 88% + 4% = 92% of every bet lands in CasinoReserve;
+        // 6% queues in the LiquidityRouter; 2% goes to dev. The player's
+        // payout, if they win, comes from the reserve per dice maths
+        // (_calculateDicePayout, 98% RTP) — never from these percentages.
         uint256 liquidityAmount = Math.mulDiv(amount, liquidityPercent, 100);
         uint256 reserveAmount =
             Math.mulDiv(amount, payoutPercent, 100) +
@@ -212,7 +258,9 @@ contract CasinoCore is ReentrancyGuard {
             target: target,
             roll: 0,
             status: BetStatus.Pending,
-            win: false
+            win: false,
+            placedAt: block.timestamp,
+            requestId: 0
         });
         lockedPayouts += potentialPayout;
         activeRandomnessRequests++;
@@ -220,6 +268,7 @@ contract CasinoCore is ReentrancyGuard {
         uint256 requestId = rng.requestRandomWords();
         if (requestToBetId[requestId] != 0) revert DuplicateRandomnessRequest();
         requestToBetId[requestId] = betId;
+        _bets[betId].requestId = requestId;
 
         totalBets++;
         totalWagered += amount;
@@ -265,6 +314,48 @@ contract CasinoCore is ReentrancyGuard {
         lockedPayouts -= bet.payout;
         reserve.payWinner(msg.sender, bet.payout);
         emit PayoutClaimed(betId, msg.sender, bet.payout);
+    }
+
+    /// @notice G-04: refund a bet whose VRF callback never arrived. Only
+    /// governance, only after STUCK_BET_REFUND_TIMEOUT (1 hour) past
+    /// placement, only while the bet is still Pending. The player is refunded
+    /// their FULL stake: the reserve pays it via refundBet. The 8% of the
+    /// stake already routed away at bet time (6% liquidity queue + 2% dev)
+    /// is NOT deducted from the player — the house (reserve) absorbs it.
+    /// Accounting: the bet's reserved payout is released from lockedPayouts,
+    /// the randomness request is de-registered, and the request mapping is
+    /// cleared, so a late VRF callback for this bet is a harmless no-op in
+    /// fulfillRandomness (status is no longer Pending). A settled or already
+    /// refunded bet can never be refunded.
+    function refundStuckBet(uint256 betId) external onlyGovernance nonReentrant {
+        Bet storage bet = _bets[betId];
+        if (bet.status == BetStatus.None) revert BetNotFound();
+        if (bet.status != BetStatus.Pending) revert BetNotRefundable();
+        if (block.timestamp < bet.placedAt + STUCK_BET_REFUND_TIMEOUT) revert RefundTooEarly();
+
+        uint256 amount = bet.amount;
+        uint256 reservedPayout = bet.reservedPayout;
+        address player = bet.player;
+        uint256 requestId = bet.requestId;
+
+        bet.status = BetStatus.Refunded;
+        bet.reservedPayout = 0;
+        if (requestId != 0) delete requestToBetId[requestId];
+        activeRandomnessRequests--;
+        lockedPayouts -= reservedPayout;
+
+        reserve.refundBet(player, amount);
+        emit BetRefunded(betId, player, amount);
+    }
+
+    /// @notice Earliest timestamp at which a Pending bet may be refunded.
+    /// @param betId Bet to query.
+    /// @return Timestamp after which refundStuckBet will succeed for a
+    /// still-Pending bet.
+    function refundableAt(uint256 betId) external view returns (uint256) {
+        Bet storage bet = _bets[betId];
+        if (bet.status == BetStatus.None) revert BetNotFound();
+        return bet.placedAt + STUCK_BET_REFUND_TIMEOUT;
     }
 
     function getBet(uint256 betId)
@@ -362,11 +453,13 @@ contract CasinoCore is ReentrancyGuard {
 
     function setDev(address _dev) external onlyGovernance {
         if (_dev == address(0)) revert ZeroAddress();
+        emit DevUpdated(dev, _dev);
         dev = _dev;
     }
 
     function setGovernance(address _governance) external onlyGovernance {
         if (_governance == address(0)) revert ZeroAddress();
+        emit GovernanceUpdated(governance, _governance);
         governance = _governance;
     }
 
@@ -387,7 +480,18 @@ contract CasinoCore is ReentrancyGuard {
 
     function emergencyWithdraw(address to, uint256 amount) external onlyGovernance {
         if (to == address(0)) revert ZeroAddress();
+        if (amount > maxEmergencyWithdraw) revert EmergencyWithdrawExceedsCap();
         mtx.safeTransfer(to, amount);
+        emit EmergencyWithdrawal(to, amount);
+    }
+
+    /// @notice G-03: change the per-call emergencyWithdraw cap. Governance
+    /// only. The cap is a speed bump and audit trail, not a substitute for
+    /// multisig governance — a compromised governance key can raise it.
+    /// Set it to 0 to disable emergency withdrawals entirely.
+    function setMaxEmergencyWithdraw(uint256 _max) external onlyGovernance {
+        emit MaxEmergencyWithdrawUpdated(maxEmergencyWithdraw, _max);
+        maxEmergencyWithdraw = _max;
     }
 
     function _calculateDicePayout(uint256 amount, uint8 target) private pure returns (uint256) {
