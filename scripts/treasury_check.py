@@ -20,14 +20,24 @@ Ground truths (verified, do NOT change without a new on-chain check):
 
 Sources:
   Source 1 (primary): JSON-RPC endpoint (--rpc, default
-      https://polygon-bor-rpc.publicnode.com).  eth_call / eth_getBalance /
-      eth_blockNumber / eth_getBlockByNumber.  The workflow tries a short
-      list of public RPCs in order; endpoints that are dead from a given
-      runner (401/403, DNS failure, key-required) are skipped, not
-      retried forever.  (Former defaults polygon-rpc.com and
+      https://polygon-bor-rpc.publicnode.com, or the POLYGON_RPC_URL
+      environment variable when set — an authenticated endpoint such
+      as Alchemy https://polygon-mainnet.g.alchemy.com/v2/<key>).
+      eth_call / eth_getBalance / eth_blockNumber / eth_getBlockByNumber.
+      The workflow tries a short list of public RPCs in order, with
+      POLYGON_RPC_URL first when set; endpoints that are dead from a
+      given runner (401/403, DNS failure, key-required) are skipped,
+      not retried forever.  (Former defaults polygon-rpc.com and
       polygon.llamarpc.com are dead — 401 tenant-disabled / DNS failure,
       verified in Actions run 42764168559, 2026-11-10; Ankr needs its own
-      API key.)
+      API key; polygon-mainnet.public.blastapi.io is dead — BlastAPI
+      retired its public endpoint, verified in run 42765953276, and was
+      removed from the workflow list. GitHub Actions runner IPs are
+      systematically Cloudflare-blocked (1010) on the remaining public
+      RPCs, so an authenticated POLYGON_RPC_URL is the reliable path.)
+      Any URL that may carry a key (Alchemy-style /v2/<key> path) is
+      redacted to <redacted> in every log line and in the evidence
+      packet — the raw URL is never printed.
   Source 2: Etherscan API V2 proxy (module=proxy, action=eth_call /
       eth_getBalance / eth_blockNumber, chainid=137).  Only used when
       the API key is present in the environment (default env var
@@ -64,6 +74,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -258,8 +269,14 @@ def fmt_time(ts):
 #
 # Transient failures are RETRYABLE (up to MAX_ATTEMPTS with exponential
 # backoff): HTTP 429 / 5xx, dropped connections / DNS hiccups, empty or
-# non-JSON response bodies, and Etherscan "rate limit" text returned as
-# a 200 result.  Permanent failures are NOT retried: HTTP 401/403
+# non-JSON response bodies, Etherscan "rate limit" text returned as
+# a 200 result, and Etherscan proxy status 0 / "NOTOK" — the "result"
+# field carries the actual reason, so it is surfaced in full (sanitized)
+# and retried instead of being discarded.  Run 42765953276 proved why:
+# getabi succeeded on every attempt (key valid) while proxy eth_call
+# returned NOTOK with no visible reason, because the old code surfaced
+# only the "message" field and threw the "result" away.
+# Permanent failures are NOT retried: HTTP 401/403
 # (tenant disabled / Cloudflare ban / key-required endpoint) and
 # JSON-RPC "error" objects (e.g. Ankr -32000 Unauthorized).
 # Run 42764168559 (2026-11-10) showed why this matters: the Etherscan
@@ -299,24 +316,53 @@ def _is_retryable_http(code):
 
 
 def _sanitize_url(url):
-    """Strip the apikey query parameter from a URL so error messages
-    never leak the key. Etherscan calls carry the key in the query
-    string, and these URLs appear in error messages that are printed
-    to stderr, written to the evidence packet, and copied into the
-    GitHub job summary — all of which would otherwise expose it."""
-    if "apikey=" not in url:
-        return url
+    """Strip credential material from a URL so error messages never
+    leak a key. Two cases:
+      1. Etherscan calls carry the key as an apikey= query parameter —
+         the parameter is removed entirely (existing behaviour).
+      2. Authenticated RPC URLs carry the key in the PATH, not the
+         query string (Alchemy https://polygon-mainnet.g.alchemy.com/
+         v2/<key>, Ankr https://rpc.ankr.com/polygon/<key>). A trailing
+         path segment that looks like an API key — 16+ chars, only
+         letters/digits/_/- , no dots — is replaced with <redacted>.
+         Short segments (e.g. /v2/api) and hostnames are untouched.
+    Applied to every URL that can appear in an error message, log
+    line, or the evidence packet."""
+    if "apikey=" in url:
+        parsed = urllib.parse.urlparse(url)
+        qs = [(k, v) for k, v in
+              urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+              if k.lower() != "apikey"]
+        url = urllib.parse.urlunparse(
+            parsed._replace(query=urllib.parse.urlencode(qs)))
     parsed = urllib.parse.urlparse(url)
-    qs = [(k, v) for k, v in
-          urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
-          if k.lower() != "apikey"]
-    return urllib.parse.urlunparse(
-        parsed._replace(query=urllib.parse.urlencode(qs)))
+    path = parsed.path
+    if "/" in path:
+        last = path.rsplit("/", 1)[-1]
+        if (len(last) >= 16
+                and all(c.isalnum() or c in "_-" for c in last)):
+            new_path = path[:len(path) - len(last)] + "<redacted>"
+            url = urllib.parse.urlunparse(parsed._replace(path=new_path))
+    return url
+
+
+def _sanitize_text(text):
+    """Redact credential material from arbitrary log/error text:
+    apikey=<value> occurrences anywhere, and any embedded URL
+    (sanitized via _sanitize_url). Applied to response bodies and
+    error messages before they are printed or written to the evidence
+    packet, so a body that echoes a request URL can never leak a key."""
+    if not isinstance(text, str):
+        text = str(text)
+    text = re.sub(r"(?i)apikey=[^&\s\"',}]+", "apikey=<redacted>", text)
+    text = re.sub(r"https?://[^\s\"'<>]+",
+                  lambda m: _sanitize_url(m.group(0)), text)
+    return text
 
 
 def _read_body(exc):
     try:
-        return exc.read().decode("utf-8", "replace")[:500]
+        return exc.read().decode("utf-8", "replace")[:2000]
     except Exception:
         return ""
 
@@ -456,15 +502,22 @@ class PolygonscanSource:
             self._next_allowed = max(now, self._next_allowed) + POLYGONSCAN_MIN_INTERVAL
             resp = http_get_json(url)
             if str(resp.get("status")) == "0":
-                result = resp.get("result")
-                if isinstance(result, str) and "rate limit" in result.lower():
-                    # Etherscan returns the rate limit as a 200 result
-                    # string: retryable with backoff, not a hard failure.
-                    raise RetryableError(
-                        "Etherscan rate limit: %s" % result)
-                raise RuntimeError(
-                    "PolygonScan API error: %s"
-                    % (resp.get("message") or result or resp,)
+                # NOTOK. The "result" field carries the actual reason
+                # (rate-limit text, proxy/node error, ...). The old code
+                # surfaced only "message" and discarded "result", which
+                # made run 42765953276 undiagnosable: getabi succeeded
+                # while every proxy eth_call returned NOTOK with no
+                # visible reason. Surface the FULL response body
+                # (sanitized) and treat NOTOK as RETRYABLE with the
+                # existing backoff — a transient proxy failure, not a
+                # verdict. If it persists across all attempts,
+                # call_with_retries raises the last error and the run
+                # fails UNKNOWN, as it should.
+                detail = _sanitize_text(
+                    json.dumps(resp, default=str)[:2000])
+                raise RetryableError(
+                    "Etherscan proxy NOTOK (status 0, message %r): %s"
+                    % (resp.get("message"), detail)
                 )
             if "result" not in resp:
                 raise RuntimeError(
@@ -595,9 +648,16 @@ def main(argv=None):
                              "PolygonScan API key (default: "
                              "POLYGONSCAN_API_KEY). The key is read from "
                              "the environment only and never printed.")
-    parser.add_argument("--rpc", default=DEFAULT_RPC,
-                        help="JSON-RPC endpoint for source 1 "
-                             "(default: %(default)s)")
+    parser.add_argument(
+        "--rpc",
+        default=os.environ.get("POLYGON_RPC_URL") or DEFAULT_RPC,
+        help="JSON-RPC endpoint for source 1. Default: the "
+             "POLYGON_RPC_URL environment variable when set (an "
+             "authenticated endpoint such as an Alchemy URL, whose "
+             "key sits in the path and is redacted in all output), "
+             "else https://polygon-bor-rpc.publicnode.com. The "
+             "workflow tries POLYGON_RPC_URL first when the secret "
+             "is configured.")
     parser.add_argument("--out", default=None,
                         help="optional path to write the evidence packet "
                              "as JSON")
@@ -622,7 +682,8 @@ def main(argv=None):
         print("Computed selectors (keccak256 of signature, first 4 bytes):")
         for name, sig in SIGNATURES.items():
             print("  %-15s %s  -> 0x%s" % (name, sig, selectors[name]))
-        print("Calls that would be made (source 1: %s):" % args.rpc)
+        print("Calls that would be made (source 1: %s):"
+              % _sanitize_url(args.rpc))
         for name in ("mintingPaused", "maticToMtxRate", "MAX_SUPPLY",
                      "totalSupply", "owner"):
             print("  eth_call to=%s data=0x%s" % (MTX, selectors[name]))
@@ -651,14 +712,19 @@ def main(argv=None):
     errors = []
 
     # --- Source 1: RPC ---------------------------------------------------
+    # rpc_label is the URL with any key material redacted; the raw URL
+    # is used only for the actual calls, never printed or written out.
+    rpc_label = _sanitize_url(args.rpc)
     rpc = RpcSource(args.rpc)
     values1 = None
     try:
         values1 = read_all(rpc, selectors)
-        print_table(values1, "Source 1: RPC %s" % args.rpc)
+        print_table(values1, "Source 1: RPC %s" % rpc_label)
     except Exception as exc:  # noqa: BLE001 - fail loudly, report, exit 1
-        errors.append("source 1 (RPC %s): %s" % (args.rpc, exc))
-        print("ERROR source 1 (RPC %s): %s" % (args.rpc, exc), file=sys.stderr)
+        errors.append("source 1 (RPC %s): %s"
+                      % (rpc_label, _sanitize_text(str(exc))))
+        print("ERROR source 1 (RPC %s): %s"
+              % (rpc_label, _sanitize_text(str(exc))), file=sys.stderr)
 
     # --- Source 2: PolygonScan (only with a key) -------------------------
     values2 = None
@@ -678,8 +744,10 @@ def main(argv=None):
             values2 = read_all(ps, selectors)
             print_table(values2, "Source 2: PolygonScan proxy API")
         except Exception as exc:  # noqa: BLE001
-            errors.append("source 2 (PolygonScan): %s" % exc)
-            print("ERROR source 2 (PolygonScan): %s" % exc, file=sys.stderr)
+            errors.append("source 2 (PolygonScan): %s"
+                          % _sanitize_text(str(exc)))
+            print("ERROR source 2 (PolygonScan): %s"
+                  % _sanitize_text(str(exc)), file=sys.stderr)
     else:
         print("Source 2: SKIPPED (no API key in environment).")
 
@@ -696,7 +764,7 @@ def main(argv=None):
         "chain_id": CHAIN_ID,
         "deployer": DEPLOYER,
         "checked_at_utc": utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"),
-        "source1_rpc": args.rpc,
+        "source1_rpc": rpc_label,
         "source1": values1,
         "source2_polygonscan": values2,
         "two_source_available": second_available,
