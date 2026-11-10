@@ -43,7 +43,7 @@ export const navCategory = 'academy';
           <p>Interactive schematic drawings are for recognition and measurement practice only; always follow approved project documents and site procedures.</p>
           <ol>
             {lessons.map((lesson) => (
-              <li><a href={`/academy/shipyard-fitup#${lesson.id}`}>{lesson.level}: {lesson.title}</a> — {lesson.summary}</li>
+              <li><a href={`/academy/shipyard-fitup#${lesson.id}`} data-lesson={lesson.id}>{lesson.level}: {lesson.title}</a> — {lesson.summary}</li>
             ))}
           </ol>
         </article>
@@ -55,3 +55,14 @@ export const navCategory = 'academy';
     </div>
   </div>
 </Layout>
+
+<script>
+  // Analytics: academy_start with the lesson id when a lesson link is clicked.
+  document.querySelectorAll('a[data-lesson]').forEach(function (el) {
+    el.addEventListener('click', function () {
+      try {
+        (window as any).trackMatrixEvent?.('academy_start', { lesson: el.getAttribute('data-lesson') || '' });
+      } catch (e) {}
+    });
+  });
+</script>
