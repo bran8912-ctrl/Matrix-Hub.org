@@ -61,7 +61,7 @@ const NETWORKS: Record<NetKey, NetConfig> = {
     vrfKeyHash: '0x0ffbbd0c1c18c0263dd778dadd1d64240d7bc338d95fec1cf0473928ca7eaf9e',
     explorer: 'https://polygonscan.com',
     rpcUrl: 'https://polygon.drpc.org',
-    polFloor: '15',
+    polFloor: '2', // was 15 — lowered Nov 10 when the pool shrank to 1 POL; covers the pool + gas now that steps 1–16 are done
   },
   amoy: {
     chainId: 80002,
@@ -89,6 +89,8 @@ const MAX_BET_MTX = '1000';
 const RESERVE_FUND_MTX = '5000';
 const QS_MTX = '100000';
 const QS_POL = '100';
+const QS_PROVIDE_MTX = '1000'; // shrunk Nov 10 — deployer holds 1.86 POL; the pool is 1 POL + 1,000 MTX at the same 0.001 parity. The other 99,000 MTX stays queued in the router.
+const QS_PROVIDE_POL = '1';
 const QS_SLIPPAGE_BPS = 100; // 1% — same default as create_quickswap_pool.js
 const QS_DEADLINE_MINUTES = 20;
 const VRF_CALLBACK_GAS = 250000;
@@ -137,7 +139,7 @@ const STEPS: StepDef[] = [
   { id: 'qs-mint', group: 'QuickSwap', title: 'Mint 100,000 MTX to deployer', detail: 'MTX.mintToEcosystem(deployer, 100,000) — liquidity capital, separate from the reserve.', valueText: '100,000 MTX minted (+ gas)' },
   { id: 'qs-approve', group: 'QuickSwap', title: 'Approve router for 100,000 MTX', detail: 'MTX.approve(LiquidityRouter, 100,000).', valueText: '0 MTX (+ gas)' },
   { id: 'qs-queue', group: 'QuickSwap', title: 'Queue initial liquidity — 100,000 MTX', detail: 'LiquidityRouter.queueInitialLiquidity(100,000).', valueText: '0 MTX (+ gas)' },
-  { id: 'qs-provide', group: 'QuickSwap', title: 'Provide liquidity — 100,000 MTX + 100 POL', detail: 'LiquidityRouter.provideLiquidity(100,000 MTX, min 99,000 MTX, min 99 POL, deadline now + 20 min) with 100 POL attached. Sets the pool price at parity: 0.001 POL per MTX. LP tokens go to the deployer wallet.', valueText: '100,000 MTX + 100 POL (+ gas)' },
+  { id: 'qs-provide', group: 'QuickSwap', title: 'Provide liquidity — 1,000 MTX + 1 POL', detail: 'LiquidityRouter.provideLiquidity(1,000 MTX, min 990 MTX, min 0.99 POL, deadline now + 20 min) with 1 POL attached. Sets the pool price at parity: 0.001 POL per MTX. LP tokens go to the deployer wallet. The other 99,000 MTX stays queued in the router and can be withdrawn later by the owner.', valueText: '1,000 MTX + 1 POL (+ gas)' },
 ];
 
 function short(addr: string): string {
@@ -506,9 +508,9 @@ export default function DeployConsole() {
       case 'qs-provide': {
         const { router } = addrsRef.current;
         if (!router) throw new Error('Deploy LiquidityRouter first.');
-        const desired = parseUnits(QS_MTX, 18);
+        const desired = parseUnits(QS_PROVIDE_MTX, 18);
         const minMtx = (desired * BigInt(10_000 - QS_SLIPPAGE_BPS)) / 10_000n;
-        const pol = parseUnits(QS_POL, 18);
+        const pol = parseUnits(QS_PROVIDE_POL, 18);
         const minPol = (pol * BigInt(10_000 - QS_SLIPPAGE_BPS)) / 10_000n;
         const deadline = Math.floor(Date.now() / 1000) + QS_DEADLINE_MINUTES * 60;
         const tx = await new Contract(router, routerArtifact.abi, signer)
@@ -611,7 +613,8 @@ export default function DeployConsole() {
             I understand this deploys real contracts on Polygon mainnet and moves real
             funds — about 1–3 POL gas, up to 15 LINK for the VRF subscription (funds
             with your LINK balance if lower; top up later at vrf.chain.link), 5,000 MTX
-            reserve funding, and 100,000 MTX + 100 POL initial QuickSwap liquidity.
+            reserve funding, and 1,000 MTX + 1 POL initial QuickSwap liquidity
+            (99,000 MTX stays queued in the router).
             <strong> No external audit has been performed on these contracts.</strong>
           </span>
         </label>
