@@ -38,10 +38,10 @@ describe('Casino Configuration and Deployment Status', () => {
     expect(Casino.contracts.rngEngine.blockExplorerUrl).to.equal(undefined);
   });
 
-  it('should validate 40-character EVM addresses and 64-character deployed hashes', () => {
+  it('should validate only 40-character EVM addresses and reject 64-character hashes', () => {
     expect(isValidAddress('0x9fb4bb44d8d962d695fc93b3dc15f1b287391077')).to.equal(true);
     expect(isValidAddress('0x2fbee7a063dafc8adadfaa1c351796407454a1e0')).to.equal(true);
-    expect(isValidAddress('0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9')).to.equal(true);
+    expect(isValidAddress('0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9')).to.equal(false);
     expect(isValidAddress('0x123')).to.equal(false);
     expect(isValidAddress('')).to.equal(false);
     expect(isValidAddress(null)).to.equal(false);
@@ -68,6 +68,14 @@ describe('Casino Configuration and Deployment Status', () => {
     expect(placeholderInfo.isDeployed).to.equal(false);
     expect(placeholderInfo.displayAddress).to.equal('Coming Soon');
     expect(placeholderInfo.blockExplorerUrl).to.equal(undefined);
+  });
+
+  it('should treat 32-byte transaction hashes as not deployed', () => {
+    const txHash = '0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9';
+    const info = createContractInfo(txHash);
+    expect(info.isDeployed).to.equal(false);
+    expect(info.displayAddress).to.equal('Coming Soon');
+    expect(info.blockExplorerUrl).to.equal(undefined);
   });
 
   it('should prefer environment variables when provided, or fallback to default', () => {

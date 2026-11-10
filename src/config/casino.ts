@@ -66,11 +66,12 @@ const rngEngineAddress = getContractAddress(
   DEPLOYED_CASINO_CONTRACTS.rngEngine
 );
 
-// Validate address format (supports standard 20-byte/40-hex addresses and 32-byte/64-hex deployed identifiers)
+// Validate address format: strictly 20-byte (40-hex) EVM addresses.
+// 32-byte (64-hex) values are transaction hashes, not contract addresses, so they are rejected.
 export const isValidAddress = (address: string | null | undefined): boolean => {
   if (!address || typeof address !== 'string') return false;
   const trimmed = address.trim();
-  return /^0x[a-fA-F0-9]{40}$/.test(trimmed) || /^0x[a-fA-F0-9]{64}$/.test(trimmed);
+  return /^0x[a-fA-F0-9]{40}$/.test(trimmed);
 };
 
 export const isPlaceholder = (address: string | null | undefined): boolean => {
