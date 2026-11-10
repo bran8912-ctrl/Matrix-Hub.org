@@ -68,6 +68,16 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // VRF coordinator, LINK, or QuickSwap exists there. It NEVER runs on
 // polygon/amoy; the real-network path below is unchanged.
 const LOCAL_DRY_RUN = process.env.CASINO_LOCAL_DRY_RUN === "1";
+// Mock-VRF Amoy mode (temporary, labelled): CASINO_MOCK_VRF_AMOY=1 deploys
+// the casino on Polygon Amoy against a MockVRFCoordinator (real Amoy tx,
+// no LINK, no real VRF subscription) so the test run is not blocked on
+// LINK. Amoy (chain 80002) ONLY — the guard in deployCasino() below throws
+// on any other network, especially Polygon mainnet (137). No contract
+// changes: the mock implements the same requestRandomWords ABI and RNGEngine
+// calls it identically. The deployment JSON records mockVrfOnAmoy: true and
+// a mock subscription id, so this deployment can never be mistaken for a
+// real-VRF deployment or satisfy the mainnet gate.
+const MOCK_VRF_AMOY = process.env.CASINO_MOCK_VRF_AMOY === "1";
 // Placeholder keyHash for the local mock only — never a real Chainlink keyHash.
 const LOCAL_DRY_RUN_KEYHASH =
   "0x1111111111111111111111111111111111111111111111111111111111111111";
@@ -191,6 +201,7 @@ async function main() {
   // real-network checks are skipped. Refused on any other network.
   let vrfConfig = vrfConfigForNetwork;
   const dryRun = LOCAL_DRY_RUN;
+  const mockVrf = LOCAL_DRY_RUN || MOCK_VRF_AMOY;
   if (dryRun) {
     if (
       (hre.network.name !== "hardhat" && hre.network.name !== "localhost") ||
@@ -203,7 +214,16 @@ async function main() {
     vrfConfig = null; // filled in after the mock coordinator deploys below
     console.log("\n🧪 LOCAL DRY RUN — mock VRF coordinator / mock router / test MTX only. Nothing here is real or usable on mainnet.");
   }
-  if (!dryRun && (!vrfConfig || hre.network.config.chainId !== vrfConfig.chainId)) {
+  if (MOCK_VRF_AMOY) {
+    if (hre.network.name !== "amoy" || hre.network.config.chainId !== 80002) {
+      throw new Error(
+        "CASINO_MOCK_VRF_AMOY=1 only runs on Polygon Amoy (--network amoy, chain 80002). It must NEVER run on Polygon mainnet or any other network."
+      );
+    }
+    vrfConfig = null; // filled in after the mock coordinator deploys below
+    console.log("\n🧪 MOCK VRF ON AMOY (temporary, labelled) — MockVRFCoordinator as a real Amoy tx; no LINK, no real VRF subscription. This deployment can NEVER satisfy the mainnet gate.");
+  }
+  if (!mockVrf && (!vrfConfig || hre.network.config.chainId !== vrfConfig.chainId)) {
     throw new Error(`Casino deployment is supported only on Polygon (137) and Amoy (80002), not ${hre.network.name}.`);
   }
   if (
@@ -234,11 +254,12 @@ async function main() {
     console.warn("   Deployment will fail. Please fund the deployer account.");
   }
 
-  // Local dry-run setup: deploy whatever the env does not already supply.
-  // A mock coordinator has no subscription model (no createSubscription /
-  // getSubscription / addConsumer / LINK), so the subscription checks in
-  // step 5 are skipped and the deployment JSON records that explicitly.
-  if (dryRun) {
+  // Mock-VRF setup (local dry run OR mock-VRF Amoy): deploy whatever the env
+  // does not already supply. A mock coordinator has no subscription model (no
+  // createSubscription / getSubscription / addConsumer / LINK), so the
+  // subscription checks in step 5 are skipped and the deployment JSON records
+  // that explicitly.
+  if (mockVrf) {
     let coordinatorAddress = process.env.CASINO_LOCAL_DRY_RUN_COORDINATOR;
     if (!coordinatorAddress) {
       const MockCoordinator = await hre.ethers.getContractFactory("MockVRFCoordinator");
@@ -314,7 +335,7 @@ async function main() {
     ["Chainlink VRF coordinator", vrfConfig.coordinator],
     // No LINK token exists on the local network in dry-run mode — skipped
     // and recorded in the deployment JSON instead of checked.
-    ...(dryRun ? [] : [["Chainlink LINK token", vrfConfig.linkToken]]),
+    ...(mockVrf ? [] : [["Chainlink LINK token", vrfConfig.linkToken]]),
   ];
   for (const [label, address] of codeCheckTargets) {
     if ((await hre.ethers.provider.getCode(address)) === "0x") {
@@ -323,8 +344,12 @@ async function main() {
   }
   let coordinator = null;
   let subscription = null;
-  if (dryRun) {
-    console.log("   VRF subscription checks SKIPPED (local dry run): the mock coordinator has no subscriptions or LINK, so there is no owner/balance to verify and no consumer to register. RNGEngine is deployed against subscription id 1.");
+  if (mockVrf) {
+    console.log(
+      MOCK_VRF_AMOY
+        ? "   VRF subscription checks SKIPPED (mock VRF on Amoy): the mock coordinator has no subscriptions or LINK, so there is no owner/balance to verify and no consumer to register. RNGEngine is deployed against mock subscription id 1."
+        : "   VRF subscription checks SKIPPED (local dry run): the mock coordinator has no subscriptions or LINK, so there is no owner/balance to verify and no consumer to register. RNGEngine is deployed against subscription id 1."
+    );
   } else {
     coordinator = new hre.ethers.Contract(
       vrfConfig.coordinator,
@@ -346,7 +371,7 @@ async function main() {
   console.log("   QuickSwap V2 Router:", QUICKSWAP_V2_ROUTER_ADDRESS);
   console.log("   VRF Coordinator:", vrfConfig.coordinator);
   console.log("   VRF Subscription:", subscriptionId.toString());
-  if (!dryRun) console.log("   VRF LINK Balance:", subscription.balance.toString());
+  if (!mockVrf) console.log("   VRF LINK Balance:", subscription.balance.toString());
   
   // Step 6: Prepare Constructor Arguments
   console.log("\n⚙️  Preparing Constructor Arguments...");
@@ -431,6 +456,7 @@ async function main() {
     deploymentTime: new Date().toISOString(),
     status: "in_progress",
     dryRun,
+    mockVrfOnAmoy: MOCK_VRF_AMOY,
     contracts: { mtxToken: MTX_ADDRESS }
   };
   saveDeploymentInfo(deploymentInfo, deploymentsDir);
@@ -491,16 +517,20 @@ async function main() {
   await (await rng.setCasinoCore(casinoCoreAddress)).wait();
   await (await liquidity.setCasinoCore(casinoCoreAddress)).wait();
   const alreadyConsumer =
-    !dryRun &&
+    !mockVrf &&
     subscription.consumers.some(
       (consumer) => consumer.toLowerCase() === rngAddress.toLowerCase()
     );
-  if (!dryRun && !alreadyConsumer) {
+  if (!mockVrf && !alreadyConsumer) {
     console.log("\nRegistering RNGEngine as a VRF subscription consumer...");
     await (await coordinator.getFunction("addConsumer")(subscriptionId, rngAddress)).wait();
   }
-  if (dryRun) {
-    console.log("\n⚠️  Local dry run: RNGEngine was NOT registered as a VRF consumer — the mock coordinator has no addConsumer. On Amoy/mainnet this step is mandatory and the script enforces it.");
+  if (mockVrf) {
+    console.log(
+      MOCK_VRF_AMOY
+        ? "\n⚠️  MOCK VRF ON AMOY: RNGEngine was NOT registered as a VRF consumer — the mock coordinator has no addConsumer. Real VRF re-enable (real subscription + addConsumer) is mandatory before the mainnet gate."
+        : "\n⚠️  Local dry run: RNGEngine was NOT registered as a VRF consumer — the mock coordinator has no addConsumer. On Amoy/mainnet this step is mandatory and the script enforces it."
+    );
   }
 
   // G-03: move CasinoReserve + LiquidityRouter ownership to the governance
@@ -567,20 +597,28 @@ async function main() {
       stuckBetRefundTimeout: "1 hour (CasinoCore STUCK_BET_REFUND_TIMEOUT)",
       quickSwapV2Router: QUICKSWAP_V2_ROUTER_ADDRESS,
       vrfCoordinator: vrfConfig.coordinator,
-      vrfSubscriptionId: dryRun
-        ? "1 (mock — no real subscription; consumer registration skipped)"
+      vrfSubscriptionId: mockVrf
+        ? MOCK_VRF_AMOY
+          ? "1 (MOCK VRF ON AMOY — mock id, NOT a real subscription; consumer registration skipped; re-enable real VRF before mainnet)"
+          : "1 (mock — no real subscription; consumer registration skipped)"
         : subscriptionId.toString(),
       vrfKeyHash: vrfConfig.keyHash,
       vrfRequestConfirmations: VRF_REQUEST_CONFIRMATIONS,
       vrfCallbackGasLimit: VRF_CALLBACK_GAS_LIMIT,
-      vrfPayment: dryRun ? "LINK (mock — no LINK on local network)" : "LINK"
+      vrfPayment: mockVrf
+        ? MOCK_VRF_AMOY
+          ? "LINK (mock — no LINK; mock VRF on Amoy)"
+          : "LINK (mock — no LINK on local network)"
+        : "LINK"
     },
 
     // Additional Info
     notes: {
       casinoReserveSetup: "CasinoCore permissions configured after deployment.",
-      vrfSetup: dryRun
-        ? "LOCAL DRY RUN ONLY: RNGEngine points at a MockVRFCoordinator and was NOT registered as a consumer (the mock has no subscription model). On Amoy/mainnet the deploy script registers it on the funded subscription."
+      vrfSetup: mockVrf
+        ? MOCK_VRF_AMOY
+          ? "MOCK VRF ON AMOY (temporary, labelled): RNGEngine points at a MockVRFCoordinator deployed as a real Amoy tx and was NOT registered as a consumer (the mock has no subscription model). Mock fulfill is permissionless — anyone on Amoy can force a win/loss. This deployment can NEVER satisfy the mainnet gate; real VRF must be re-enabled (see deployments/amoy-bootstrap.json mockVrfWarning)."
+          : "LOCAL DRY RUN ONLY: RNGEngine points at a MockVRFCoordinator and was NOT registered as a consumer (the mock has no subscription model). On Amoy/mainnet the deploy script registers it on the funded subscription."
         : "RNGEngine is registered as a consumer of the funded Chainlink VRF v2.5 subscription.",
       liquidityRouterSetup: "Casino MTX fees queue in LiquidityRouter. The owner must supply POL and call provideLiquidity to add MTX/WMATIC liquidity through QuickSwap V2.",
       reserveFunding: "CasinoReserve must be funded with MTX tokens before casino operations can begin."

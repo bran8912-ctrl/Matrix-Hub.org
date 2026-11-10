@@ -43,6 +43,18 @@ const LINK_WAIT_MS = 10 * 60 * 1000;
 // a real network and never writes real Amoy state (separate state file).
 const LOCAL_DRY_RUN = process.env.CASINO_LOCAL_DRY_RUN === "1";
 
+// Mock-VRF Amoy mode (temporary, labelled): CASINO_MOCK_VRF_AMOY=1 runs the
+// Amoy deploy with a MockVRFCoordinator deployed as a real Amoy tx, so the
+// casino test run is not blocked on LINK. Amoy (chain 80002) ONLY — the
+// network guard in main() refuses every other network, and deploy_casino.js
+// refuses it on any non-Amoy network too. It must NEVER be mistaken for a
+// real-VRF deployment: state.mockVrf is recorded below and
+// deployments/casino-amoy.json records mockVrfOnAmoy: true. Before ANY later
+// real-VRF re-run, delete vrfSubscriptionId, mockVrf, mockCoordinator and
+// mockVrfWarning from deployments/amoy-bootstrap.json, or the re-run would
+// try to fund real subscription 1, which belongs to someone else.
+const MOCK_VRF_AMOY = process.env.CASINO_MOCK_VRF_AMOY === "1";
+
 const STATE_FILE = path.join(
   __dirname,
   "..",
@@ -71,6 +83,9 @@ async function main() {
     console.log("🧪 LOCAL DRY RUN — mock VRF coordinator / mock router / test MTX only. No real network, no LINK, no wallet needed.");
   } else if (hre.network.name !== "amoy" || hre.network.config.chainId !== 80002) {
     throw new Error("amoy_bootstrap.js only runs on Polygon Amoy (--network amoy).");
+  }
+  if (MOCK_VRF_AMOY) {
+    console.log("🧪 MOCK VRF ON AMOY (temporary, labelled) — MockVRFCoordinator deployed as a real Amoy tx; no LINK, no real VRF subscription. This deployment can NEVER satisfy the mainnet gate.");
   }
   const [deployer] = await ethers.getSigners();
   if (!deployer) throw new Error("Set PRIVATE_KEY to a throwaway Amoy testnet key.");
@@ -116,12 +131,13 @@ async function main() {
   saveState(state);
 
   // 2. VRF subscription
-  // Local dry run: the mock coordinator has no subscription model (no
-  // createSubscription / getSubscription / LINK), so use id 1 and skip step 3
-  // entirely. deploy_casino.js reuses this mock via
-  // CASINO_LOCAL_DRY_RUN_COORDINATOR.
+  // Mock coordinator (local dry run OR mock-VRF Amoy): the mock coordinator
+  // has no subscription model (no createSubscription / getSubscription /
+  // LINK), so use id 1 and skip step 3 entirely. deploy_casino.js reuses
+  // this mock via CASINO_LOCAL_DRY_RUN_COORDINATOR (historical env name —
+  // it carries the mock coordinator address in both modes).
   let subId = process.env.VRF_SUBSCRIPTION_ID || state.vrfSubscriptionId;
-  if (LOCAL_DRY_RUN) {
+  if (LOCAL_DRY_RUN || MOCK_VRF_AMOY) {
     if (!state.mockCoordinator) {
       const MockCoordinator = await ethers.getContractFactory("MockVRFCoordinator");
       const mockCoordinator = await MockCoordinator.deploy();
@@ -132,7 +148,11 @@ async function main() {
     }
     process.env.CASINO_LOCAL_DRY_RUN_COORDINATOR = state.mockCoordinator;
     subId = "1";
-    console.log("Local dry run: VRF subscription is mock id 1 — no LINK funding step.");
+    console.log(
+      MOCK_VRF_AMOY
+        ? "Mock VRF on Amoy: VRF subscription is mock id 1 — no LINK funding step."
+        : "Local dry run: VRF subscription is mock id 1 — no LINK funding step."
+    );
   } else {
     const coordinator = new ethers.Contract(
       COORDINATOR,
@@ -188,6 +208,11 @@ async function main() {
     }
   }
   state.vrfSubscriptionId = subId;
+  if (MOCK_VRF_AMOY) {
+    state.mockVrf = true;
+    state.mockVrfWarning =
+      "POISONED STATE — mock run: vrfSubscriptionId '1' is a MOCK id, NOT a real Chainlink subscription. Before ANY later real-VRF re-run, delete vrfSubscriptionId, mockVrf, mockCoordinator and mockVrfWarning from this file, or the re-run would try to fund real subscription 1, which belongs to someone else.";
+  }
   saveState(state);
 
   // 4. Deploy and link the casino.
