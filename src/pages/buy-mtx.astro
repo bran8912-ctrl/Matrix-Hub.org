@@ -18,7 +18,7 @@ const contractAddress = MTX.address;
     <h1 class="page-title">Buy MTX</h1>
     <p class="page-description">
       Purchase MTX tokens directly with POL using our secure direct mint feature.
-      There is no QuickSwap pool for MTX yet, so direct mint is the way to buy MTX right now.
+      The QuickSwap pool is live too (1 POL + 1,000 MTX) — but the pool is small, so direct mint at the fixed 1 POL = 1,000 MTX rate is the better deal right now.
     </p>
     
     <!-- Direct Mint Component -->
@@ -45,16 +45,16 @@ const contractAddress = MTX.address;
         </div>
 
         <div class="option-card">
-          <h3>💱 QuickSwap DEX (Not Available Yet)</h3>
+          <h3>💱 QuickSwap DEX (Live — Small Pool)</h3>
           <ul>
-            <li><strong>No pool yet:</strong> There is no MTX liquidity pool on QuickSwap, so no MTX can be bought there right now.</li>
-            <li><strong>Planned:</strong> A 100,000 MTX + 100 POL pool at the direct-mint price, once the pool is created.</li>
-            <li><strong>Until then:</strong> Use direct mint above — it is the only way to buy MTX at the moment.</li>
+            <li><strong>Live pool:</strong> 1 POL + 1,000 MTX on QuickSwap — you can swap WPOL for MTX there right now.</li>
+            <li><strong>Direct mint is the better rate:</strong> the fixed 1 POL = 1,000 MTX mint has no slippage; the pool is small, so its price can move on larger swaps.</li>
+            <li><strong>Check the price:</strong> before swapping, compare the pool price with the fixed mint rate.</li>
           </ul>
           <div class="cta">
-            <span class="cta-button uniswap disabled">
-              QuickSwap — No Pool Yet
-            </span>
+            <a href="https://quickswap.exchange/#/swap?inputCurrency=0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270&outputCurrency=0x53307e1db6c5cb6773c9495ca140372016dfe266" target="_blank" rel="noopener noreferrer" class="cta-button uniswap" title="Small pool (1 POL + 1,000 MTX) — direct mint is the better rate for now">
+              Trade on QuickSwap ↗
+            </a>
           </div>
         </div>
       </div>
@@ -66,12 +66,12 @@ const contractAddress = MTX.address;
           <li><strong>Direct mint:</strong> Live — minting is not paused</li>
           <li><strong>Fixed rate:</strong> 1 POL = 1,000 MTX</li>
           <li><strong>Max supply:</strong> 100,000,000 MTX (hard cap)</li>
-          <li><strong>Total supply:</strong> 0 MTX — no MTX has been minted yet</li>
-          <li><strong>QuickSwap:</strong> No liquidity pool exists for MTX</li>
+          <li><strong>Total supply:</strong> 105,000 MTX — 5,000 MTX in the casino reserve + 100,000 MTX for QuickSwap, minted Nov 10, 2026</li>
+          <li><strong>QuickSwap:</strong> Live pool — 1 POL + 1,000 MTX (<a href="https://polygonscan.com/address/0x489a6592Cb2965c3512e6CeFA4EE160765674c44" target="_blank" rel="noopener noreferrer">pair on PolygonScan</a>)</li>
           <li><strong>Slippage:</strong> Direct mint uses the fixed contract rate, so there is no slippage on a mint. If a pool is ever created, check its price before swapping — pool prices can move.</li>
           <li><strong>No guaranteed value:</strong> MTX has no guaranteed value and is not an investment. Only buy what you can afford to lose; MTX is for use on Matrix Hub.</li>
         </ul>
-        <p class="facts-note">Figures verified against the live contract on Polygon (block 97058365, Nov 10, 2026). Supply figures change as MTX is minted.</p>
+        <p class="facts-note">Figures verified against the live contract on Polygon, Nov 10, 2026. Supply figures change as MTX is minted.</p>
       </div>
 
       <div class="security-notice">
