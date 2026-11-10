@@ -9,14 +9,31 @@ name: Verify Amoy Contracts on PolygonScan
 # no wallet, no private keys. The API key comes from the repo secret
 # POLYGONSCAN_API_KEY and is never printed.
 #
-# Each verify streams its output live (tee to a log file) and has a
-# 10-minute timeout: run #1 hung 41 minutes on the first verify with
-# its output buffered in $(...) so nothing was visible. A step that
-# finds its contract already verified reports it and moves on
-# (hardhat exits non-zero on "already verified"); a real verification
-# failure still fails the run loudly.
+# Each verify streams its output live (tee to a log file) with a
+# 25-minute timeout: run #1 hung 41 minutes on the first verify with
+# its output buffered in $(...) so nothing was visible (fixed: stream
+# + timeout). Run #2 then showed the real problem is PolygonScan-side:
+# RNGEngine's source was submitted fine, but PolygonScan returned no
+# verification result within 10 minutes, and the failure skipped the
+# other three contracts entirely. So each verify step now continues on
+# error (a slow contract no longer blocks the rest), and a final
+# always-run status step checks all four contracts against the
+# PolygonScan API and fails the run loudly if any is still unverified.
+# A step that finds its contract already verified reports it and moves
+# on (hardhat exits non-zero on "already verified").
+#
+# Run #3 outcome (2026-11-10): finished 13:55 UTC as Failure after
+# 1h 18m — all four verify steps ran and the timeouts worked (RNGEngine
+# exactly 25m 0s). It failed only in the Report step: the Etherscan V2
+# API returned an error string instead of a list for one contract, and
+# the script crashed on it (fixed: tolerate a string result and report
+# it instead of crashing). All four contracts were VERIFIED on
+# PolygonScan (checked directly 14:37 UTC) — the run's failure was in
+# the reporting, not the verifications.
+
 "on":
   workflow_dispatch:
+
 jobs:
   verify-amoy:
     runs-on: ubuntu-latest
@@ -109,15 +126,28 @@ jobs:
         if: always()
         run: |
           python3 - <<'PYEOF'
-          import json, urllib.request, sys, os
-          addrs = {"RNGEngine": "0x2ED3ab377eCfB30d0360E4f8A13163b55D787DE3", "CasinoReserve": "0x78128A7deD593Bb7b52973e37DB93bEA76802b58", "LiquidityRouter": "0xAEcba8F452c3acaA1B8616Ec1194Ca82E01435B3", "CasinoCore": "0xAD42F2e4DfB5D8B0A15745eDdc942cd50aab7D28"}
+          import json, urllib.request, sys
+          addrs = {
+            "RNGEngine": "0x2ED3ab377eCfB30d0360E4f8A13163b55D787DE3",
+            "CasinoReserve": "0x78128A7deD593Bb7b52973e37DB93bEA76802b58",
+            "LiquidityRouter": "0xAEcba8F452c3acaA1B8616Ec1194Ca82E01435B3",
+            "CasinoCore": "0xAD42F2e4DfB5D8B0A15745eDdc942cd50aab7D28",
+          }
+          import os
           key = os.environ["POLYGONSCAN_API_KEY"]
           failed = []
           for name, addr in addrs.items():
-            url = "https://api.etherscan.io/v2/api?chainid=80002&module=contract&action=getsourcecode&address=" + addr + "&apikey=" + key
+            url = ("https://api.etherscan.io/v2/api?chainid=80002&module=contract"
+                   "&action=getsourcecode&address=" + addr + "&apikey=" + key)
             with urllib.request.urlopen(url, timeout=60) as r:
               data = json.load(r)
-            src = data["result"][0].get("SourceCode", "")
+            res = data.get("result")
+            if isinstance(res, list) and res and isinstance(res[0], dict):
+              src = res[0].get("SourceCode", "")
+            else:
+              # API error (e.g. rate limit): result is a string, not a list.
+              print(f"{name} {addr}: API error — {res!r}", file=sys.stderr)
+              src = ""
             ok = bool(src) and src != "0x"
             print(f"{name} {addr}: {'VERIFIED' if ok else 'UNVERIFIED'}")
             if not ok:
