@@ -318,9 +318,7 @@ const MTXStatsWidget: React.FC<MTXStatsWidgetProps> = ({
                 Contract ↗
               </a>
               <a
-                href={MTX.uniswapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+                href="/buy-mtx"
                 style={{
                   color: '#FF007A',
                   textDecoration: 'none',
@@ -331,7 +329,7 @@ const MTXStatsWidget: React.FC<MTXStatsWidgetProps> = ({
                   borderRadius: '4px'
                 }}
               >
-                QuickSwap ↗
+                Buy MTX ↗
               </a>
             </div>
           )}
