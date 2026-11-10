@@ -16,7 +16,8 @@ interface AppKitProviderProps {
 export default function AppKitProvider({ children }: AppKitProviderProps) {
   useEffect(() => {
     // Only initialize on client side and only once, and only when a real
-    // WalletConnect project ID is configured (2026-11-10: disabled — no project yet).
+    // WalletConnect project ID is configured (2026-11-10: project "Matrix Hub"
+    // exists; the ID comes from PUBLIC_WALLETCONNECT_PROJECT_ID).
     if (typeof window !== 'undefined' && !isInitialized && walletConnectEnabled) {
       isInitialized = true;
       
