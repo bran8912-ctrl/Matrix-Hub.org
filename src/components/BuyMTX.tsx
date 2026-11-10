@@ -14,6 +14,7 @@ const BuyMTX: React.FC = () => {
   const [success, setSuccess] = useState('');
   const [txHash, setTxHash] = useState('');
   const [mintingPaused, setMintingPaused] = useState(false);
+  const [contractReadError, setContractReadError] = useState('');
 
   useEffect(() => {
     const pol = parseFloat(polAmount) || 0;
@@ -23,8 +24,15 @@ const BuyMTX: React.FC = () => {
 
   useEffect(() => {
     const fetchContractInfo = async () => {
+      if (!MTX.isDeployed) {
+        setContractReadError('MTX contract address is not configured yet.');
+        return;
+      }
+      if (!window.ethereum) {
+        setContractReadError('No wallet detected. Install MetaMask or a compatible wallet to verify the live mint rate and status before buying.');
+        return;
+      }
       try {
-        if (!MTX.isDeployed || !window.ethereum) return;
         const { BrowserProvider, Contract } = await import('ethers');
         const provider = new BrowserProvider(window.ethereum as any);
         const mtxContract = new Contract(MTX.address, mtxAbi, provider);
@@ -34,8 +42,10 @@ const BuyMTX: React.FC = () => {
 
         const paused = await mtxContract.mintingPaused();
         setMintingPaused(paused);
+        setContractReadError('');
       } catch (err) {
         console.error('Error fetching contract info:', err);
+        setContractReadError('Could not read the MTX contract from the blockchain. The buy button is disabled until the live rate and mint status can be confirmed — please refresh and try again.');
       }
     };
 
@@ -64,7 +74,7 @@ const BuyMTX: React.FC = () => {
     }
 
     if (mintingPaused) {
-      setError('Direct minting is currently paused. Please use QuickSwap instead.');
+      setError('Direct minting is currently paused. Minting is unavailable right now — please check back later. There is no QuickSwap pool for MTX, so there is no alternative way to buy at the moment.');
       return;
     }
 
@@ -104,8 +114,10 @@ const BuyMTX: React.FC = () => {
     <div className="buy-mtx">
       <div className="input-row">
         <input value={polAmount} onChange={(e) => setPolAmount(e.target.value)} />
-        <button onClick={handleBuyMTX} disabled={loading || !MTX.isDeployed}>Buy MTX</button>
+        <button onClick={handleBuyMTX} disabled={loading || !MTX.isDeployed || contractReadError !== '' || mintingPaused}>Buy MTX</button>
       </div>
+      {contractReadError && <div className="error">{contractReadError}</div>}
+      {mintingPaused && !contractReadError && <div className="error">Direct minting is currently paused. Minting is unavailable right now — please check back later.</div>}
       {error && <div className="error">{error}</div>}
       {success && <div className="success">{success} {txHash && (<a href={`https://polygonscan.com/tx/${txHash}`} target="_blank" rel="noreferrer">View TX</a>)}</div>}
     </div>
