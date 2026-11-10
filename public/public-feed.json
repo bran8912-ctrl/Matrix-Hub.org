@@ -1,18 +1,13 @@
 {
   "generated": "2026-01-03T02:33:05.183Z",
-  "totalFiles": 70,
+  "totalFiles": 67,
   "categories": {
     "other": 42,
-    "page": 17,
+    "page": 14,
     "content": 2,
     "documentation": 9
   },
   "recentUpdates": [
-    {
-      "path": "src/pages/leaderboards.astro",
-      "title": "leaderboards",
-      "modified": "2026-01-03T02:32:42.829Z"
-    },
     {
       "path": "src/pages/mtx-contract.astro",
       "title": "mtx-contract",
@@ -21,11 +16,6 @@
     {
       "path": "src/pages/owners.astro",
       "title": "owners",
-      "modified": "2026-01-03T02:32:42.829Z"
-    },
-    {
-      "path": "src/pages/staking.astro",
-      "title": "staking",
       "modified": "2026-01-03T02:32:42.829Z"
     },
     {
@@ -475,15 +465,6 @@
       "wordCount": 196
     },
     {
-      "path": "src/pages/leaderboards.astro",
-      "title": "leaderboards",
-      "description": "",
-      "category": "page",
-      "tags": [],
-      "modified": "2026-01-03T02:32:42.829Z",
-      "wordCount": 775
-    },
-    {
       "path": "src/pages/mtx-contract.astro",
       "title": "mtx-contract",
       "description": "",
@@ -500,15 +481,6 @@
       "tags": [],
       "modified": "2026-01-03T02:32:42.829Z",
       "wordCount": 2406
-    },
-    {
-      "path": "src/pages/staking.astro",
-      "title": "staking",
-      "description": "",
-      "category": "page",
-      "tags": [],
-      "modified": "2026-01-03T02:32:42.829Z",
-      "wordCount": 720
     },
     {
       "path": "src/pages/wallet.astro",
@@ -626,15 +598,6 @@
       "tags": [],
       "modified": "2026-01-03T02:32:42.828Z",
       "wordCount": 21
-    },
-    {
-      "path": "src/pages/games/casino/crash.astro",
-      "title": "crash",
-      "description": "",
-      "category": "page",
-      "tags": [],
-      "modified": "2026-01-03T02:32:42.828Z",
-      "wordCount": 194
     },
     {
       "path": "src/pages/games/casino/dice.astro",

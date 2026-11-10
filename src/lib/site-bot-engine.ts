@@ -370,7 +370,7 @@ const MISSIONS: Record<string, Mission> = {
 const MISSION_ROUTES: Array<[string[], string]> = [
   [['/casino', '/games/casino', '/mtx-casino'], 'casino'],
   [['/academy'], 'academy'],
-  [['/wallet', '/enhanced-wallet', '/staking'], 'wallet'],
+  [['/wallet', '/enhanced-wallet'], 'wallet'],
   [['/buy-mtx', '/token', '/contract'], 'buy'],
   [PROFIT_PATHS, 'profit']
 ];

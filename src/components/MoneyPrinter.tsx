@@ -617,21 +617,6 @@ const MoneyPrinter: React.FC = () => {
         </div>
         <div style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
           <a
-            href="/staking"
-            style={{
-              display: 'inline-block',
-              padding: '0.7rem 1.5rem',
-              background: 'var(--theme-primary)',
-              color: '#000',
-              textDecoration: 'none',
-              borderRadius: '6px',
-              fontWeight: 'bold',
-              fontSize: '0.95rem',
-            }}
-          >
-            Start Staking →
-          </a>
-          <a
             href="/casino"
             style={{
               display: 'inline-block',
