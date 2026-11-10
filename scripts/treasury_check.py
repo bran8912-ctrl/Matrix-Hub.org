@@ -20,8 +20,14 @@ Ground truths (verified, do NOT change without a new on-chain check):
 
 Sources:
   Source 1 (primary): JSON-RPC endpoint (--rpc, default
-      https://polygon-rpc.com).  eth_call / eth_getBalance /
-      eth_blockNumber / eth_getBlockByNumber.
+      https://polygon-bor-rpc.publicnode.com).  eth_call / eth_getBalance /
+      eth_blockNumber / eth_getBlockByNumber.  The workflow tries a short
+      list of public RPCs in order; endpoints that are dead from a given
+      runner (401/403, DNS failure, key-required) are skipped, not
+      retried forever.  (Former defaults polygon-rpc.com and
+      polygon.llamarpc.com are dead — 401 tenant-disabled / DNS failure,
+      verified in Actions run 42764168559, 2026-11-10; Ankr needs its own
+      API key.)
   Source 2: Etherscan API V2 proxy (module=proxy, action=eth_call /
       eth_getBalance / eth_blockNumber, chainid=137).  Only used when
       the API key is present in the environment (default env var
@@ -59,6 +65,7 @@ import datetime
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -71,7 +78,7 @@ SAFEPROXY = "0x7Ee41D8A25641000661B1EF5E6AE8A00400466B0"  # NOT MTX
 FACTORY = "0x5757371414417b8C6CAad45bAeF941aBc7d3Ab32"
 WMATIC = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270"
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
-DEFAULT_RPC = "https://polygon-rpc.com"
+DEFAULT_RPC = "https://polygon-bor-rpc.publicnode.com"
 POLYGONSCAN_API = "https://api.etherscan.io/v2/api"  # Etherscan API V2 (chainid=137 param added in _get); api.polygonscan.com/api is DEAD (serves docs landing page, verified 2026-11-10)
 
 # Function signatures read from the contract. Selectors are computed
@@ -248,9 +255,75 @@ def fmt_time(ts):
 
 # ---------------------------------------------------------------------------
 # HTTP helpers -- fail loudly, never swallow an HTTP error.
+#
+# Transient failures are RETRYABLE (up to MAX_ATTEMPTS with exponential
+# backoff): HTTP 429 / 5xx, dropped connections / DNS hiccups, empty or
+# non-JSON response bodies, and Etherscan "rate limit" text returned as
+# a 200 result.  Permanent failures are NOT retried: HTTP 401/403
+# (tenant disabled / Cloudflare ban / key-required endpoint) and
+# JSON-RPC "error" objects (e.g. Ankr -32000 Unauthorized).
+# Run 42764168559 (2026-11-10) showed why this matters: the Etherscan
+# free plan allows 3 calls/sec and the script fired its calls with no
+# pacing, so proxy eth_call returned "Max calls per sec rate limit
+# reached (3/sec)" as the result and getabi returned an empty body.
 # ---------------------------------------------------------------------------
 
+MAX_ATTEMPTS = 3
+RETRY_BASE_DELAY = 1.0  # seconds; exponential backoff: 1s, 2s
+# Etherscan free plan: 3 calls/sec. Pace Source 2 calls at 2.5/sec.
+POLYGONSCAN_MIN_INTERVAL = 0.4  # seconds between Etherscan API calls
+
+
+class RetryableError(RuntimeError):
+    """Transient failure: safe to retry (rate limit, empty response,
+    HTTP 429/5xx, dropped connection)."""
+
+
+def call_with_retries(fn, what):
+    """Call fn(), retrying RetryableError up to MAX_ATTEMPTS with
+    exponential backoff. Returns fn()'s value or raises the last
+    RetryableError. Non-retryable errors propagate immediately."""
+    last_exc = None
+    for attempt in range(MAX_ATTEMPTS):
+        try:
+            return fn()
+        except RetryableError as exc:
+            last_exc = exc
+            if attempt < MAX_ATTEMPTS - 1:
+                time.sleep(RETRY_BASE_DELAY * (2 ** attempt))
+    raise last_exc
+
+
+def _is_retryable_http(code):
+    return code == 429 or 500 <= code < 600
+
+
+def _sanitize_url(url):
+    """Strip the apikey query parameter from a URL so error messages
+    never leak the key. Etherscan calls carry the key in the query
+    string, and these URLs appear in error messages that are printed
+    to stderr, written to the evidence packet, and copied into the
+    GitHub job summary — all of which would otherwise expose it."""
+    if "apikey=" not in url:
+        return url
+    parsed = urllib.parse.urlparse(url)
+    qs = [(k, v) for k, v in
+          urllib.parse.parse_qsl(parsed.query, keep_blank_values=True)
+          if k.lower() != "apikey"]
+    return urllib.parse.urlunparse(
+        parsed._replace(query=urllib.parse.urlencode(qs)))
+
+
+def _read_body(exc):
+    try:
+        return exc.read().decode("utf-8", "replace")[:500]
+    except Exception:
+        return ""
+
+
 def http_post_json(url, payload, timeout=30):
+    """Single POST attempt. Raises RetryableError for transient
+    failures, RuntimeError for permanent ones (HTTP 401/403 etc.)."""
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode("utf-8"),
@@ -259,36 +332,54 @@ def http_post_json(url, payload, timeout=30):
     )
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            raw = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
-        body = ""
-        try:
-            body = exc.read().decode("utf-8", "replace")[:500]
-        except Exception:
-            pass
+        body = _read_body(exc)
+        if _is_retryable_http(exc.code):
+            raise RetryableError(
+                "HTTP %s from %s: %s" % (exc.code, _sanitize_url(url), body)
+            ) from exc
         raise RuntimeError(
-            "HTTP %s from %s: %s" % (exc.code, url, body)
+            "HTTP %s from %s: %s" % (exc.code, _sanitize_url(url), body)
         ) from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError("unreachable %s: %s" % (url, exc.reason)) from exc
+        raise RetryableError(
+            "unreachable %s: %s" % (_sanitize_url(url), exc.reason)) from exc
+    try:
+        return json.loads(raw)
+    except ValueError as exc:
+        raise RetryableError(
+            "empty or non-JSON response from %s: %r"
+            % (_sanitize_url(url), raw[:200])
+        ) from exc
 
 
 def http_get_json(url, timeout=30):
+    """Single GET attempt. Raises RetryableError for transient
+    failures, RuntimeError for permanent ones."""
     req = urllib.request.Request(url, headers={"Accept": "application/json"})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read().decode("utf-8"))
+            raw = resp.read().decode("utf-8")
     except urllib.error.HTTPError as exc:
-        body = ""
-        try:
-            body = exc.read().decode("utf-8", "replace")[:500]
-        except Exception:
-            pass
+        body = _read_body(exc)
+        if _is_retryable_http(exc.code):
+            raise RetryableError(
+                "HTTP %s from %s: %s" % (exc.code, _sanitize_url(url), body)
+            ) from exc
         raise RuntimeError(
-            "HTTP %s from %s: %s" % (exc.code, url, body)
+            "HTTP %s from %s: %s" % (exc.code, _sanitize_url(url), body)
         ) from exc
     except urllib.error.URLError as exc:
-        raise RuntimeError("unreachable %s: %s" % (url, exc.reason)) from exc
+        raise RetryableError(
+            "unreachable %s: %s" % (_sanitize_url(url), exc.reason)) from exc
+    try:
+        return json.loads(raw)
+    except ValueError as exc:
+        raise RetryableError(
+            "empty or non-JSON response from %s: %r"
+            % (_sanitize_url(url), raw[:200])
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -303,15 +394,20 @@ class RpcSource:
         self._id = 0
 
     def call(self, method, params):
-        self._id += 1
-        payload = {"jsonrpc": "2.0", "id": self._id, "method": method,
-                   "params": params}
-        resp = http_post_json(self.url, payload)
-        if "error" in resp:
-            raise RuntimeError("RPC %s error: %s" % (method, resp["error"]))
-        if "result" not in resp:
-            raise RuntimeError("RPC %s: no result in %r" % (method, resp))
-        return resp["result"]
+        def _once():
+            self._id += 1
+            payload = {"jsonrpc": "2.0", "id": self._id, "method": method,
+                       "params": params}
+            resp = http_post_json(self.url, payload)
+            if "error" in resp:
+                # A JSON-RPC error object is a real answer (e.g. Ankr
+                # -32000 Unauthorized): permanent, do not retry.
+                raise RuntimeError("RPC %s error: %s" % (method, resp["error"]))
+            if "result" not in resp:
+                raise RuntimeError("RPC %s: no result in %r" % (method, resp))
+            return resp["result"]
+
+        return call_with_retries(_once, "RPC %s" % method)
 
     def eth_call(self, to, data):
         return self.call("eth_call", [{"to": to, "data": data}, "latest"])
@@ -341,19 +437,43 @@ class PolygonscanSource:
 
     def __init__(self, api_key):
         self.api_key = api_key
+        self._next_allowed = 0.0  # monotonic timestamp for call pacing
 
     def _get(self, params):
         params = dict(params)
         params["chainid"] = "137"  # Etherscan API V2: Polygon
         params["apikey"] = self.api_key
         url = POLYGONSCAN_API + "?" + urllib.parse.urlencode(params)
-        resp = http_get_json(url)
-        if str(resp.get("status")) != "1" and "result" not in resp:
-            raise RuntimeError(
-                "PolygonScan API error: %s"
-                % (resp.get("message") or resp.get("result") or resp,)
-            )
-        return resp["result"]
+
+        def _once():
+            # Pace calls: the free plan allows 3 calls/sec. Without
+            # pacing, run 42764168559 got "Max calls per sec rate limit
+            # reached (3/sec)" returned as the result.
+            now = time.monotonic()
+            wait = self._next_allowed - now
+            if wait > 0:
+                time.sleep(wait)
+            self._next_allowed = max(now, self._next_allowed) + POLYGONSCAN_MIN_INTERVAL
+            resp = http_get_json(url)
+            if str(resp.get("status")) == "0":
+                result = resp.get("result")
+                if isinstance(result, str) and "rate limit" in result.lower():
+                    # Etherscan returns the rate limit as a 200 result
+                    # string: retryable with backoff, not a hard failure.
+                    raise RetryableError(
+                        "Etherscan rate limit: %s" % result)
+                raise RuntimeError(
+                    "PolygonScan API error: %s"
+                    % (resp.get("message") or result or resp,)
+                )
+            if "result" not in resp:
+                raise RuntimeError(
+                    "PolygonScan API error: %s"
+                    % (resp.get("message") or resp,)
+                )
+            return resp["result"]
+
+        return call_with_retries(_once, "PolygonScan API")
 
     def eth_call(self, to, data):
         return self._get({
