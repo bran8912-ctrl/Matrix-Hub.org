@@ -1,0 +1,18 @@
+---
+import Layout from "../../components/Layout.astro";
+import AppKitProvider from "../../components/AppKitProvider.tsx";
+import DeployConsole from "../../components/DeployConsole.tsx";
+
+export const prerender = true;
+
+// UNLINKED owner tool — do not add to nav or link from any public page.
+// Reachable only by direct URL: /owners/deploy-console
+// (excluded in src/utils/generateNav.ts via **/owners/**, plus navExclude here.)
+export const navExclude = true;
+---
+
+<Layout title="Owner Deploy Console — Matrix Hub">
+  <AppKitProvider client:only="react">
+    <DeployConsole client:only="react" />
+  </AppKitProvider>
+</Layout>
