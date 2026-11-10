@@ -5,9 +5,10 @@ name: Treasury Check — MTX Certification
 #
 # Runs on manual dispatch, and automatically when the check script or
 # this workflow itself changes (paths filter only — no schedule, no
-# general push trigger). The run commits its evidence packet back to
-# docs/treasury/certification-latest.json so the result is readable
-# without Actions UI access; the artifact upload is kept as well.
+# general push trigger). The evidence packet is uploaded as a run
+# artifact only: Hub10 is a protected branch (GH013 — changes must go
+# through a PR, verified signatures required), so no workflow step may
+# commit back to the repo. Do NOT re-add a commit-back step.
 # No secret is ever printed: treasury_check.py reads the API key from
 # the environment only and never logs it, and the step logs contain no
 # key material.
@@ -19,9 +20,6 @@ name: Treasury Check — MTX Certification
     paths:
       - 'scripts/treasury_check.py'
       - '.github/workflows/treasury-check.yml'
-
-permissions:
-  contents: write
 
 jobs:
   treasury-check:
@@ -49,12 +47,16 @@ jobs:
             exit 1
           fi
           rc=1
+          # Public RPCs, in order. polygon-rpc.com (401 tenant-disabled),
+          # polygon.llamarpc.com (DNS dead) and rpc.ankr.com/polygon
+          # (needs its own API key) were all dead in run 42764168559 and
+          # are NOT in this list. polygon.drpc.org and 1rpc.io/matic are
+          # kept as later fallbacks (Cloudflare 1010 on first try).
           for rpc in \
-            https://polygon-rpc.com \
-            https://polygon.drpc.org \
-            https://rpc.ankr.com/polygon \
-            https://polygon.llamarpc.com \
-            https://1rpc.io/matic ; do
+            https://polygon-bor-rpc.publicnode.com \
+            https://polygon-mainnet.public.blastapi.io \
+            https://1rpc.io/matic \
+            https://polygon.drpc.org ; do
             echo "--- trying RPC: $rpc"
             python3 scripts/treasury_check.py --rpc "$rpc" --out treasury-check.json 2>&1 | tee treasury-check.log
             rc=${PIPESTATUS[0]}
@@ -105,22 +107,3 @@ jobs:
             treasury-check.log
           if-no-files-found: warn
           retention-days: 90
-
-      - name: Commit evidence packet to repo
-        if: always()
-        run: |
-          if [ ! -f treasury-check.json ]; then
-            echo "No evidence packet to commit."
-            exit 0
-          fi
-          mkdir -p docs/treasury
-          cp treasury-check.json docs/treasury/certification-latest.json
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/treasury/certification-latest.json
-          if git diff --cached --quiet; then
-            echo "Evidence packet unchanged — nothing to commit."
-            exit 0
-          fi
-          git commit -m "Treasury check evidence (Actions run ${{ github.run_id }})"
-          git push origin HEAD:Hub10
