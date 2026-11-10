@@ -37,9 +37,22 @@ jobs:
       - name: Run treasury check (RPC fallback)
         env:
           POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+          # Optional authenticated Polygon RPC (Alchemy). When the
+          # POLYGON_RPC_URL secret is configured it is tried FIRST;
+          # when it is absent the variable is empty and only the
+          # public RPCs below are tried. The URL carries its key in
+          # the path, so it is NEVER echoed raw — see sanitize_rpc.
+          POLYGON_RPC_URL: ${{ secrets.POLYGON_RPC_URL }}
         run: |
           set +e
           set +o pipefail
+          # Redact an API-key-like trailing path segment (e.g. Alchemy
+          # /v2/<key>) so the key never appears in logs. Mirrors
+          # _sanitize_url() in treasury_check.py. Hostnames and short
+          # segments (e.g. /matic) are untouched.
+          sanitize_rpc() {
+            printf '%s' "$1" | sed -E 's#(/[^/]+/)[A-Za-z0-9_-]{16,}$#\1<redacted>#'
+          }
           # Self-test first: selectors must verify before any network call.
           python3 scripts/treasury_check.py --dry-run
           if [ $? -ne 0 ]; then
@@ -47,25 +60,33 @@ jobs:
             exit 1
           fi
           rc=1
-          # Public RPCs, in order. polygon-rpc.com (401 tenant-disabled),
-          # polygon.llamarpc.com (DNS dead) and rpc.ankr.com/polygon
-          # (needs its own API key) were all dead in run 42764168559 and
-          # are NOT in this list. polygon.drpc.org and 1rpc.io/matic are
-          # kept as later fallbacks (Cloudflare 1010 on first try).
-          for rpc in \
-            https://polygon-bor-rpc.publicnode.com \
-            https://polygon-mainnet.public.blastapi.io \
-            https://1rpc.io/matic \
-            https://polygon.drpc.org ; do
-            echo "--- trying RPC: $rpc"
+          # RPCs, in order. The authenticated POLYGON_RPC_URL (Alchemy)
+          # goes first when configured: GitHub Actions runner IPs are
+          # systematically Cloudflare-blocked (1010) on the public
+          # RPCs (verified run 42765953276 — all four public RPCs 403).
+          # polygon-rpc.com (401 tenant-disabled), polygon.llamarpc.com
+          # (DNS dead), rpc.ankr.com/polygon (needs its own API key) and
+          # polygon-mainnet.public.blastapi.io (BlastAPI public endpoint
+          # retired — "Blast API is no longer available", run
+          # 42765953276) are NOT in this list.
+          RPCS=(
+            https://polygon-bor-rpc.publicnode.com
+            https://1rpc.io/matic
+            https://polygon.drpc.org
+          )
+          if [ -n "${POLYGON_RPC_URL:-}" ]; then
+            RPCS=("$POLYGON_RPC_URL" "${RPCS[@]}")
+          fi
+          for rpc in "${RPCS[@]}"; do
+            echo "--- trying RPC: $(sanitize_rpc "$rpc")"
             python3 scripts/treasury_check.py --rpc "$rpc" --out treasury-check.json 2>&1 | tee treasury-check.log
             rc=${PIPESTATUS[0]}
             if [ "$rc" -eq 0 ]; then
-              echo "Treasury check PASSED with RPC $rpc"
+              echo "Treasury check PASSED with RPC $(sanitize_rpc "$rpc")"
               break
             fi
             if grep -q "ERROR source 1" treasury-check.log; then
-              echo "Source 1 failed on $rpc — trying next RPC."
+              echo "Source 1 failed on $(sanitize_rpc "$rpc") — trying next RPC."
               continue
             fi
             echo "Check failed for a reason other than source 1 (exit $rc) — stopping."
