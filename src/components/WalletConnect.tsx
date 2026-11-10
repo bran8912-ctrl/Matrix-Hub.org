@@ -267,27 +267,6 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
             >
               Add MTX to Wallet
             </button>
-            {/* MTX: Buy MTX link using uniswapUrl from config */}
-            {MTX.isDeployed && (
-              <a
-                href={MTX.uniswapUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  padding: '0.25rem 0.75rem',
-                  fontSize: '0.875rem',
-                  background: '#FF007A',
-                  color: '#fff',
-                  textDecoration: 'none',
-                  border: 'none',
-                  borderRadius: '4px',
-                  display: 'inline-block',
-                  marginRight: '0.5rem'
-                }}
-              >
-                Buy MTX on QuickSwap
-              </a>
-            )}
             {/* MTX: Direct Mint link */}
             {MTX.isDeployed && (
               <a
