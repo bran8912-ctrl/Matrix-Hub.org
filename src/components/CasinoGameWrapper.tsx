@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
+import { walletConnectEnabled } from '../config/appkit';
 import {
   claimCasinoPayout,
   getCasinoBetStatus,
@@ -118,6 +119,20 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
         <p className="text-gray-300">
           The VRF casino contracts have not been deployed and validated on {Casino.chainName}.
           No MTX will be transferred.
+        </p>
+      </div>
+    );
+  }
+
+  // 2026-11-10: wallet connect is explicitly disabled — no Reown project
+  // ID is configured, so no wallet can be connected. Show that honestly
+  // instead of a connect button that cannot work.
+  if (!walletConnectEnabled) {
+    return (
+      <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
+        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Wallet connection is currently unavailable</h3>
+        <p className="text-gray-300">
+          WalletConnect is not configured yet, so no wallet can be connected right now.
         </p>
       </div>
     );

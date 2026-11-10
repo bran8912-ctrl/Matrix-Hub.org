@@ -4,14 +4,18 @@
 
 // WalletConnect Project ID
 // Get your project ID from: https://cloud.reown.com
-// For development, you can use a test project ID
-export const projectId = import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID || 'YOUR_PROJECT_ID_HERE'
+// 2026-11-10: no Reown project exists yet, so wallet connect is explicitly
+// DISABLED until a real project ID is configured. There is no placeholder
+// fallback — shipping one would present a broken connect button.
+// To re-enable: create a free project at https://cloud.reown.com and set
+// PUBLIC_WALLETCONNECT_PROJECT_ID (GitHub secret, wired in astro.yml).
+export const projectId = import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
-// Warn if using placeholder project ID
-if (projectId === 'YOUR_PROJECT_ID_HERE') {
-  console.warn('⚠️  Using placeholder WalletConnect Project ID')
-  console.warn('    Get a real project ID from: https://cloud.reown.com')
-  console.warn('    Set PUBLIC_WALLETCONNECT_PROJECT_ID in your .env file')
+// True only when a real WalletConnect project ID is configured.
+export const walletConnectEnabled = projectId !== ''
+
+if (!walletConnectEnabled) {
+  console.warn('⚠️  WalletConnect is disabled: no PUBLIC_WALLETCONNECT_PROJECT_ID is configured.')
 }
 
 // Metadata for your dApp

@@ -3,6 +3,7 @@ import { BrowserProvider, formatUnits, parseUnits, Contract } from 'ethers';
 import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
+import { walletConnectEnabled } from '../config/appkit';
 
 // Deployed MTX token contract address and ABI
 const MTX_TOKEN_ADDRESS = MTX.address;
@@ -218,6 +219,18 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     setLocked(0);
     setLockUntil(0);
   };
+
+  // 2026-11-10: wallet connect is explicitly disabled — no Reown project
+  // ID is configured, so no wallet can be connected. Show that honestly
+  // instead of a connect button that cannot work.
+  if (!walletConnectEnabled) {
+    return (
+      <div style={{ padding: '1rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
+        <h3>Wallet Connect</h3>
+        <p>Wallet connection is currently unavailable. WalletConnect is not configured yet, so no wallet can be connected right now.</p>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '1rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>

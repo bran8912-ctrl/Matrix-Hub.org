@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
+import { walletConnectEnabled } from '../config/appkit';
 import mtxAbi from '../abi/mtx.json';
 import { ensureEthereum } from '../utils/mtxTransfer';
 import { getEthereumProvider } from '../utils/ethereumProvider';
@@ -95,6 +96,17 @@ const Wallet = () => {
       console.error('Error adding token to wallet:', err);
       setError('Failed to add token to wallet.');
     }
+  }
+
+  // 2026-11-10: wallet connect is explicitly disabled — no Reown project
+  // ID is configured, so no wallet can be connected. Show that honestly
+  // instead of a connect button that cannot work.
+  if (!walletConnectEnabled) {
+    return (
+      <div className="wallet-panel">
+        <p>Wallet connection is currently unavailable. WalletConnect is not configured yet, so no wallet can be connected right now.</p>
+      </div>
+    );
   }
 
   return (

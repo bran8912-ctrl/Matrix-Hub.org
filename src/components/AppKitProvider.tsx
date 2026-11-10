@@ -2,7 +2,7 @@ import React, { type ReactNode, useEffect } from 'react';
 import { createAppKit } from '@reown/appkit/react'
 import { EthersAdapter } from '@reown/appkit-adapter-ethers'
 import { mainnet, polygon, polygonAmoy } from '@reown/appkit/networks'
-import { projectId, metadata } from '../config/appkit'
+import { projectId, metadata, walletConnectEnabled } from '../config/appkit'
 import { MTX } from '../config/mtx'
 
 // Track if AppKit has been initialized to prevent duplicate initialization
@@ -15,8 +15,9 @@ interface AppKitProviderProps {
 // This component initializes AppKit modal once on the client side
 export default function AppKitProvider({ children }: AppKitProviderProps) {
   useEffect(() => {
-    // Only initialize on client side and only once
-    if (typeof window !== 'undefined' && !isInitialized) {
+    // Only initialize on client side and only once, and only when a real
+    // WalletConnect project ID is configured (2026-11-10: disabled — no project yet).
+    if (typeof window !== 'undefined' && !isInitialized && walletConnectEnabled) {
       isInitialized = true;
       
       createAppKit({

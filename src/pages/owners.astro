@@ -6,13 +6,16 @@ export const prerender = true;
 // Get password from environment variable at build time
 // Use a hashed version for better security
 // Safe handling to prevent build failures if env var is missing
-let OWNERS_PASSWORD_HASH = import.meta.env.OWNERS_PASSWORD_HASH;
+// 2026-11-10: there is NO placeholder fallback. When unconfigured the
+// portal renders only the "not configured" message and no portal content
+// or password hash is emitted into the page at all.
+let OWNERS_PASSWORD_HASH = import.meta.env.OWNERS_PASSWORD_HASH || '';
 let passwordConfigured = false;
 
 // Check if password is configured properly
 if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OWNERS_PASSWORD_HASH.trim() === '') {
   console.warn("⚠️ OWNERS_PASSWORD_HASH not configured. Owners portal will display a configuration message.");
-  OWNERS_PASSWORD_HASH = 'sha256-not-configured';
+  OWNERS_PASSWORD_HASH = '';
   passwordConfigured = false;
 } else {
   passwordConfigured = true;
@@ -61,6 +64,11 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
       </div>
     </div>
 
+    {/* 2026-11-10: portal content is only rendered when a password hash is
+        configured. When unconfigured, no portal HTML is emitted at all —
+        previously the whole portal was in the static HTML hidden with
+        display:none, which is not access control. */}
+    {passwordConfigured && (
     <div id="portal-content" class="portal-content" style="display: none;">
       <h1 class="welcome-title">🎯 WELCOME TO THE MATRIX-HUB COMMAND CENTER</h1>
       
@@ -279,9 +287,11 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
         <p>🌟 Matrix-Hub: Signal Over Noise</p>
       </div>
     </div>
+    )}
   </div>
 </Layout>
 
+{passwordConfigured && (
 <script define:vars={{ OWNERS_PASSWORD_HASH, passwordConfigured }}>
   // Client-side authentication with password hashing
   const passwordGate = document.getElementById('password-gate');
@@ -481,6 +491,7 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
     `;
   });
 </script>
+)}
 
 <style>
   .owners-portal {
