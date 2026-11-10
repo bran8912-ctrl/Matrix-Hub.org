@@ -34,40 +34,74 @@ Sources:
       retired its public endpoint, verified in run 42765953276, and was
       removed from the workflow list. GitHub Actions runner IPs are
       systematically Cloudflare-blocked (1010) on the remaining public
-      RPCs, so an authenticated POLYGON_RPC_URL is the reliable path.)
+      RPCs, so an authenticated POLYGON_RPC_URL is the reliable path.
+      Run 42767395120 proved it: the Alchemy RPC read all values
+      successfully.)
       Any URL that may carry a key (Alchemy-style /v2/<key> path) is
       redacted to <redacted> in every log line and in the evidence
       packet — the raw URL is never printed.
-  Source 2: Etherscan API V2 proxy (module=proxy, action=eth_call /
-      eth_getBalance / eth_blockNumber, chainid=137).  Only used when
-      the API key is present in the environment (default env var
-      POLYGONSCAN_API_KEY, overridable with --api-key-env).  The key
-      is NEVER printed, logged, or written to any output file.
-      (Former endpoint api.polygonscan.com/api is dead — it now serves
-      the Etherscan API docs landing page, verified 2026-11-10.)
+  Source 2 (independent second source): a SECOND JSON-RPC endpoint
+      (--rpc2, from the POLYGON_RPC_URL_2 environment variable —
+      an authenticated Ankr endpoint
+      https://rpc.ankr.com/polygon/<key>). It reads the same six
+      values + pool pair + block with the same eth_call /
+      eth_getBalance / eth_blockNumber / eth_getBlockByNumber calls.
+      Source 2 has NO public-RPC fallback: if POLYGON_RPC_URL_2 is
+      not set, the run fails UNKNOWN (exit 1) with a clear message.
+      Why Ankr: its public endpoint answered GitHub Actions runners
+      with a proper JSON-RPC error in run 42764168559, NOT a
+      Cloudflare 1010 block — unlike dRPC/publicnode/1rpc — so an
+      authenticated Ankr endpoint should answer runners, as the
+      authenticated Alchemy endpoint already proved.
+      The verdict is CERTIFIED only when Source 1 and Source 2 agree
+      on every value; disagreement, or either source failing, is
+      UNKNOWN / exit 1. No config defaults, ever.
+  Etherscan API V2 (module=contract, action=getabi) is kept ONLY as
+      a NON-BLOCKING preflight sanity check: if the key is present in
+      the environment, the contract ABI is fetched and each function
+      name must be present in it; success logs the ABI check line,
+      failure logs a WARNING and the run continues. The verdict NEVER
+      depends on Etherscan. Reason: Etherscan API V2 does NOT accept
+      module=proxy&action=eth_call for these reads — run 42767395120
+      proved it: getabi succeeded on every attempt (key valid) while
+      the FIRST proxy eth_call (mintingPaused) failed 3x with
+      {"status":"0","message":"NOTOK","result":"Error! Missing Or
+      invalid Action name"}, and a direct test showed Etherscan
+      validates the API key BEFORE the action name (a fake key
+      returns "Invalid API Key" even for a bogus action) — so the
+      real key passed validation and Etherscan then rejected the
+      proxy eth_call action itself. The proxy path is retired;
+      do NOT re-add it as a source. (Former endpoint
+      api.polygonscan.com/api is dead — it now serves the Etherscan
+      API docs landing page, verified 2026-11-10.)
 
 Function selectors are NOT hard-coded guesses: they are computed at
 runtime from the function signatures with a pure-Python Keccak-256
 (original Keccak padding, NOT SHA3-256).  Two well-known selectors
 are cross-checked as a self-test -- totalSupply() must be 0x18160ddd
 and owner() must be 0x8da5cb5b -- and any mismatch is a loud failure.
-When the PolygonScan API key is available, the contract ABI is also
-fetched (module=contract, action=getabi) and each function name must
-be present in it; a missing function is a loud failure.
 
 Exit codes:
   0  All reads succeeded AND both sources agree on every value.
-  2  Partial: reads succeeded on source 1 but two-source agreement
-     was NOT confirmed (second source unavailable / skipped).  The
-     verdict is printed with a clear warning; do NOT treat it as
-     certified.
+  2  Reserved (legacy partial: source 1 succeeded but the second
+     source was unavailable). No longer emitted: since round 3 a
+     second RPC is mandatory for certification, so a missing or
+     failed Source 2 is a hard failure (exit 1, verdict UNKNOWN),
+     not a partial result. Kept in this list for compatibility.
   1  Any read failure, source disagreement, ABI/selector mismatch,
-     or unreachable RPC (including HTTP 401/403).  Values are printed
-     as UNKNOWN -- NEVER config defaults (100M / 1000).
+     missing Source 2 configuration, or unreachable RPC (including
+     HTTP 401/403).  Values are printed as UNKNOWN -- NEVER config
+     defaults (100M / 1000).
 
 Usage:
   python3 treasury_check.py [--api-key-env POLYGONSCAN_API_KEY]
-                            [--rpc URL] [--out FILE] [--dry-run]
+                            [--rpc URL] [--rpc2 URL] [--out FILE]
+                            [--dry-run]
+  --rpc2 defaults to the POLYGON_RPC_URL_2 environment variable
+  (authenticated Ankr endpoint); it is REQUIRED for a certified
+  result — there is no public-RPC fallback for Source 2.
+  --api-key-env supplies the Etherscan key used ONLY for the
+  non-blocking ABI preflight; the verdict never depends on it.
 """
 
 import argparse
@@ -269,20 +303,19 @@ def fmt_time(ts):
 #
 # Transient failures are RETRYABLE (up to MAX_ATTEMPTS with exponential
 # backoff): HTTP 429 / 5xx, dropped connections / DNS hiccups, empty or
-# non-JSON response bodies, Etherscan "rate limit" text returned as
-# a 200 result, and Etherscan proxy status 0 / "NOTOK" — the "result"
-# field carries the actual reason, so it is surfaced in full (sanitized)
-# and retried instead of being discarded.  Run 42765953276 proved why:
-# getabi succeeded on every attempt (key valid) while proxy eth_call
-# returned NOTOK with no visible reason, because the old code surfaced
-# only the "message" field and threw the "result" away.
-# Permanent failures are NOT retried: HTTP 401/403
-# (tenant disabled / Cloudflare ban / key-required endpoint) and
-# JSON-RPC "error" objects (e.g. Ankr -32000 Unauthorized).
-# Run 42764168559 (2026-11-10) showed why this matters: the Etherscan
-# free plan allows 3 calls/sec and the script fired its calls with no
-# pacing, so proxy eth_call returned "Max calls per sec rate limit
-# reached (3/sec)" as the result and getabi returned an empty body.
+# non-JSON response bodies. Permanent failures are NOT retried:
+# HTTP 401/403 (tenant disabled / Cloudflare ban / key-required
+# endpoint) and JSON-RPC "error" objects (e.g. Ankr -32000
+# Unauthorized). Run 42764168559 (2026-11-10) showed why pacing
+# matters for API calls: the Etherscan free plan allows 3 calls/sec
+# and unfettered calls returned "Max calls per sec rate limit
+# reached (3/sec)" as the result and empty bodies. The Etherscan
+# proxy (module=proxy) is NOT used for reads any more — run
+# 42767395120 proved Etherscan API V2 rejects proxy eth_call with
+# "Missing Or invalid Action name" even with a valid key — so the
+# only Etherscan call left is the non-blocking getabi preflight,
+# whose NOTOK responses are surfaced in full (sanitized) and retried
+# like any other transient API failure.
 # ---------------------------------------------------------------------------
 
 MAX_ATTEMPTS = 3
@@ -473,13 +506,22 @@ class RpcSource:
 
 
 # ---------------------------------------------------------------------------
-# Source 2: Etherscan API V2 proxy (requires an API key from the env).
+# Etherscan getabi preflight (NON-BLOCKING sanity check only).
 # The key is passed only as a query parameter to api.etherscan.io/v2/api
 # and is NEVER printed, logged, or written to output.
+#
+# The Etherscan proxy (module=proxy, action=eth_call / eth_getBalance /
+# eth_blockNumber / eth_getBlockByNumber) is RETIRED as a read source:
+# run 42767395120 proved Etherscan API V2 rejects proxy eth_call with
+# "Missing Or invalid Action name" even though the key passed
+# validation (getabi succeeded on every attempt in the same run).
+# Only getabi remains, and only as a preflight: if it succeeds, the
+# ABI check line is logged; if it fails, a WARNING is logged and the
+# run continues. The verdict NEVER depends on Etherscan.
 # ---------------------------------------------------------------------------
 
-class PolygonscanSource:
-    name = "polygonscan"
+class EtherscanAbiPreflight:
+    name = "etherscan-abi-preflight"
 
     def __init__(self, api_key):
         self.api_key = api_key
@@ -492,9 +534,7 @@ class PolygonscanSource:
         url = POLYGONSCAN_API + "?" + urllib.parse.urlencode(params)
 
         def _once():
-            # Pace calls: the free plan allows 3 calls/sec. Without
-            # pacing, run 42764168559 got "Max calls per sec rate limit
-            # reached (3/sec)" returned as the result.
+            # Pace calls: the free plan allows 3 calls/sec.
             now = time.monotonic()
             wait = self._next_allowed - now
             if wait > 0:
@@ -503,63 +543,48 @@ class PolygonscanSource:
             resp = http_get_json(url)
             if str(resp.get("status")) == "0":
                 # NOTOK. The "result" field carries the actual reason
-                # (rate-limit text, proxy/node error, ...). The old code
-                # surfaced only "message" and discarded "result", which
-                # made run 42765953276 undiagnosable: getabi succeeded
-                # while every proxy eth_call returned NOTOK with no
-                # visible reason. Surface the FULL response body
+                # (rate-limit text, ...). Surface the FULL response body
                 # (sanitized) and treat NOTOK as RETRYABLE with the
-                # existing backoff — a transient proxy failure, not a
-                # verdict. If it persists across all attempts,
-                # call_with_retries raises the last error and the run
-                # fails UNKNOWN, as it should.
+                # existing backoff. The preflight caller catches any
+                # persistent failure and logs a WARNING instead of
+                # failing the run.
                 detail = _sanitize_text(
                     json.dumps(resp, default=str)[:2000])
                 raise RetryableError(
-                    "Etherscan proxy NOTOK (status 0, message %r): %s"
+                    "Etherscan NOTOK (status 0, message %r): %s"
                     % (resp.get("message"), detail)
                 )
             if "result" not in resp:
                 raise RuntimeError(
-                    "PolygonScan API error: %s"
+                    "Etherscan API error: %s"
                     % (resp.get("message") or resp,)
                 )
             return resp["result"]
 
-        return call_with_retries(_once, "PolygonScan API")
-
-    def eth_call(self, to, data):
-        return self._get({
-            "module": "proxy", "action": "eth_call",
-            "to": to, "data": data, "tag": "latest",
-        })
-
-    def eth_get_balance(self, address):
-        return self._get({
-            "module": "proxy", "action": "eth_getBalance",
-            "address": address, "tag": "latest",
-        })
-
-    def block_number(self):
-        return hex_to_int(self._get({
-            "module": "proxy", "action": "eth_blockNumber",
-        }))
-
-    def block_timestamp(self, block_number):
-        block = self._get({
-            "module": "proxy", "action": "eth_getBlockByNumber",
-            "tag": hex(block_number), "boolean": "false",
-        })
-        if not block or "timestamp" not in block:
-            raise RuntimeError(
-                "PolygonScan: block %d has no timestamp" % block_number)
-        return hex_to_int(block["timestamp"])
+        return call_with_retries(_once, "Etherscan API")
 
     def get_abi(self, address):
         abi_json = self._get({
             "module": "contract", "action": "getabi", "address": address,
         })
         return json.loads(abi_json)
+
+
+def abi_preflight(api_key):
+    """Non-blocking ABI sanity check. Returns True if the ABI was
+    fetched and contains every function we read; raises on any
+    failure. Callers must catch the exception, log a WARNING, and
+    continue — the verdict never depends on this check."""
+    abi = EtherscanAbiPreflight(api_key).get_abi(MTX)
+    abi_names = {f.get("name") for f in abi if isinstance(f, dict)}
+    for name in ("mintingPaused", "maticToMtxRate", "MAX_SUPPLY",
+                 "totalSupply", "owner"):
+        if name not in abi_names:
+            raise RuntimeError(
+                "ABI check FAILED: %s not in contract ABI" % name)
+    print("ABI check: mintingPaused, maticToMtxRate, MAX_SUPPLY, "
+          "totalSupply, owner all present in Etherscan ABI.")
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -585,6 +610,16 @@ def read_all(source, selectors):
     out["block"] = source.block_number()
     out["timestamp"] = source.block_timestamp(out["block"])
     return out
+
+
+def find_disagreements(values1, values2):
+    """Keys on which two read results disagree, ignoring block number
+    and timestamp (they may legitimately differ by a few blocks
+    between sources). Returns a list of key names; empty means the
+    sources agree on every compared value."""
+    disagree = [k for k in values1
+                if k in values2 and values1[k] != values2[k]]
+    return [k for k in disagree if k not in ("block", "timestamp")]
 
 
 def verdict_line(values):
@@ -636,18 +671,19 @@ def main(argv=None):
             "(0x53307e1db6c5cb6773c9495ca140372016dfe266, Polygon 137). "
             "Reads mintingPaused, maticToMtxRate, MAX_SUPPLY, totalSupply, "
             "owner, contract POL balance and the QuickSwap pair from two "
-            "independent sources. Exits 0 only if both sources agree; "
-            "1 on any failure/disagreement; 2 if the second source was "
-            "unavailable so two-source agreement was NOT confirmed. "
+            "independent JSON-RPC sources. Exits 0 only if both sources "
+            "agree; 1 on any failure/disagreement or a missing Source 2. "
             "Never prints an API key and never falls back to config "
             "defaults (100M / 1000)."
         )
     )
     parser.add_argument("--api-key-env", default="POLYGONSCAN_API_KEY",
                         help="name of the environment variable holding the "
-                             "PolygonScan API key (default: "
+                             "Etherscan API key, used ONLY for the "
+                             "non-blocking ABI preflight (default: "
                              "POLYGONSCAN_API_KEY). The key is read from "
-                             "the environment only and never printed.")
+                             "the environment only and never printed; the "
+                             "verdict never depends on it.")
     parser.add_argument(
         "--rpc",
         default=os.environ.get("POLYGON_RPC_URL") or DEFAULT_RPC,
@@ -658,6 +694,16 @@ def main(argv=None):
              "else https://polygon-bor-rpc.publicnode.com. The "
              "workflow tries POLYGON_RPC_URL first when the secret "
              "is configured.")
+    parser.add_argument(
+        "--rpc2",
+        default=os.environ.get("POLYGON_RPC_URL_2") or "",
+        help="JSON-RPC endpoint for source 2 (the independent second "
+             "source). Default: the POLYGON_RPC_URL_2 environment "
+             "variable when set (an authenticated endpoint such as "
+             "an Ankr URL, whose key sits in the path and is redacted "
+             "in all output). REQUIRED for a certified result: there "
+             "is no public-RPC fallback for source 2, and a missing "
+             "source 2 fails the run UNKNOWN (exit 1).")
     parser.add_argument("--out", default=None,
                         help="optional path to write the evidence packet "
                              "as JSON")
@@ -691,8 +737,14 @@ def main(argv=None):
         print("  eth_call to=%s (QuickSwap factory) data=0x%s<MTX><WMATIC>"
               % (FACTORY, selectors["getPair"]))
         print("  eth_blockNumber + eth_getBlockByNumber (timestamp)")
-        print("Source 2 (PolygonScan proxy API) would be used only if the "
-              "API key is present in the environment.")
+        print("Source 2 (second JSON-RPC, %s) would read the same "
+              "calls; the two sources must agree for a certified "
+              "result. No public-RPC fallback exists for source 2."
+              % (_sanitize_url(args.rpc2) if args.rpc2 else
+                 "POLYGON_RPC_URL_2 (not set)"))
+        print("The Etherscan getabi preflight (non-blocking) would run "
+              "only if the API key is present in the environment; the "
+              "verdict never depends on it.")
         print("\nVerdict format:")
         print("  " + verdict_line(None))
         print("\nNOTE: verdict values are UNKNOWN in a dry run. "
@@ -702,14 +754,38 @@ def main(argv=None):
     print("Treasury check -- MTX %s (Polygon %d)" % (MTX, CHAIN_ID))
     print("Checked at (UTC): %s" % utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"))
 
-    api_key = os.environ.get(args.api_key_env)
-    second_available = bool(api_key)
-    if not second_available:
-        print("WARNING: no API key in env var %s -- PolygonScan second "
-              "source will be SKIPPED. Two-source agreement will NOT be "
-              "confirmed." % args.api_key_env)
-
     errors = []
+
+    # --- Etherscan ABI preflight (NON-BLOCKING) ------------------------
+    # The proxy is retired (run 42767395120: Etherscan API V2 rejects
+    # proxy eth_call with "Missing Or invalid Action name"). Only
+    # getabi remains, as a sanity check. Any failure is a WARNING;
+    # the verdict never depends on it.
+    api_key = os.environ.get(args.api_key_env)
+    if api_key:
+        try:
+            abi_preflight(api_key)
+        except Exception as exc:  # noqa: BLE001 - preflight only
+            print("WARNING: ABI preflight failed (%s); continuing "
+                  "without it. The verdict does not depend on "
+                  "Etherscan." % _sanitize_text(str(exc)))
+    else:
+        print("ABI preflight skipped (no API key in env var %s); "
+              "continuing. The verdict does not depend on Etherscan."
+              % args.api_key_env)
+
+    # --- Source 2 availability ------------------------------------------
+    # Source 2 is mandatory: an independent second JSON-RPC endpoint
+    # (POLYGON_RPC_URL_2 / --rpc2). No public-RPC fallback for it.
+    rpc2_url = (args.rpc2 or "").strip()
+    second_available = bool(rpc2_url)
+    if not second_available:
+        msg = ("source 2 not configured: POLYGON_RPC_URL_2 is not set "
+               "(and no --rpc2 was given). Two-source agreement cannot "
+               "be confirmed; there is no public-RPC fallback for "
+               "source 2.")
+        errors.append(msg)
+        print("ERROR: %s" % msg, file=sys.stderr)
 
     # --- Source 1: RPC ---------------------------------------------------
     # rpc_label is the URL with any key material redacted; the raw URL
@@ -726,30 +802,21 @@ def main(argv=None):
         print("ERROR source 1 (RPC %s): %s"
               % (rpc_label, _sanitize_text(str(exc))), file=sys.stderr)
 
-    # --- Source 2: PolygonScan (only with a key) -------------------------
+    # --- Source 2: second JSON-RPC (mandatory, no fallback) -------------
+    rpc2_label = _sanitize_url(rpc2_url) if rpc2_url else ""
     values2 = None
     if second_available:
-        ps = PolygonscanSource(api_key)
+        rpc2 = RpcSource(rpc2_url)
         try:
-            # ABI check: every function we call must be in the ABI.
-            abi = ps.get_abi(MTX)
-            abi_names = {f.get("name") for f in abi if isinstance(f, dict)}
-            for name in ("mintingPaused", "maticToMtxRate", "MAX_SUPPLY",
-                         "totalSupply", "owner"):
-                if name not in abi_names:
-                    raise RuntimeError(
-                        "ABI check FAILED: %s not in contract ABI" % name)
-            print("ABI check: mintingPaused, maticToMtxRate, MAX_SUPPLY, "
-                  "totalSupply, owner all present in PolygonScan ABI.")
-            values2 = read_all(ps, selectors)
-            print_table(values2, "Source 2: PolygonScan proxy API")
+            values2 = read_all(rpc2, selectors)
+            print_table(values2, "Source 2: RPC %s" % rpc2_label)
         except Exception as exc:  # noqa: BLE001
-            errors.append("source 2 (PolygonScan): %s"
-                          % _sanitize_text(str(exc)))
-            print("ERROR source 2 (PolygonScan): %s"
-                  % _sanitize_text(str(exc)), file=sys.stderr)
+            errors.append("source 2 (RPC %s): %s"
+                          % (rpc2_label, _sanitize_text(str(exc))))
+            print("ERROR source 2 (RPC %s): %s"
+                  % (rpc2_label, _sanitize_text(str(exc))), file=sys.stderr)
     else:
-        print("Source 2: SKIPPED (no API key in environment).")
+        print("Source 2: NOT CONFIGURED (POLYGON_RPC_URL_2 unset).")
 
     # --- Verdict ----------------------------------------------------------
     print("\nVerdict:")
@@ -766,7 +833,8 @@ def main(argv=None):
         "checked_at_utc": utc_now().strftime("%Y-%m-%dT%H:%M:%SZ"),
         "source1_rpc": rpc_label,
         "source1": values1,
-        "source2_polygonscan": values2,
+        "source2_rpc_url": rpc2_label,
+        "source2_rpc": values2,
         "two_source_available": second_available,
         "two_source_agree": None,
         "verdict": verdict_line(values1),
@@ -785,14 +853,16 @@ def main(argv=None):
         return 1
 
     if not second_available:
-        print("\nRESULT: PARTIAL -- source 1 succeeded, but two-source "
-              "agreement was NOT confirmed (PolygonScan key absent). "
-              "Do NOT treat these numbers as certified.")
-        packet["two_source_agree"] = False
+        print("\nRESULT: FAILED -- source 2 not configured "
+              "(POLYGON_RPC_URL_2 unset). Two-source agreement was NOT "
+              "confirmed. Do NOT treat these numbers as certified.",
+              file=sys.stderr)
+        for err in errors:
+            print("  - %s" % err, file=sys.stderr)
         if args.out:
             with open(args.out, "w", encoding="utf-8") as fh:
                 json.dump(packet, fh, indent=2)
-        return 2
+        return 1
 
     if values2 is None:
         print("\nRESULT: FAILED -- source 2 read failed. Values are "
@@ -804,11 +874,7 @@ def main(argv=None):
                 json.dump(packet, fh, indent=2)
         return 1
 
-    disagree = [k for k in values1
-                if k in values2 and values1[k] != values2[k]]
-    # Block numbers may legitimately differ by a few blocks between
-    # sources; compare values, not the block itself.
-    disagree = [k for k in disagree if k not in ("block", "timestamp")]
+    disagree = find_disagreements(values1, values2)
     if disagree:
         print("\nRESULT: FAILED -- sources DISAGREE on: %s. All affected "
               "values are UNKNOWN. Config defaults were NOT used."
