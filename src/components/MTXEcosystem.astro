@@ -10,7 +10,7 @@ import { MTX } from '../config/mtx';
   </div>
   
   <ul class="mtx-features">
-    <li><span class="feature-label">Buy MTX:</span> Direct mint with MATIC or purchase on QuickSwap DEX</li>
+    <li><span class="feature-label">Buy MTX:</span> Direct mint with MATIC (1 POL = 1,000 MTX)</li>
     <li><span class="feature-label">Earn MTX:</span> Usage milestones, bug reports, GitHub actions, community testing</li>
     <li><span class="feature-label">Spend MTX:</span> Premium tools, priority execution, experimental modules, Casino games</li>
     <li><span class="feature-label">Burn MTX:</span> A % of premium spending is burned to keep supply healthy</li>
@@ -59,15 +59,9 @@ import { MTX } from '../config/mtx';
       <a href="/buy-mtx" class="cta-btn primary">
         Buy MTX (Direct Mint)
       </a>
-      {MTX.isDeployed ? (
-        <a href={MTX.uniswapUrl} target="_blank" rel="noopener noreferrer" class="cta-btn secondary">
-          Buy on QuickSwap
-        </a>
-      ) : (
-        <span class="cta-btn secondary disabled" title="Available after contract deployment">
-          QuickSwap — Coming Soon
-        </span>
-      )}
+      <span class="cta-btn secondary disabled" title="QuickSwap pool not live yet — mint directly for now">
+        QuickSwap — Coming Soon
+      </span>
       <a href="/wallet" class="cta-btn tertiary">Connect Wallet</a>
     </div>
   </div>
