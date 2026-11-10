@@ -9,7 +9,10 @@ name: Verify Amoy Contracts on PolygonScan
 # no wallet, no private keys. The API key comes from the repo secret
 # POLYGONSCAN_API_KEY and is never printed.
 #
-# A step that finds its contract already verified reports it and moves on
+# Each verify streams its output live (tee to a log file) and has a
+# 10-minute timeout: run #1 hung 41 minutes on the first verify with
+# its output buffered in $(...) so nothing was visible. A step that
+# finds its contract already verified reports it and moves on
 # (hardhat exits non-zero on "already verified"); a real verification
 # failure still fails the run loudly.
 
@@ -43,59 +46,59 @@ jobs:
       - name: Verify RNGEngine
         run: |
           set +e
-          OUTPUT=$(npx hardhat verify --network amoy --contract contracts/RNGEngine.sol:RNGEngine 0x2ED3ab377eCfB30d0360E4f8A13163b55D787DE3 0x03A4B3CE58aCD7374e037d49D271014783D3aF25 1 0x1111111111111111111111111111111111111111111111111111111111111111 250000 3 2>&1)
-          STATUS=$?
-          echo "$OUTPUT"
-          if [ $STATUS -eq 0 ]; then
+          set -o pipefail
+          timeout 600 npx hardhat verify --network amoy --contract contracts/RNGEngine.sol:RNGEngine 0x2ED3ab377eCfB30d0360E4f8A13163b55D787DE3 0x03A4B3CE58aCD7374e037d49D271014783D3aF25 1 0x1111111111111111111111111111111111111111111111111111111111111111 250000 3 2>&1 | tee verify-rngengine.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -eq 0 ]; then
             echo "RNGEngine verified"
-          elif echo "$OUTPUT" | grep -qi "already verified"; then
+          elif grep -qi "already verified" verify-rngengine.log; then
             echo "RNGEngine already verified - continuing"
           else
-            echo "RNGEngine verification failed" >&2
+            echo "RNGEngine verification failed (exit $STATUS)" >&2
             exit 1
           fi
 
       - name: Verify CasinoReserve
         run: |
           set +e
-          OUTPUT=$(npx hardhat verify --network amoy --contract contracts/CasinoReserve.sol:CasinoReserve 0x78128A7deD593Bb7b52973e37DB93bEA76802b58 0x1c05F0283E44b5c13C420d24e05495dC5719548b 1000000000000000000000000 0x0000000000000000000000000000000000000000 2>&1)
-          STATUS=$?
-          echo "$OUTPUT"
-          if [ $STATUS -eq 0 ]; then
+          set -o pipefail
+          timeout 600 npx hardhat verify --network amoy --contract contracts/CasinoReserve.sol:CasinoReserve 0x78128A7deD593Bb7b52973e37DB93bEA76802b58 0x1c05F0283E44b5c13C420d24e05495dC5719548b 1000000000000000000000000 0x0000000000000000000000000000000000000000 2>&1 | tee verify-reserve.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -eq 0 ]; then
             echo "CasinoReserve verified"
-          elif echo "$OUTPUT" | grep -qi "already verified"; then
+          elif grep -qi "already verified" verify-reserve.log; then
             echo "CasinoReserve already verified - continuing"
           else
-            echo "CasinoReserve verification failed" >&2
+            echo "CasinoReserve verification failed (exit $STATUS)" >&2
             exit 1
           fi
 
       - name: Verify LiquidityRouter
         run: |
           set +e
-          OUTPUT=$(npx hardhat verify --network amoy --contract contracts/LiquidityRouter.sol:LiquidityRouter 0xAEcba8F452c3acaA1B8616Ec1194Ca82E01435B3 0x1c05F0283E44b5c13C420d24e05495dC5719548b 0x2bbf8fD7B9d447542c4458D578257059Fd0Be189 2>&1)
-          STATUS=$?
-          echo "$OUTPUT"
-          if [ $STATUS -eq 0 ]; then
+          set -o pipefail
+          timeout 600 npx hardhat verify --network amoy --contract contracts/LiquidityRouter.sol:LiquidityRouter 0xAEcba8F452c3acaA1B8616Ec1194Ca82E01435B3 0x1c05F0283E44b5c13C420d24e05495dC5719548b 0x2bbf8fD7B9d447542c4458D578257059Fd0Be189 2>&1 | tee verify-router.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -eq 0 ]; then
             echo "LiquidityRouter verified"
-          elif echo "$OUTPUT" | grep -qi "already verified"; then
+          elif grep -qi "already verified" verify-router.log; then
             echo "LiquidityRouter already verified - continuing"
           else
-            echo "LiquidityRouter verification failed" >&2
+            echo "LiquidityRouter verification failed (exit $STATUS)" >&2
             exit 1
           fi
 
       - name: Verify CasinoCore
         run: |
           set +e
-          OUTPUT=$(npx hardhat verify --network amoy --contract contracts/CasinoCore.sol:CasinoCore 0xAD42F2e4DfB5D8B0A15745eDdc942cd50aab7D28 0x1c05F0283E44b5c13C420d24e05495dC5719548b 0xAEcba8F452c3acaA1B8616Ec1194Ca82E01435B3 0x78128A7deD593Bb7b52973e37DB93bEA76802b58 0x2ED3ab377eCfB30d0360E4f8A13163b55D787DE3 1000000000000000000 1000000000000000000000 100000000000000000000 0x19dB6AD52b9F701DD436294F250A71B12cd33caB 0x19dB6AD52b9F701DD436294F250A71B12cd33caB 2>&1)
-          STATUS=$?
-          echo "$OUTPUT"
-          if [ $STATUS -eq 0 ]; then
+          set -o pipefail
+          timeout 600 npx hardhat verify --network amoy --contract contracts/CasinoCore.sol:CasinoCore 0xAD42F2e4DfB5D8B0A15745eDdc942cd50aab7D28 0x1c05F0283E44b5c13C420d24e05495dC5719548b 0xAEcba8F452c3acaA1B8616Ec1194Ca82E01435B3 0x78128A7deD593Bb7b52973e37DB93bEA76802b58 0x2ED3ab377eCfB30d0360E4f8A13163b55D787DE3 1000000000000000000 1000000000000000000000 100000000000000000000 0x19dB6AD52b9F701DD436294F250A71B12cd33caB 0x19dB6AD52b9F701DD436294F250A71B12cd33caB 2>&1 | tee verify-core.log
+          STATUS=${PIPESTATUS[0]}
+          if [ "$STATUS" -eq 0 ]; then
             echo "CasinoCore verified"
-          elif echo "$OUTPUT" | grep -qi "already verified"; then
+          elif grep -qi "already verified" verify-core.log; then
             echo "CasinoCore already verified - continuing"
           else
-            echo "CasinoCore verification failed" >&2
+            echo "CasinoCore verification failed (exit $STATUS)" >&2
             exit 1
           fi
