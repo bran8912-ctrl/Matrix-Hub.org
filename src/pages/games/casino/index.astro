@@ -12,7 +12,7 @@ export const navCategory = "casino";
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold mb-6 text-green-400">🎰 MTX Casino</h1>
     <p class="text-xl text-gray-300 mb-4">
-      The first VRF-backed release supports single-round Dice only. Wagers remain disabled until all contracts are deployed and validated.
+      The first VRF-backed release supports single-round Dice only. Dice is live on Polygon — wagers are settled by Chainlink VRF. Other games arrive as their outcomes move on-chain.
     </p>
     
     <div class="mb-8">
@@ -57,7 +57,7 @@ export const navCategory = "casino";
         <div class="text-5xl mb-3 text-center">🎲</div>
         <h3 class="text-2xl font-bold text-green-400 mb-2">Dice</h3>
         <p class="text-gray-300 mb-2">Single-round Dice; the settled on-chain roll is authoritative.</p>
-        <p class="text-sm text-yellow-400">Unavailable until contract deployment</p>
+        <p class="text-sm text-green-400">Live — play now</p>
       </a>
 
       <!-- Mines -->
@@ -74,11 +74,11 @@ export const navCategory = "casino";
       <ul class="space-y-2 text-yellow-100">
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>Wagers are disabled until the deployed VRF contracts are validated</span>
+          <span>Dice wagers are live — each bet is settled on-chain by a Chainlink VRF roll</span>
         </li>
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
-          <span>The first supported game will be single-round Dice</span>
+          <span>The first supported game is single-round Dice</span>
         </li>
         <li class="flex items-start">
           <span class="text-green-400 mr-2">✓</span>
@@ -98,14 +98,14 @@ export const navCategory = "casino";
 </Layout>
 
 <script>
-  // Analytics: clicks on disabled casino game cards (demand/confusion signal).
-  // The cards link to pages that themselves say wagers are disabled — the click is the signal.
+  // Analytics: clicks on casino game cards (demand signal — Dice is live,
+  // the other games are still coming soon).
   document.querySelectorAll('a[href^="/games/casino/"]').forEach(function (el) {
     el.addEventListener('click', function () {
       try {
         const href = el.getAttribute('href') || '';
         const game = href.split('/').pop() || '';
-        (window as any).trackMatrixEvent?.('casino_click_disabled', { location: 'casino-index:' + game });
+        (window as any).trackMatrixEvent?.('casino_game_click', { location: 'casino-index:' + game });
       } catch (e) {}
     });
   });
