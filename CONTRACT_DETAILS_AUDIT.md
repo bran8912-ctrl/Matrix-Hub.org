@@ -381,3 +381,5 @@ Issue #167 ("I believe these are the correct addresses") was checked address-by-
 **Audit Date**: December 29, 2025
 **Addendum**: November 10, 2026 — Contract Auditor (verified on PolygonScan)
 **Status**: ✅ Corrected — see table above; exposed-key revocation in progress (owner account bran8912@gmail.com, identified 2026-11-10)
+
+> **Update 2026-11-10 (revocation):** the old PolygonScan account was identified as MatrixHubOrg / bran8912@gmail.com and signed in successfully (last login 2026-11-10 04:09 UTC), but its API Dashboard lists **0 active API keys** — there is no key there to revoke. The same password does not work on Etherscan, so it is unknown whether an Etherscan account exists for that identity. Nothing has been revoked. Remaining protection is the deletion of `verify_mtx.js` from this repo (commit 60f1cc3) plus the 0-active-APIs state. Open question for the owner: does an Etherscan account exist for MatrixHubOrg / bran8912@gmail.com?
