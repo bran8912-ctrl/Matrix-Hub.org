@@ -2,6 +2,9 @@
   "name": "astro-supabase-starter",
   "type": "module",
   "version": "0.0.1",
+  "engines": {
+    "node": ">=20"
+  },
   "//": "NOTE: Several deprecated npm packages are used transitively by dependencies:",
   "//deprecated-transitive": {
     "inflight@1.0.6": {
@@ -47,12 +50,12 @@
     "preflight:mainnet": "node scripts/preflight_mainnet.js",
     "deploy:testnet:full": "npm run deploy:testnet:mtx && npm run deploy:testnet:casino && npm run deploy:testnet:distribute",
     "dev": "astro dev",
-    "start": "node dist/server/entry.mjs",
-    "serve": "npm run build && node dist/server/entry.mjs",
+    "start": "node server.mjs",
+    "serve": "npm run build && node server.mjs",
     "build": "astro build",
-    "preview": "node dist/server/entry.mjs",
+    "preview": "astro preview",
     "astro": "astro",
-    "deploy": "./scripts/deploy.sh",
+    "deploy:mtx": "./scripts/deploy.sh",
     "compile": "node scripts/compile-wrapper.js",
     "test": "node scripts/test-wrapper.js",
     "deploy:polygon": "hardhat run scripts/deploy_mtx.js --network polygon",
@@ -65,7 +68,6 @@
     "content:watch": "node content-workflow.js watch",
     "content:analytics": "node content-workflow.js analytics",
     "content:help": "node content-workflow.js help",
-    "chat:server": "node chat-server.mjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "lint:contracts": "solhint 'contracts/**/*.sol'",
