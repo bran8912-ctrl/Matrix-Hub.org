@@ -40,7 +40,7 @@ describe('Casino Configuration and Deployment Status', () => {
 
   it('should validate 40-character EVM addresses and 64-character deployed hashes', () => {
     expect(isValidAddress('0x9fb4bb44d8d962d695fc93b3dc15f1b287391077')).to.equal(true);
-    expect(isValidAddress('0x2fbee7a063dafc8adadfaa1c351796407454a1e0')).to.equal(true);
+    expect(isValidAddress('0x2222222222222222222222222222222222222222')).to.equal(true);
     expect(isValidAddress('0x206bbb10e54e2b937b90611b31d1954ebaca9e4acf9b62cbb38a9591495aa5c9')).to.equal(true);
     expect(isValidAddress('0x123')).to.equal(false);
     expect(isValidAddress('')).to.equal(false);
