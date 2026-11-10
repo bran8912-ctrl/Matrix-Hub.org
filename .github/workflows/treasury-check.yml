@@ -1,0 +1,126 @@
+name: Treasury Check — MTX Certification
+
+# Read-only on-chain certification for the verified MTX token
+# (MatrixHubCoin 0x53307e1db6c5cb6773c9495ca140372016dfe266, Polygon 137).
+#
+# Runs on manual dispatch, and automatically when the check script or
+# this workflow itself changes (paths filter only — no schedule, no
+# general push trigger). The run commits its evidence packet back to
+# docs/treasury/certification-latest.json so the result is readable
+# without Actions UI access; the artifact upload is kept as well.
+# No secret is ever printed: treasury_check.py reads the API key from
+# the environment only and never logs it, and the step logs contain no
+# key material.
+
+"on":
+  workflow_dispatch:
+  push:
+    branches: [Hub10]
+    paths:
+      - 'scripts/treasury_check.py'
+      - '.github/workflows/treasury-check.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  treasury-check:
+    name: MTX two-source treasury check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Run treasury check (RPC fallback)
+        env:
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+        run: |
+          set +e
+          set +o pipefail
+          # Self-test first: selectors must verify before any network call.
+          python3 scripts/treasury_check.py --dry-run
+          if [ $? -ne 0 ]; then
+            echo "Dry-run self-test FAILED — aborting." >&2
+            exit 1
+          fi
+          rc=1
+          for rpc in \
+            https://polygon-rpc.com \
+            https://polygon.drpc.org \
+            https://rpc.ankr.com/polygon \
+            https://polygon.llamarpc.com \
+            https://1rpc.io/matic ; do
+            echo "--- trying RPC: $rpc"
+            python3 scripts/treasury_check.py --rpc "$rpc" --out treasury-check.json 2>&1 | tee treasury-check.log
+            rc=${PIPESTATUS[0]}
+            if [ "$rc" -eq 0 ]; then
+              echo "Treasury check PASSED with RPC $rpc"
+              break
+            fi
+            if grep -q "ERROR source 1" treasury-check.log; then
+              echo "Source 1 failed on $rpc — trying next RPC."
+              continue
+            fi
+            echo "Check failed for a reason other than source 1 (exit $rc) — stopping."
+            break
+          done
+          # Write the verdict into the job summary (no secrets in output).
+          python3 - <<'PYEOF'
+          import json
+          import os
+          try:
+              with open("treasury-check.json", encoding="utf-8") as fh:
+                  packet = json.load(fh)
+              verdict = packet.get("verdict", "UNKNOWN")
+              agree = packet.get("two_source_agree")
+              errors = packet.get("errors") or []
+          except Exception as exc:  # noqa: BLE001
+              verdict = "UNKNOWN (no evidence packet written)"
+              agree = None
+              errors = [str(exc)]
+          summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+          with open(summary_path, "a", encoding="utf-8") as out:
+              out.write("## Treasury check — MTX\n\n")
+              out.write("**Verdict:** %s\n\n" % verdict)
+              out.write("**Two-source agreement:** %s\n\n" % agree)
+              if errors:
+                  out.write("**Errors:**\n\n")
+                  for err in errors:
+                      out.write("- %s\n" % err)
+          PYEOF
+          exit $rc
+
+      - name: Upload evidence packet
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: treasury-check-evidence
+          path: |
+            treasury-check.json
+            treasury-check.log
+          if-no-files-found: warn
+          retention-days: 90
+
+      - name: Commit evidence packet to repo
+        if: always()
+        run: |
+          if [ ! -f treasury-check.json ]; then
+            echo "No evidence packet to commit."
+            exit 0
+          fi
+          mkdir -p docs/treasury
+          cp treasury-check.json docs/treasury/certification-latest.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/treasury/certification-latest.json
+          if git diff --cached --quiet; then
+            echo "Evidence packet unchanged — nothing to commit."
+            exit 0
+          fi
+          git commit -m "Treasury check evidence (Actions run ${{ github.run_id }})"
+          git push origin HEAD:Hub10
