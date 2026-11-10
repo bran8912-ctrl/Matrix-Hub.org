@@ -222,6 +222,10 @@ export async function generateNavigation(): Promise<NavigationTab[]> {
 
     // Skip pages that have opted out of navigation
     if (navExclude) continue;
+
+    // Skip dynamic route files (e.g. games/play/[slug].astro) — they are
+    // templates, not pages; their literal "[slug]" path would be a dead link.
+    if (file.includes('[')) continue;
     
     // Determine category
     let category: string;
