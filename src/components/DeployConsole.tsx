@@ -122,7 +122,7 @@ interface StepDef {
 
 const STEPS: StepDef[] = [
   { id: 'vrf-create', group: 'VRF', title: 'Create VRF subscription', detail: 'Creates a Chainlink VRF v2.5 subscription owned by the deployer wallet.', valueText: '0 POL (+ gas)' },
-  { id: 'vrf-fund', group: 'VRF', title: 'Fund VRF subscription — 15 LINK', detail: 'Sends 15 official LINK to the coordinator via transferAndCall. Checks your LINK balance first; stops if you hold less than 15.', valueText: '15 LINK (+ gas)' },
+  { id: 'vrf-fund', group: 'VRF', title: 'Fund VRF subscription — up to 15 LINK', detail: 'Sends up to 15 official LINK to the coordinator via transferAndCall. Funds with your full LINK balance if you hold less than 15 — the subscription works with any amount, but bets stop when it runs dry. Top up later at vrf.chain.link.', valueText: 'up to 15 LINK (+ gas)' },
   { id: 'deploy-rng', group: 'Deploy', title: 'Deploy RNGEngine', detail: 'Constructor: coordinator, subscription id, keyHash, 250,000 callback gas, 3 confirmations.', valueText: '0 POL (+ gas)' },
   { id: 'deploy-reserve', group: 'Deploy', title: 'Deploy CasinoReserve', detail: 'Constructor: MTX, reserve cap 1,000,000 MTX, CasinoCore 0x0 (wired in step 7).', valueText: '0 POL (+ gas)' },
   { id: 'deploy-router', group: 'Deploy', title: 'Deploy LiquidityRouter', detail: 'Constructor: MTX, QuickSwap V2 router.', valueText: '0 POL (+ gas)' },
@@ -356,16 +356,22 @@ export default function DeployConsole() {
         const link = new Contract(net.link, LINK_ABI, signer);
         const decimals: number = await link.decimals();
         const bal: bigint = await link.balanceOf(me);
-        const amount = parseUnits(VRF_FUND_LINK, decimals);
-        if (bal < amount) {
-          throw new Error(`LINK balance is ${formatUnits(bal, decimals)} — less than the ${VRF_FUND_LINK} LINK needed. Buy official LINK on ${net.label} (token ${net.link} — NOT bridged LINK) and try again.`);
+        const target = parseUnits(VRF_FUND_LINK, decimals);
+        if (bal === 0n) {
+          throw new Error(`LINK balance is 0 — buy official LINK on ${net.label} (token ${net.link} — NOT bridged LINK) and try again.`);
         }
+        // Fund with the full balance when it is below the 15 LINK target:
+        // the subscription works with any amount and can be topped up later
+        // at vrf.chain.link. Only the next undone step can run in this
+        // console, so a later top-up cannot be done by re-running this step.
+        const amount = bal < target ? bal : target;
         const data = AbiCoder.defaultAbiCoder().encode(['uint256'], [BigInt(id)]);
         const tx = await link.transferAndCall(net.vrfCoordinator, amount, data);
         await tx.wait(1);
         const sub = await coordinator.getSubscription(id);
         if (sub.balance < amount) throw new Error(`Funding sent but the subscription balance reads ${formatUnits(sub.balance, decimals)} LINK. Check the transaction before continuing.`);
-        return { hash: tx.hash, note: `Subscription ${id} funded with ${VRF_FUND_LINK} LINK` };
+        const short = amount < target ? ` — below the ${VRF_FUND_LINK} LINK target; top up at vrf.chain.link or bets will stop when it runs dry` : '';
+        return { hash: tx.hash, note: `Subscription ${id} funded with ${formatUnits(amount, decimals)} LINK${short}` };
       }
       case 'deploy-rng': {
         const id = subIdRef.current;
@@ -588,7 +594,8 @@ export default function DeployConsole() {
           />
           <span>
             I understand this deploys real contracts on Polygon mainnet and moves real
-            funds — about 1–3 POL gas, 15 LINK for the VRF subscription, 5,000 MTX
+            funds — about 1–3 POL gas, up to 15 LINK for the VRF subscription (funds
+            with your LINK balance if lower; top up later at vrf.chain.link), 5,000 MTX
             reserve funding, and 100,000 MTX + 100 POL initial QuickSwap liquidity.
             <strong> No external audit has been performed on these contracts.</strong>
           </span>
