@@ -122,7 +122,7 @@ interface StepDef {
 
 const STEPS: StepDef[] = [
   { id: 'vrf-create', group: 'VRF', title: 'Create VRF subscription', detail: 'Creates a Chainlink VRF v2.5 subscription owned by the deployer wallet.', valueText: '0 POL (+ gas)' },
-  { id: 'vrf-fund', group: 'VRF', title: 'Fund VRF subscription — up to 15 LINK', detail: 'Sends up to 15 official LINK to the coordinator via transferAndCall. Funds with your full LINK balance if you hold less than 15 — the subscription works with any amount, but bets stop when it runs dry. Top up later at vrf.chain.link.', valueText: 'up to 15 LINK (+ gas)' },
+  { id: 'vrf-fund', group: 'VRF', title: 'Fund VRF subscription — up to 15 LINK', detail: 'Sends up to 15 official LINK to the coordinator via transferAndCall. Funds with your full LINK balance if you hold less than 15 — the subscription works with any amount, but bets stop when it runs dry. Top up later at vrf.chain.link. If the subscription already holds LINK, this step completes without sending anything.', valueText: 'up to 15 LINK (+ gas)' },
   { id: 'deploy-rng', group: 'Deploy', title: 'Deploy RNGEngine', detail: 'Constructor: coordinator, subscription id, keyHash, 250,000 callback gas, 3 confirmations.', valueText: '0 POL (+ gas)' },
   { id: 'deploy-reserve', group: 'Deploy', title: 'Deploy CasinoReserve', detail: 'Constructor: MTX, reserve cap 1,000,000 MTX, CasinoCore 0x0 (wired in step 7).', valueText: '0 POL (+ gas)' },
   { id: 'deploy-router', group: 'Deploy', title: 'Deploy LiquidityRouter', detail: 'Constructor: MTX, QuickSwap V2 router.', valueText: '0 POL (+ gas)' },
@@ -355,6 +355,13 @@ export default function DeployConsole() {
         if (!id) throw new Error('No subscription id recorded. Run step 1 first.');
         const link = new Contract(net.link, LINK_ABI, signer);
         const decimals: number = await link.decimals();
+        // The subscription may already be funded (e.g. a previous tap sent the
+        // LINK but the balance read came back stale). Never double-fund: if the
+        // on-chain balance is already above zero, this step is done.
+        const existing = await coordinator.getSubscription(id);
+        if (existing.balance > 0n) {
+          return { hash: null, note: `Subscription ${id} already holds ${formatUnits(existing.balance, decimals)} LINK on-chain — no transaction sent` };
+        }
         const bal: bigint = await link.balanceOf(me);
         const target = parseUnits(VRF_FUND_LINK, decimals);
         if (bal === 0n) {
@@ -368,8 +375,16 @@ export default function DeployConsole() {
         const data = AbiCoder.defaultAbiCoder().encode(['uint256'], [BigInt(id)]);
         const tx = await link.transferAndCall(net.vrfCoordinator, amount, data);
         await tx.wait(1);
-        const sub = await coordinator.getSubscription(id);
-        if (sub.balance < amount) throw new Error(`Funding sent but the subscription balance reads ${formatUnits(sub.balance, decimals)} LINK. Check the transaction before continuing.`);
+        // The wallet's RPC can serve a stale block right after the transaction
+        // confirms; re-read a few times before declaring the funding missing.
+        let funded = 0n;
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const sub = await coordinator.getSubscription(id);
+          funded = sub.balance;
+          if (funded >= amount) break;
+          await new Promise((r) => setTimeout(r, 4000));
+        }
+        if (funded < amount) throw new Error(`Funding sent but the subscription balance reads ${formatUnits(funded, decimals)} LINK. Check the transaction before continuing.`);
         const short = amount < target ? ` — below the ${VRF_FUND_LINK} LINK target; top up at vrf.chain.link or bets will stop when it runs dry` : '';
         return { hash: tx.hash, note: `Subscription ${id} funded with ${formatUnits(amount, decimals)} LINK${short}` };
       }
