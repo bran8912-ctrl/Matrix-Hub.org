@@ -101,12 +101,12 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
   if (game !== 'dice') {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
-        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Game unavailable</h3>
+        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Coming soon</h3>
         <p className="text-gray-300">
-          This game is disabled until its outcome and payout are settled from an on-chain VRF request.
+          This game isn't live yet — Dice is the only casino game on-chain right now. Slots, Blackjack, Roulette, Mines and Plinko arrive as their outcomes move on-chain.
         </p>
         <a href="/games/casino/dice" className="inline-block mt-4 text-green-400 underline">
-          Go to Dice
+          Play Dice
         </a>
       </div>
     );
@@ -124,9 +124,9 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
     );
   }
 
-  // 2026-11-10: wallet connect is explicitly disabled — no Reown project
-  // ID is configured, so no wallet can be connected. Show that honestly
-  // instead of a connect button that cannot work.
+  // Wallet connect is live on the production build (Reown project ID wired
+  // via astro.yml). A local build without the env var shows it disabled,
+  // which is expected — not a bug.
   if (!walletConnectEnabled) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
