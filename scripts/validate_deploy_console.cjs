@@ -71,6 +71,7 @@ check('max payout 100 MTX', amt('MAX_PAYOUT_MTX') === '100');
 check('reserve funding 5,000 MTX', amt('RESERVE_FUND_MTX') === '5000');
 check('VRF funding 15 LINK', amt('VRF_FUND_LINK') === '15');
 check('QuickSwap 100,000 MTX + 100 POL', amt('QS_MTX') === '100000' && amt('QS_POL') === '100');
+check('QuickSwap provide 1,000 MTX + 1 POL (shrunk Nov 10 — deployer held 1.86 POL)', amt('QS_PROVIDE_MTX') === '1000' && amt('QS_PROVIDE_POL') === '1');
 check('QuickSwap slippage 100 bps (1%)', amt('QS_SLIPPAGE_BPS') === '100');
 check('QuickSwap deadline 20 min', amt('QS_DEADLINE_MINUTES') === '20');
 
@@ -163,12 +164,13 @@ checkCall(routerIface, 'setCasinoCore', ['0x444444444444444444444444444444444444
 checkCall(routerIface, 'queueInitialLiquidity', [parseUnits('100000', 18)], 'LiquidityRouter');
 
 // --- 4. QuickSwap min amounts (same 1% formula as create_quickswap_pool.js) --
-const desired = parseUnits('100000', 18);
-const pol = parseUnits('100', 18);
+// Provide step uses the shrunk QS_PROVIDE_* amounts (1,000 MTX + 1 POL).
+const desired = parseUnits('1000', 18);
+const pol = parseUnits('1', 18);
 const minMtx = (desired * BigInt(10_000 - 100)) / 10_000n;
 const minPol = (pol * BigInt(10_000 - 100)) / 10_000n;
-check('provideLiquidity minMtx = 99,000 MTX', minMtx === parseUnits('99000', 18));
-check('provideLiquidity minPol = 99 POL', minPol === parseUnits('99', 18));
+check('provideLiquidity minMtx = 990 MTX', minMtx === parseUnits('990', 18));
+check('provideLiquidity minPol = 0.99 POL', minPol === parseUnits('0.99', 18));
 
 console.log(failures === 0 ? '\nALL CHECKS PASSED' : `\n${failures} CHECK(S) FAILED`);
 process.exit(failures === 0 ? 0 : 1);
