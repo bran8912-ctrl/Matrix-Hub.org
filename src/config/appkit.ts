@@ -4,11 +4,11 @@
 
 // WalletConnect Project ID
 // Get your project ID from: https://cloud.reown.com
-// 2026-11-10: no Reown project exists yet, so wallet connect is explicitly
-// DISABLED until a real project ID is configured. There is no placeholder
-// fallback — shipping one would present a broken connect button.
-// To re-enable: create a free project at https://cloud.reown.com and set
-// PUBLIC_WALLETCONNECT_PROJECT_ID (GitHub secret, wired in astro.yml).
+// 2026-11-10: Reown Cloud project "Matrix Hub" exists (free Starter) and
+// PUBLIC_WALLETCONNECT_PROJECT_ID is wired in astro.yml from the GitHub
+// secret. When the env var is absent (e.g. a local build without it),
+// wallet connect stays disabled by design — there is no placeholder
+// fallback; shipping one would present a broken connect button.
 export const projectId = import.meta.env.PUBLIC_WALLETCONNECT_PROJECT_ID || ''
 
 // True only when a real WalletConnect project ID is configured.
