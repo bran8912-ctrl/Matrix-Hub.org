@@ -7,6 +7,18 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
   : null;
 ---
 
+<!-- HIDDEN 2026-11-10 (legal gating G-02) — this panel is NOT rendered on any
+  page. Do NOT re-enable it: its ownership/equity/governance sentences
+  ("Owning MTX makes you an owner of the casino", "MTX holders ARE the
+  owners", "like owning shares", weighted voting) are false against the
+  contracts — there is no DAO, no vote, no profit share — and the panel needs
+  a full rewrite + legal re-check before it can return. The fee-split
+  numbers below were corrected 2026-11-10 to the real code routing
+  (92% to reserve / 6% liquidity / 2% dev; player payout is dice maths,
+  98% RTP) and the burn claims were removed (nothing calls burn()); the
+  ownership sentences were deliberately left untouched so a rewrite starts
+  from visibly-stale copy, not silently-patched copy. -->
+
 <Panel title="MTX OWNERSHIP & CASINO ECONOMICS" class="ownership-panel">
   <div class="ownership-intro">
     <p class="highlight-text">
@@ -27,10 +39,10 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
         <strong>Governance Rights:</strong> MTX gives you weighted voting power to adjust casino parameters (game odds, fee percentages, reserve allocations), enable new games, and pause systems in emergencies.
       </li>
       <li>
-        <strong>Value Accrual:</strong> As players lose bets, a portion flows to the CasinoReserve (backing MTX value), liquidity pools (supporting MTX trading), and is burned (reducing supply). Winners withdraw from the same reserve.
+        <strong>Value Accrual:</strong> As players lose bets, a portion flows to the CasinoReserve (backing MTX value) and liquidity pools (supporting MTX trading). Winners withdraw from the same reserve. No MTX is burned by the casino — nothing in the casino flow calls burn().
       </li>
       <li>
-        <strong>Sustainable Model:</strong> Unlike traditional casinos with profit extraction, the MTX Casino reinvests all revenue into liquidity, reserves, and burns—directly benefiting MTX holders through increased backing and scarcity.
+        <strong>Sustainable Model:</strong> Unlike traditional casinos with profit extraction, the MTX Casino reinvests all revenue into liquidity and reserves—directly benefiting MTX holders through increased backing and scarcity.
       </li>
     </ul>
   </div>
@@ -56,7 +68,7 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
       )}
       <ul>
         <li><strong>Purpose:</strong> Holds MTX to pay winners and absorb losses</li>
-        <li><strong>Funding:</strong> 3% of all bets go to reserve to maintain solvency</li>
+        <li><strong>Funding:</strong> 92% of all bets go to reserve (88% reserve-routing share + 4% reserve share) to maintain solvency</li>
         <li><strong>Risk Control:</strong> Max bet limited to reserve size to prevent insolvency</li>
         <li><strong>Transparency:</strong> All deposits/withdrawals on-chain and auditable</li>
       </ul>
@@ -65,7 +77,7 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
     <div class="section-block">
       <h4>Liquidity Pool Allocation</h4>
       <ul>
-        <li><strong>Allocation:</strong> 10% of all casino revenue flows to liquidity pools</li>
+        <li><strong>Allocation:</strong> 6% of all casino revenue flows to liquidity pools</li>
         <li><strong>Purpose:</strong> Ensures MTX has deep liquidity for trading</li>
         <li><strong>Benefit:</strong> Reduces slippage, enables easy entry/exit for holders</li>
         <li><strong>Long-term:</strong> Growing liquidity stabilizes MTX price and supports ecosystem health</li>
@@ -76,19 +88,14 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
       <h4>Revenue Distribution Breakdown</h4>
       <div class="revenue-table">
         <div class="revenue-row">
-          <span class="revenue-label">Players (Payouts):</span>
-          <span class="revenue-value">85%</span>
-          <span class="revenue-desc">Direct winnings paid to lucky players</span>
+          <span class="revenue-label">Casino Reserve:</span>
+          <span class="revenue-value">92%</span>
+          <span class="revenue-desc">88% reserve-routing share (payoutPercent) + 4% reserve share — every bet lands here</span>
         </div>
         <div class="revenue-row">
           <span class="revenue-label">Liquidity Pool:</span>
-          <span class="revenue-value">10%</span>
+          <span class="revenue-value">6%</span>
           <span class="revenue-desc">Strengthens MTX trading depth</span>
-        </div>
-        <div class="revenue-row">
-          <span class="revenue-label">Casino Reserve:</span>
-          <span class="revenue-value">3%</span>
-          <span class="revenue-desc">Builds reserve for future payouts</span>
         </div>
         <div class="revenue-row">
           <span class="revenue-label">Development:</span>
@@ -97,7 +104,7 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
         </div>
       </div>
       <p class="revenue-note">
-        <em>100% of revenue is accounted for. Zero profit extraction. All value flows back to the ecosystem.</em>
+        <em>100% of revenue is accounted for. Player payouts are NOT part of this split — winners are paid from the reserve per dice maths (98% RTP). No MTX is burned.</em>
       </p>
     </div>
   </div>
@@ -120,7 +127,7 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
         <ul>
           <li>✅ MTX holders collectively own the casino</li>
           <li>✅ Governance rights for all MTX holders</li>
-          <li>✅ House edge benefits MTX holders via reserves, liquidity, burns</li>
+          <li>✅ House edge benefits MTX holders via reserves and liquidity</li>
           <li>✅ Fully transparent on-chain financials</li>
           <li>✅ Holding MTX = owning part of the casino's future value</li>
         </ul>
@@ -133,12 +140,12 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
     <div class="mechanics-flow">
       <div class="flow-step">
         <strong>1. Player Places Bet</strong>
-        <p>Player spends MTX to play slots, blackjack, or roulette</p>
+        <p>Player spends MTX to play Dice (the only game settled on-chain)</p>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
         <strong>2. Bet Processed</strong>
-        <p>85% → Player payout pool | 10% → Liquidity | 3% → Reserve | 2% → Dev</p>
+        <p>92% → CasinoReserve (88% routing share + 4% reserve share) | 6% → Liquidity | 2% → Dev. Player payouts are dice maths (98% RTP), not a split.</p>
       </div>
       <div class="flow-arrow">→</div>
       <div class="flow-step">
@@ -158,7 +165,7 @@ const casinoReserveAddress = Casino.contracts.casinoReserve.isDeployed
     <div class="summary-box">
       <p>
         <strong>Owning MTX is like owning shares in a decentralized casino.</strong> 
-        Every bet strengthens the reserve, deepens liquidity, and burns supply—all of which increase the backing and scarcity of your MTX. 
+        Every bet strengthens the reserve and deepens liquidity—all of which increase the backing and scarcity of your MTX. 
         You have governance rights to shape the casino's future. There's no CEO, no shareholders extracting dividends—just a transparent, 
         community-owned protocol where all value flows back to MTX holders.
       </p>
