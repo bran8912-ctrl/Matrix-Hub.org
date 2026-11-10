@@ -45,7 +45,7 @@ the pool.
 (planning range ~0.05–0.15 POL for the three pool transactions).
 There is no minimum imposed by the contracts.
 
-**Brandon's answer: ______ POL (TBD)**
+**Brandon's answer: 100 POL (decided 2026-11-10)**
 
 ## Q2 — What initial MTX price (which MTX:POL ratio)?
 
@@ -69,7 +69,7 @@ is `P ÷ Y` POL per MTX, where Y is the MTX amount from Q3's mint.
 one cheaper / one dearer row, each with its implied price, LP minted,
 and POL outlay under either mint route.
 
-**Brandon's answer: ______ MTX (Y) + ______ POL (P) — i.e. ______ POL per MTX (TBD)**
+**Brandon's answer: 100,000 MTX (Y) + 100 POL (P) — i.e. 0.001 POL per MTX, mint-rate parity (decided 2026-11-10)**
 
 ## Q3 — How is the liquidity MTX created: `buyMTX` or `mintToEcosystem`?
 
@@ -93,7 +93,7 @@ and POL outlay under either mint route.
 - Constraint: `totalSupply + Y` must stay ≤ 100,000,000 MTX cap
   (totalSupply is 0, so any Y up to the cap fits).
 
-**Brandon's answer: Option A (`buyMTX`) / Option B (`mintToEcosystem`) (TBD)**
+**Brandon's answer: Option B (`mintToEcosystem`) (decided 2026-11-10)**
 
 ## Q4 — LP-token custody: his wallet, or somewhere else?
 
@@ -120,7 +120,7 @@ unless Brandon moves them afterwards.
   is configured — none exists today, so this would be new work, not a
   same-day choice.
 
-**Brandon's answer: his wallet / multisig (transfer after) / other ______ (TBD)**
+**Brandon's answer: his wallet (decided 2026-11-10)**
 
 ## Q5 — The wallet steps he will sign (in order)
 
@@ -148,8 +148,8 @@ the LiquidityRouter with nowhere to go until a pool exists.
 
 | Question | Answer | Date |
 |---|---|---|
-| Q1 — POL for liquidity (P) | TBD | — |
-| Q2 — Initial ratio (Y MTX + P POL) | TBD | — |
-| Q3 — Mint route (buyMTX / mintToEcosystem) | TBD | — |
-| Q4 — LP custody | TBD | — |
-| Q5 — Signed steps | (steps above; execution TBD) | — |
+| Q1 — POL for liquidity (P) | 100 POL | 2026-11-10 |
+| Q2 — Initial ratio (Y MTX + P POL) | 100,000 MTX + 100 POL (0.001 POL/MTX, parity) | 2026-11-10 |
+| Q3 — Mint route (buyMTX / mintToEcosystem) | mintToEcosystem (owner mint, gas only) | 2026-11-10 |
+| Q4 — LP custody | his wallet (default, LP to msg.sender) | 2026-11-10 |
+| Q5 — Signed steps | (steps above; execution TBD — gated on Amoy evidence + mainnet preflight) | — |
