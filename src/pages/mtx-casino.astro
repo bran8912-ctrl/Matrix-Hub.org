@@ -2,7 +2,10 @@
 import Layout from "../components/Layout.astro";
 import MTXEcosystem from "../components/MTXEcosystem.astro";
 import CasinoGamesPanel from "../components/CasinoGamesPanel.astro";
-import MTXOwnershipPanel from "../components/MTXOwnershipPanel.astro";
+// MTXOwnershipPanel is HIDDEN (2026-11-10, legal gating G-02): its
+// ownership/equity/governance claims and fee split are false against the
+// deployed code. The component file stays in the repo for a future rewrite;
+// do not re-enable it until it is rewritten and legal re-checks it.
 import DonateBanner from "../components/DonateBanner.astro";
 import TelegramWidget from "../components/TelegramWidget.astro";
 import MTXStatsWidget from "../components/MTXStatsWidget.tsx";
@@ -35,8 +38,8 @@ export const navCategory = "casino";
   <!-- Casino Games Panel -->
   <CasinoGamesPanel />
 
-  <!-- MTX Ownership & Casino Economics -->
-  <MTXOwnershipPanel />
+  <!-- MTX Ownership & Casino Economics — HIDDEN 2026-11-10 (legal gating G-02).
+       See the commented import above; do not re-enable until rewritten. -->
 
   <!-- Donation Banner -->
   <DonateBanner />
