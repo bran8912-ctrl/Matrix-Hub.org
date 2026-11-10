@@ -1,4 +1,11 @@
 // Mines Game Engine for Matrix-Hub Casino
+//
+// DISABLED WITH REAL FUNDS (2026-11-10, G-05): Mines has NO on-chain
+// settlement — there is no Mines function in any casino contract, and the
+// local board below uses Math.random. This engine must NEVER be wired to
+// placeCasinoBet or any real MTX transfer. It may only return as a
+// VRF-backed on-chain game after new contract work + audit. The
+// MinesGame component refuses to start a game until then.
 export interface MinesGameState {
   gridSize: number;
   numMines: number;

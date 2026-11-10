@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { MinesEngine, type MinesGameState, type MinesResult } from './MinesEngine';
-import { generateClientHash, type BetResult } from '../../utils/casinoBet';
+import { type BetResult } from '../../utils/casinoBet';
 
 interface MinesGameProps {
   walletAddress?: string;
@@ -10,74 +10,27 @@ interface MinesGameProps {
   onBetPlaced?: (amount: number) => void;
 }
 
-export default function MinesGame({ walletAddress, mtxBalance = 0, placeBet, refreshBalance: _refreshBalance, onBetPlaced }: MinesGameProps) {
+export default function MinesGame({ mtxBalance = 0, refreshBalance: _refreshBalance }: MinesGameProps) {
   const [betAmount, setBetAmount] = useState(MinesEngine.BET_AMOUNT);
   const [numMines, setNumMines] = useState(5);
   const [gameState, setGameState] = useState<MinesGameState | null>(null);
   const [lastResult, setLastResult] = useState<MinesResult | null>(null);
   const [error, setError] = useState('');
-  const [txHash, setTxHash] = useState('');
-  const [startingGame, setStartingGame] = useState(false);
 
+  // G-05 (2026-11-10): Mines is DISABLED with real funds. There is no
+  // on-chain Mines settlement, so this component must never place a bet or
+  // start a local Math.random board with MTX at stake. The previous code had
+  // an off-chain / transfer-fallback path (local random game) and an
+  // "on-chain mode" branch that started a local board after a Dice bet —
+  // both have been removed entirely. This function now only explains why the
+  // game cannot start. Remove this guard only when a VRF-backed on-chain
+  // Mines flow exists (new contract work + audit). The placeBet/onBetPlaced
+  // props are accepted for interface compatibility and deliberately ignored.
   async function startNewGame() {
-    if (!walletAddress) {
-      setError('Please connect your wallet first');
-      return;
-    }
-
-    if (Number(mtxBalance) <= 0) {
-      setError('You need MTX to play. Buy MTX first.');
-      return;
-    }
-
-    const betError = MinesEngine.validateBet(betAmount, numMines);
-    if (betError) {
-      setError(betError);
-      return;
-    }
-
-    if (mtxBalance < betAmount) {
-      setError(`Insufficient MTX balance. Need ${betAmount} MTX.`);
-      return;
-    }
-
-    setError('');
-    setTxHash('');
-    setStartingGame(true);
-
-    try {
-      // Place the on-chain MTX bet first
-      if (placeBet) {
-        const betResult = await placeBet(betAmount);
-        setTxHash(betResult.txHash);
-        if (onBetPlaced) onBetPlaced(betAmount);
-
-        // When using CasinoCore (on-chain mode), the bet is resolved immediately on-chain.
-        // The local board is for entertainment only — don't present it as the financial result.
-        if (betResult.mode === 'on-chain') {
-          // Only start a local board for the interactive reveal experience;
-          // the actual payout was already settled on-chain via BetResolved.
-          const hash = generateClientHash();
-          const newGame = MinesEngine.initGame(hash, numMines);
-          setGameState(newGame);
-          setLastResult(null);
-          return;
-        }
-      }
-
-      // Off-chain / transfer-fallback mode: use local random game
-      const hash = generateClientHash();
-
-      const newGame = MinesEngine.initGame(hash, numMines);
-      setGameState(newGame);
-      setLastResult(null);
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to start game. Please try again.';
-      setError(msg);
-      console.error(e);
-    } finally {
-      setStartingGame(false);
-    }
+    setError(
+      'Mines is disabled until game actions and payouts are settled on-chain. ' +
+      'No bet was placed and no MTX moved.'
+    );
   }
 
   function revealCell(cellIndex: number) {
@@ -146,6 +99,14 @@ export default function MinesGame({ walletAddress, mtxBalance = 0, placeBet, ref
       <div className="mb-6 text-center">
         <p className="text-gray-300 mb-2">Minimum bet: {MinesEngine.BET_AMOUNT} MTX</p>
         <p className="text-yellow-400 font-semibold">Your balance: {mtxBalance.toFixed(2)} MTX</p>
+      </div>
+
+      {/* Disabled notice — Mines has no on-chain settlement (G-05). */}
+      <div className="mb-6 p-4 bg-yellow-900 border-2 border-yellow-500 rounded-lg text-center">
+        <p className="text-yellow-300 font-bold">⛔ Mines is disabled</p>
+        <p className="text-yellow-100 text-sm mt-1">
+          Mines has no on-chain settlement yet — game actions and payouts must be settled on-chain before it can accept MTX. No bet can be placed from this page.
+        </p>
       </div>
 
       {/* Game Status */}
@@ -240,21 +201,6 @@ export default function MinesGame({ walletAddress, mtxBalance = 0, placeBet, ref
         </div>
       ) : null}
 
-      {/* Transaction Hash */}
-      {txHash && (
-        <div className="bg-gray-800 text-green-400 p-3 rounded mb-4 text-center text-sm">
-          ✅ Bet confirmed on-chain!{' '}
-          <a
-            href={`https://polygonscan.com/tx/${txHash}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="underline"
-          >
-            View TX
-          </a>
-        </div>
-      )}
-
       {/* Error Display */}
       {error && (
         <div className="bg-red-900 text-red-200 p-3 rounded mb-4 text-center">
@@ -262,14 +208,15 @@ export default function MinesGame({ walletAddress, mtxBalance = 0, placeBet, ref
         </div>
       )}
 
-      {/* Start/Restart Button */}
+      {/* Start/Restart Button — permanently disabled until on-chain Mines exists (G-05). */}
       {(!gameState || gameState.gameOver) && (
         <button
           onClick={startNewGame}
-          disabled={!walletAddress || startingGame}
-          className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors"
+          disabled
+          title="Mines is disabled until game actions and payouts are settled on-chain."
+          className="w-full bg-gray-600 text-white font-bold py-4 px-6 rounded-lg text-xl transition-colors cursor-not-allowed"
         >
-          {startingGame ? 'Processing...' : walletAddress ? `🎮 START NEW GAME (${betAmount} MTX)` : 'Connect Wallet to Play'}
+          ⛔ MINES DISABLED — NO ON-CHAIN SETTLEMENT YET
         </button>
       )}
 
