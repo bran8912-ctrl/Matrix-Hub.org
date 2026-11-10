@@ -351,10 +351,10 @@ console.log('Transaction:', txHash);
 6. Approves MTX spending in wallet
 7. Transaction sent to CasinoCore contract
 8. Funds distributed:
-   - 85% to payout pool
-   - 10% to liquidity
-   - 3% to reserve
+   - 92% to CasinoReserve (88% reserve-routing share + 4% reserve share)
+   - 6% to liquidity
    - 2% to dev
+   (Player payouts are dice maths at 98% RTP, paid from the reserve — not a split.)
 9. RNG determines outcome
 10. If win: Payout sent from reserve
 11. Transaction history updated

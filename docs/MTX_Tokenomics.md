@@ -57,9 +57,21 @@
 - Collected ETH can fund liquidity and operations
 
 ## Token Sinks (Supply Reduction)
-- Burn mechanism on premium feature usage
 - Lock mechanism for tier access
 - Casino gameplay (balanced by casino payouts)
+
+No burn is currently wired into any live flow: `MatrixHubCoin.burn()`
+exists but nothing calls it, so do not present burning as an active sink
+until a burn is actually implemented and verified.
+
+## Casino fee routing (verified against CasinoCore.sol)
+
+Each Dice bet's MTX is routed on receipt: 88% reserve-routing share
+(`payoutPercent` — a reserve-routing share, not a player payout) + 4%
+reserve share = **92% to CasinoReserve**; 6% queued for liquidity; 2% to
+the developer address. Winning players are paid from the reserve per dice
+maths (98% RTP), not from a percentage split. The previously published
+85/10/3/2 split was false. No MTX is burned by the casino.
 
 ## Economic Design
 - Direct mint provides onboarding liquidity while maintaining price stability
