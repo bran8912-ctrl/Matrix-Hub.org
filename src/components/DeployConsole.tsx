@@ -47,6 +47,7 @@ interface NetConfig {
   explorer: string;
   rpcUrl: string;
   polFloor: string;
+  pair: string | null; // QuickSwap V2 pair (token0 = WPOL, token1 = MTX on mainnet) — null where no pool exists
 }
 
 const NETWORKS: Record<NetKey, NetConfig> = {
@@ -62,6 +63,7 @@ const NETWORKS: Record<NetKey, NetConfig> = {
     explorer: 'https://polygonscan.com',
     rpcUrl: 'https://polygon.drpc.org',
     polFloor: '2', // was 15 — lowered Nov 10 when the pool shrank to 1 POL; covers the pool + gas now that steps 1–16 are done
+    pair: '0x489a6592Cb2965c3512e6CeFA4EE160765674c44',
   },
   amoy: {
     chainId: 80002,
@@ -77,6 +79,7 @@ const NETWORKS: Record<NetKey, NetConfig> = {
     explorer: 'https://amoy.polygonscan.com',
     rpcUrl: 'https://rpc-amoy.polygon.technology/',
     polFloor: '0.1',
+    pair: null, // no QuickSwap pool on Amoy
   },
 };
 
@@ -107,6 +110,10 @@ const LINK_ABI = [
   'function balanceOf(address) view returns (uint256)',
   'function decimals() view returns (uint8)',
   'function transferAndCall(address to, uint256 value, bytes data) returns (bool)',
+];
+
+const PAIR_ABI = [
+  'function getReserves() view returns (uint112 reserve0, uint112 reserve1, uint32 blockTimestampLast)',
 ];
 
 interface StepResult {
@@ -185,6 +192,16 @@ export default function DeployConsole() {
   const [done, setDone] = useState<Record<string, StepResult>>({});
   const [failed, setFailed] = useState<{ stepId: string; message: string } | null>(null);
   const [runningId, setRunningId] = useState<string | null>(null);
+
+  // Mint-rate panel (added Nov 10): one-tap owner update of setMaticToMtxRate.
+  // Same safety rules as the steps — nothing sends until the operator taps
+  // the button, and the wallet shows the transaction first.
+  const [rateCurrent, setRateCurrent] = useState<string | null>(null);
+  const [poolPrice, setPoolPrice] = useState<string | null>(null);
+  const [rateInput, setRateInput] = useState('');
+  const [rateMsg, setRateMsg] = useState('');
+  const [rateBusy, setRateBusy] = useState(false);
+  const [rateTx, setRateTx] = useState<string | null>(null);
 
   const subIdRef = useRef<string | null>(null);
   const addrsRef = useRef<Record<string, string>>({});
@@ -285,6 +302,64 @@ export default function DeployConsole() {
       setPreflightMsg(err instanceof Error ? err.message : 'Pre-flight check failed.');
     }
   }, [isConnected, address, isDeployer, net, ensureChain, getSigner]);
+
+  const refreshRate = useCallback(async () => {
+    setRateMsg('');
+    try {
+      const { provider } = await getSigner();
+      const mtx = new Contract(net.mtx, mtxAbi, provider);
+      const rate: bigint = await mtx.maticToMtxRate();
+      setRateCurrent(rate.toString());
+      if (net.pair) {
+        const pair = new Contract(net.pair, PAIR_ABI, provider);
+        const res = await pair.getReserves();
+        // Mainnet pair: token0 = WPOL, token1 = MTX (verified on-chain Nov 10).
+        const price = Number(formatUnits(res[1], 18)) / Number(formatUnits(res[0], 18));
+        setPoolPrice(price.toFixed(2));
+        // Prefill the input with the pool price; the operator can type over it
+        // when the rate team's proposal differs from the spot price.
+        setRateInput((prev) => (prev === '' ? String(Math.round(price)) : prev));
+      } else {
+        setPoolPrice(null);
+      }
+    } catch (err) {
+      setRateMsg(err instanceof Error ? `Could not read the rate: ${err.message}` : 'Could not read the rate.');
+    }
+  }, [getSigner, net]);
+
+  const submitRate = useCallback(async () => {
+    setRateMsg('');
+    setRateTx(null);
+    setRateBusy(true);
+    try {
+      if (!isConnected || !address) throw new Error('Connect the deployer wallet first.');
+      if (!isDeployer) throw new Error(`Connected wallet is not the deployer ${net.deployer}.`);
+      const n = Number(rateInput);
+      if (!Number.isInteger(n) || n <= 0) throw new Error('Enter a whole number of MTX per POL (e.g. 1000).');
+      const { provider, signer } = await getSigner();
+      const network = await provider.getNetwork();
+      if (Number(network.chainId) !== net.chainId) throw new Error(`Wallet is on chain ${network.chainId}, not ${net.label} (${net.chainId}). Switch networks first.`);
+      const mtx = new Contract(net.mtx, mtxAbi, signer);
+      const tx = await mtx.setMaticToMtxRate(BigInt(n));
+      await tx.wait(1);
+      setRateTx(tx.hash);
+      // Re-read to confirm the new rate actually landed on-chain.
+      const after: bigint = await mtx.maticToMtxRate();
+      setRateCurrent(after.toString());
+      if (after.toString() !== String(n)) throw new Error(`Transaction confirmed but the rate still reads ${after}. Check the transaction before trying again.`);
+      setRateMsg(`Mint rate updated: 1 POL = ${n} MTX. The buy page and the rate team have the new number.`);
+    } catch (err) {
+      setRateMsg(err instanceof Error ? err.message : 'Rate update failed.');
+    } finally {
+      setRateBusy(false);
+    }
+  }, [isConnected, address, isDeployer, net, rateInput, getSigner]);
+
+  // Load the live rate + pool price when the wallet connects or the network changes.
+  useEffect(() => {
+    if (isConnected) refreshRate().catch(() => undefined);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected, netKey]);
 
   const targetFor = useCallback((step: StepDef): string => {
     switch (step.id) {
@@ -702,6 +777,63 @@ export default function DeployConsole() {
                 {failed && <p className="bad">Stopped at “{STEPS.find((s) => s.id === failed.stepId)?.title}”: {failed.message}</p>}
               </>
             )}
+          </div>
+        )}
+      </section>
+
+      <section className="panel">
+        <h2>Mint rate — one-tap update</h2>
+        <p>
+          The Exchange Rate team watches the pool price and flags when the mint rate
+          should move. When they do, come here, check the numbers, and tap once —
+          your wallet shows the transaction first. Only the deployer wallet can send it.
+          Gas is tiny (one small contract call).
+        </p>
+        {!isConnected ? (
+          <p className="hint">Connect the deployer wallet above to see the live rate.</p>
+        ) : (
+          <div>
+            <p>Current mint rate: <strong>{rateCurrent === null ? '—' : `1 POL = ${rateCurrent} MTX`}</strong></p>
+            <p>QuickSwap pool price: <strong>{poolPrice === null ? (net.pair ? '—' : 'No pool on this network') : `1 POL = ${poolPrice} MTX`}</strong></p>
+            {rateCurrent !== null && poolPrice !== null && Number(rateCurrent) !== 0 && (
+              <p>
+                Difference: <strong>{(((Number(poolPrice) - Number(rateCurrent)) / Number(rateCurrent)) * 100).toFixed(1)}%</strong>{' '}
+                {Number(poolPrice) > Number(rateCurrent) ? '(pool pays more per POL than minting)' : Number(poolPrice) < Number(rateCurrent) ? '(minting pays more per POL than the pool)' : '(in line)'}
+              </p>
+            )}
+            <div className="row">
+              <label>
+                New rate (MTX per POL){' '}
+                <input
+                  type="number"
+                  min={1}
+                  step={1}
+                  value={rateInput}
+                  onChange={(e) => setRateInput(e.target.value)}
+                  style={{ width: '8rem' }}
+                />
+              </label>
+              <button type="button" onClick={() => { refreshRate().catch(() => undefined); }}>Refresh rates</button>
+            </div>
+            {rateInput && rateCurrent && poolPrice && Number(rateInput) !== Number(rateCurrent) && Math.abs(Number(rateInput) - Number(poolPrice)) / Number(poolPrice) > 0.1 && (
+              <p className="bad">Heads up: {rateInput} is more than 10% away from the pool price ({poolPrice}). Double-check the team&apos;s proposal before sending.</p>
+            )}
+            <button
+              type="button"
+              className="primary-btn big"
+              disabled={!isConnected || !isDeployer || rateBusy || !rateInput || Number(rateInput) <= 0 || !Number.isInteger(Number(rateInput)) || rateInput === rateCurrent}
+              onClick={() => { submitRate().catch(() => undefined); }}
+            >
+              {rateBusy ? 'Waiting for wallet…' : `Update mint rate to ${rateInput || '…'} MTX per POL`}
+            </button>
+            {!isConnected && <p className="hint">Connect the deployer wallet first.</p>}
+            {isConnected && !isDeployer && <p className="bad">Connected wallet is not the deployer. Switch wallets.</p>}
+            {rateTx && (
+              <p className="step-hash">
+                Tx: <a href={`${net.explorer}/tx/${rateTx}`} target="_blank" rel="noreferrer">{short(rateTx)}</a>
+              </p>
+            )}
+            {rateMsg && <p className={rateMsg.startsWith('Mint rate updated') ? 'ok' : 'bad'}>{rateMsg}</p>}
           </div>
         )}
       </section>
