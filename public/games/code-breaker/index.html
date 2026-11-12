@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Matrix Code Breaker</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../matrix-competitive.css">
 </head>
 <body>
     <div class="game-container">
@@ -13,7 +14,10 @@
             <div class="stat">Score: <span id="score">0</span></div>
             <div class="stat">Level: <span id="level">1</span></div>
             <div class="stat">Lives: <span id="lives">3</span></div>
+            <div class="stat">Best: <span id="best"></span></div>
         </div>
+        <div id="mh-challenge" class="mh-banner"></div>
+        <div id="mh-streak" class="mh-streak"></div>
         <canvas id="gameCanvas"></canvas>
         <div class="controls">
             <input type="text" id="codeInput" placeholder="Type the code..." autocomplete="off" autofocus>
@@ -25,9 +29,16 @@
         <div id="gameOver" class="game-over hidden">
             <h2>SYSTEM BREACH DETECTED</h2>
             <p>Final Score: <span id="finalScore">0</span></p>
-            <button id="restartBtn">REBOOT SYSTEM</button>
+            <p id="mh-newbest" class="mh-newbest" hidden>NEW BEST!</p>
+            <p id="mh-best-line" class="mh-best-line"></p>
+            <p id="mh-rank-line" class="mh-rank-line"></p>
+            <p id="mh-challenge-result" class="mh-challenge-result"></p>
+            <div id="mh-board" class="mh-board"></div>
+            <button id="restartBtn">PLAY AGAIN</button>
+            <button id="mh-share" class="mh-share-btn" type="button">SHARE SCORE</button>
         </div>
     </div>
+    <script src="../matrix-best.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
