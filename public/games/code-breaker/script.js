@@ -27,8 +27,20 @@ let gameActive = false;
 let fallingCodes = [];
 let lastSpawnTime = 0;
 let spawnInterval = 2000;
-let playerName = '';
-let gameStarted = false;
+// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
+let mhRunStart = Date.now();
+let mhRunId = null;
+function mhNewRun() {
+    mhRunStart = Date.now();
+    mhRunId = 'code-breaker-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
+}
+const bestDisplay = document.getElementById('best');
+if (window.MatrixBest) {
+    const stored = MatrixBest.getBest('code-breaker');
+    if (bestDisplay && stored) bestDisplay.textContent = stored.score;
+    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'code-breaker');
+    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
+}
 
 // Matrix characters
 const matrixChars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()';
@@ -174,19 +186,19 @@ function endGame() {
     gameActive = false;
     finalScoreDisplay.textContent = score;
     gameOverScreen.classList.remove('hidden');
-    
-    // Submit score to leaderboard
-    if (playerName && score > 0 && window.parent) {
-        window.parent.postMessage({
-            type: 'gameScore',
-            game: 'code-breaker',
-            name: playerName,
-            score: score
-        }, '*');
+    // Competitive Phase 1: record the run (best, board, daily challenge).
+    if (window.MatrixBest) {
+        const out = MatrixBest.finishRun('code-breaker', { score: score }, {
+            durationSec: (Date.now() - mhRunStart) / 1000,
+            runId: mhRunId,
+            scoreText: String(score)
+        });
+        if (bestDisplay && out.best.best) bestDisplay.textContent = out.best.best.score;
     }
 }
 
 function restartGame() {
+    mhNewRun();
     score = 0;
     level = 1;
     lives = 3;
@@ -227,26 +239,13 @@ document.body.addEventListener('touchmove', (e) => {
     e.preventDefault();
 }, { passive: false });
 
-// Prompt for player name before starting
+// Start immediately — no name prompt (personal bests only, HUB 155).
+// The old prompt flow meant cancelling the prompt stopped the game
+// from ever starting; that gate is gone.
 function startGame() {
-    if (!playerName) {
-        playerName = localStorage.getItem('matrix_player_name');
-    }
-    
-    if (!playerName) {
-        const name = prompt('Enter your name to join the Matrix:');
-        if (name && name.trim()) {
-            playerName = name.trim().substring(0, 20);
-            localStorage.setItem('matrix_player_name', playerName);
-            gameStarted = true;
-            gameActive = true;
-            requestAnimationFrame(updateGame);
-        }
-    } else {
-        gameStarted = true;
-        gameActive = true;
-        requestAnimationFrame(updateGame);
-    }
+    mhNewRun();
+    gameActive = true;
+    requestAnimationFrame(updateGame);
 }
 
 // Start game on load
