@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Cyber Snake</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../matrix-competitive.css">
 </head>
 <body>
     <div class="game-container">
@@ -13,6 +14,8 @@
             <div class="stat">Score: <span id="score">0</span></div>
             <div class="stat">High Score: <span id="highScore">0</span></div>
         </div>
+        <div id="mh-challenge" class="mh-banner"></div>
+        <div id="mh-streak" class="mh-streak"></div>
         <canvas id="gameCanvas"></canvas>
         <div class="controls">
             <p>Desktop: Arrow Keys or WASD</p>
@@ -29,9 +32,16 @@
         <div id="gameOver" class="game-over hidden">
             <h2>GAME OVER</h2>
             <p>Score: <span id="finalScore">0</span></p>
+            <p id="mh-newbest" class="mh-newbest" hidden>NEW BEST!</p>
+            <p id="mh-best-line" class="mh-best-line"></p>
+            <p id="mh-rank-line" class="mh-rank-line"></p>
+            <p id="mh-challenge-result" class="mh-challenge-result"></p>
+            <div id="mh-board" class="mh-board"></div>
             <button id="restartBtn">PLAY AGAIN</button>
+            <button id="mh-share" class="mh-share-btn" type="button">SHARE SCORE</button>
         </div>
     </div>
+    <script src="../matrix-best.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
