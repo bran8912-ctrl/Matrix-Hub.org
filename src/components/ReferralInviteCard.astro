@@ -1,0 +1,454 @@
+---
+/**
+ * Invite Friends card for /wallet — Referral Phase 1 (HUB task 154).
+ *
+ * Design: Ivy Santos, referral-design-2026-11-10.md §1, §4, §5.
+ * Shows: the member's invite link + code, Copy / Share, the credited
+ * count ("Friends who played"), tier progress, the full tier ladder
+ * (Tier 1 live; Tiers 2–4 shown locked as "Coming soon"), manual
+ * receipt-code entry, earned badges, and the legal footer line.
+ * Perks only — no cash, no crypto, no MTX. No leaderboard in Phase 1.
+ */
+export const prerender = true;
+---
+
+<section id="invite" class="ref-card" aria-label="Invite Friends">
+  <h2 class="ref-title">Invite Friends</h2>
+  <p class="ref-intro">Invite friends, unlock perks. Share the Hub with a friend — when they play a game, you both unlock a site perk.</p>
+
+  <div class="ref-field-block">
+    <label for="mh-ref-link" class="ref-label">Your invite link</label>
+    <div class="ref-row">
+      <input id="mh-ref-link" type="text" readonly class="ref-link-input" value="" />
+      <button type="button" id="mh-ref-copy" class="ref-btn ref-btn-primary">Copy link</button>
+    </div>
+    <p id="mh-ref-copy-status" class="ref-status" role="status" aria-live="polite"></p>
+  </div>
+
+  <div class="ref-field-block ref-code-block">
+    <span class="ref-label">Your invite code</span>
+    <span id="mh-ref-my-code" class="ref-my-code">——————</span>
+  </div>
+
+  <div class="ref-share-row" aria-label="Share your invite link">
+    <a id="mh-ref-share-x" class="ref-btn ref-share-btn" href="#" target="_blank" rel="noopener noreferrer">Share to X</a>
+    <a id="mh-ref-share-telegram" class="ref-btn ref-share-btn" href="#" target="_blank" rel="noopener noreferrer">Share to Telegram</a>
+    <a id="mh-ref-share-whatsapp" class="ref-btn ref-share-btn" href="#" target="_blank" rel="noopener noreferrer">Share to WhatsApp</a>
+  </div>
+
+  <div class="ref-count-block">
+    <p class="ref-count"><span class="ref-label-inline">Friends who played:</span> <strong id="mh-ref-count">0</strong></p>
+    <p id="mh-ref-progress-text" class="ref-progress-text">0 / 1 to First Friend</p>
+    <div class="ref-progress-track" role="progressbar" aria-label="Progress to next tier" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="mh-ref-progressbar">
+      <div id="mh-ref-progress-fill" class="ref-progress-fill" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <div id="mh-ref-unlock" class="ref-unlock" hidden role="status">
+    <p class="ref-unlock-text">🎉 You unlocked First Friend! Your "First Friend" badge is now on your Invite card.</p>
+  </div>
+
+  <div class="ref-badges-block">
+    <h3 class="ref-subtitle">Your badges</h3>
+    <ul class="ref-badges">
+      <li id="mh-ref-badge-first-friend" class="ref-badge" hidden>🌱 First Friend</li>
+      <li id="mh-ref-badge-welcome" class="ref-badge" hidden>👋 Welcome to the Hub</li>
+      <li id="mh-ref-badge-none" class="ref-badge-none">No badges yet — your first one unlocks at Tier 1.</li>
+    </ul>
+  </div>
+
+  <div class="ref-ladder-block">
+    <h3 class="ref-subtitle">Perk tiers</h3>
+    <ul class="ref-ladder">
+      <li class="ref-tier" data-tier-row="first-friend">
+        <span class="ref-tier-emoji">🌱</span>
+        <span class="ref-tier-main">
+          <span class="ref-tier-name">Tier 1 · First Friend — 1 friend</span>
+          <span class="ref-tier-unlock">"First Friend" badge on the Invite card. Your friend also gets the "Welcome to the Hub" badge + "Neon Grid" theme after their first game.</span>
+        </span>
+        <span class="ref-tier-state" data-tier-state="first-friend">Locked</span>
+      </li>
+      <li class="ref-tier ref-tier-locked" data-tier-row="connector">
+        <span class="ref-tier-emoji">🔗</span>
+        <span class="ref-tier-main">
+          <span class="ref-tier-name">Tier 2 · Connector — 5 friends</span>
+          <span class="ref-tier-unlock">"Connector" badge. Unlocks the "Gold Rush" game theme.</span>
+        </span>
+        <span class="ref-tier-state">Coming soon</span>
+      </li>
+      <li class="ref-tier ref-tier-locked" data-tier-row="hub-builder">
+        <span class="ref-tier-emoji">🏗️</span>
+        <span class="ref-tier-main">
+          <span class="ref-tier-name">Tier 3 · Hub Builder — 10 friends</span>
+          <span class="ref-tier-unlock">"Hub Builder" badge. Unlocks the "Void Purple" game theme.</span>
+        </span>
+        <span class="ref-tier-state">Coming soon</span>
+      </li>
+      <li class="ref-tier ref-tier-locked" data-tier-row="matrix-legend">
+        <span class="ref-tier-emoji">👑</span>
+        <span class="ref-tier-main">
+          <span class="ref-tier-name">Tier 4 · Matrix Legend — 25 friends</span>
+          <span class="ref-tier-unlock">"Matrix Legend" badge. Unlocks all themes, including the exclusive "Legend" theme.</span>
+        </span>
+        <span class="ref-tier-state">Coming soon</span>
+      </li>
+    </ul>
+    <p class="ref-ladder-note">Tier 1 is live. Tiers 2–4 are coming soon — your count keeps building toward them. Tiers are permanent once unlocked and are never taken away.</p>
+  </div>
+
+  <div class="ref-receipt-block">
+    <h3 class="ref-subtitle">Add a friend's play</h3>
+    <p class="ref-receipt-help">After a friend you invited finishes a game, they get a receipt code on their screen. Enter it here — one code adds one friend, and each code works once.</p>
+    <form id="mh-ref-receipt-form" class="ref-receipt-form" novalidate>
+      <label for="mh-ref-receipt-input" class="ref-label">Receipt code</label>
+      <div class="ref-row">
+        <input
+          id="mh-ref-receipt-input"
+          type="text"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          placeholder="PLAYED-ABC123-XXXXXX"
+          class="ref-receipt-input"
+        />
+        <button type="submit" class="ref-btn ref-btn-primary">Add referral</button>
+      </div>
+      <p id="mh-ref-receipt-status" class="ref-status" role="status" aria-live="polite"></p>
+    </form>
+  </div>
+
+  <div id="mh-ref-friend-block" class="ref-friend-block" hidden>
+    <h3 class="ref-subtitle">Your invite perk</h3>
+    <p id="mh-ref-friend-text" class="ref-friend-text"></p>
+    <div id="mh-ref-friend-receipt-row" class="ref-row" hidden>
+      <input id="mh-ref-friend-receipt" type="text" readonly class="ref-link-input" value="" />
+      <button type="button" id="mh-ref-friend-receipt-copy" class="ref-btn">Copy code</button>
+    </div>
+  </div>
+
+  <p class="ref-legal">Referral perks are cosmetic site features only. No cash, no crypto, no monetary value.</p>
+</section>
+
+<style>
+  .ref-card {
+    max-width: 900px;
+    margin: 2.5rem auto 0;
+    padding: 1.75rem;
+    background: rgba(0, 255, 153, 0.05);
+    border: 1px solid rgba(0, 255, 153, 0.35);
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    color: var(--theme-text);
+  }
+  .ref-title {
+    color: var(--theme-primary);
+    font-size: 1.6rem;
+    margin: 0 0 0.6rem;
+    letter-spacing: 2px;
+  }
+  .ref-intro { line-height: 1.6; opacity: 0.92; margin: 0 0 1.25rem; }
+  .ref-label, .ref-label-inline {
+    display: block;
+    color: var(--theme-primary);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.4rem;
+  }
+  .ref-label-inline { display: inline; margin: 0; }
+  .ref-field-block { margin-bottom: 1.1rem; }
+  .ref-row { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .ref-link-input, .ref-receipt-input {
+    flex: 1;
+    min-width: 220px;
+    padding: 0.55rem 0.75rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: #a7f3d0;
+    border: 1px solid rgba(0, 255, 153, 0.4);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    outline: none;
+  }
+  .ref-receipt-input { text-transform: uppercase; letter-spacing: 1px; }
+  .ref-btn {
+    padding: 0.55rem 1rem;
+    background: rgba(0, 255, 153, 0.08);
+    color: var(--theme-primary);
+    border: 1px solid rgba(0, 255, 153, 0.55);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+  }
+  .ref-btn:hover { box-shadow: 0 0 10px rgba(0, 255, 153, 0.3); text-decoration: none; }
+  .ref-btn:disabled { opacity: 0.5; cursor: wait; box-shadow: none; }
+  .ref-btn-primary { background: rgba(0, 255, 153, 0.18); font-weight: bold; }
+  .ref-status { min-height: 1.2em; margin: 0.45rem 0 0; font-size: 0.85rem; color: #a7f3d0; line-height: 1.5; }
+  .ref-code-block { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .ref-code-block .ref-label { margin: 0; }
+  .ref-my-code {
+    font-size: 1.9rem;
+    font-weight: bold;
+    letter-spacing: 6px;
+    color: var(--theme-primary);
+    text-shadow: 0 0 14px var(--theme-glow);
+  }
+  .ref-share-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .ref-count-block { margin-bottom: 1.25rem; }
+  .ref-count { font-size: 1.05rem; margin: 0 0 0.4rem; }
+  .ref-progress-text { margin: 0 0 0.45rem; font-size: 0.9rem; opacity: 0.9; }
+  .ref-progress-track {
+    height: 10px;
+    background: rgba(0, 0, 0, 0.65);
+    border: 1px solid rgba(0, 255, 153, 0.35);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  .ref-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, rgba(0, 255, 153, 0.55), rgba(0, 255, 153, 0.95));
+    box-shadow: 0 0 12px rgba(0, 255, 153, 0.6);
+    transition: width 0.4s ease;
+  }
+  .ref-unlock {
+    margin-bottom: 1.25rem;
+    padding: 0.9rem 1rem;
+    background: rgba(0, 255, 153, 0.14);
+    border: 1px solid rgba(0, 255, 153, 0.7);
+    border-radius: 8px;
+    box-shadow: 0 0 18px rgba(0, 255, 153, 0.35);
+  }
+  .ref-unlock[hidden] { display: none; }
+  .ref-unlock-text { margin: 0; line-height: 1.55; }
+  .ref-subtitle { color: var(--theme-primary); font-size: 1.05rem; margin: 0 0 0.6rem; letter-spacing: 1px; }
+  .ref-badges-block, .ref-ladder-block, .ref-receipt-block, .ref-friend-block { margin-bottom: 1.4rem; }
+  .ref-badges { list-style: none; margin: 0; padding: 0; display: flex; gap: 0.5rem; flex-wrap: wrap; }
+  .ref-badge {
+    padding: 0.45rem 0.85rem;
+    border: 1px solid rgba(0, 255, 153, 0.7);
+    border-radius: 999px;
+    background: rgba(0, 255, 153, 0.12);
+    box-shadow: 0 0 14px rgba(0, 255, 153, 0.45);
+    font-size: 0.9rem;
+  }
+  .ref-badge-none { font-size: 0.88rem; opacity: 0.75; }
+  .ref-ladder { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.6rem; }
+  .ref-tier {
+    display: flex;
+    gap: 0.8rem;
+    align-items: flex-start;
+    padding: 0.8rem 0.9rem;
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid rgba(0, 255, 153, 0.3);
+    border-radius: 8px;
+  }
+  .ref-tier-locked { opacity: 0.62; }
+  .ref-tier-emoji { font-size: 1.4rem; line-height: 1.2; }
+  .ref-tier-main { flex: 1; display: grid; gap: 0.3rem; }
+  .ref-tier-name { font-weight: bold; color: var(--theme-primary); font-size: 0.95rem; }
+  .ref-tier-unlock { font-size: 0.86rem; line-height: 1.55; opacity: 0.92; }
+  .ref-tier-state {
+    font-size: 0.75rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border: 1px solid rgba(0, 255, 153, 0.45);
+    border-radius: 999px;
+    padding: 0.25rem 0.6rem;
+    white-space: nowrap;
+  }
+  .ref-tier-state-unlocked { background: rgba(0, 255, 153, 0.2); box-shadow: 0 0 10px rgba(0, 255, 153, 0.4); }
+  .ref-ladder-note, .ref-receipt-help, .ref-friend-text { font-size: 0.88rem; line-height: 1.6; opacity: 0.88; }
+  .ref-legal {
+    margin: 0;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 255, 153, 0.25);
+    font-size: 0.8rem;
+    line-height: 1.5;
+    opacity: 0.75;
+  }
+  @media (max-width: 640px) {
+    .ref-card { padding: 1.1rem; }
+    .ref-my-code { font-size: 1.5rem; letter-spacing: 4px; }
+  }
+</style>
+
+<script>
+  import {
+    browserStorage,
+    getReferralState,
+    nextTierForCount,
+    recordInviteSent,
+    redeemReceipt,
+    TIERS,
+  } from "../lib/referral";
+
+  (function () {
+    const store = browserStorage();
+    if (!store) return;
+
+    const linkInput = document.getElementById("mh-ref-link") as HTMLInputElement | null;
+    const codeEl = document.getElementById("mh-ref-my-code");
+    const copyBtn = document.getElementById("mh-ref-copy") as HTMLButtonElement | null;
+    const copyStatus = document.getElementById("mh-ref-copy-status");
+    const countEl = document.getElementById("mh-ref-count");
+    const progressText = document.getElementById("mh-ref-progress-text");
+    const progressBar = document.getElementById("mh-ref-progressbar");
+    const progressFill = document.getElementById("mh-ref-progress-fill") as HTMLElement | null;
+    const unlockBox = document.getElementById("mh-ref-unlock");
+    const shareText = "Come play free games with me on Matrix Hub — use my invite link and we both unlock a site perk:";
+
+    /** Share/copy cooldown (design §2: copy/share taps are rate-limited
+     *  in the UI and never rewarded). */
+    let shareCooldownUntil = 0;
+    function cooldownActive(): boolean {
+      return Date.now() < shareCooldownUntil;
+    }
+    function startCooldown() {
+      shareCooldownUntil = Date.now() + 1500;
+    }
+
+    function render() {
+      const state = getReferralState(store, window.location.origin);
+      if (linkInput) linkInput.value = state.inviteLink;
+      if (codeEl) codeEl.textContent = state.myCode;
+      if (countEl) countEl.textContent = String(state.count);
+
+      const next = nextTierForCount(state.count);
+      if (progressText && progressFill && progressBar) {
+        if (next) {
+          const prevThreshold = next.level === 1 ? 0 : TIERS[next.level - 2].threshold;
+          const span = next.threshold - prevThreshold;
+          const done = Math.min(state.count - prevThreshold, span);
+          const pct = Math.round((done / span) * 100);
+          progressText.textContent = `${state.count} / ${next.threshold} to ${next.name}`;
+          progressFill.style.width = `${pct}%`;
+          progressBar.setAttribute("aria-valuenow", String(pct));
+        } else {
+          progressText.textContent = `${state.count} / ${TIERS[TIERS.length - 1].threshold} — full ladder complete`;
+          progressFill.style.width = "100%";
+          progressBar.setAttribute("aria-valuenow", "100");
+        }
+      }
+
+      const hasFirstFriend = state.badges.includes("first-friend");
+      const hasWelcome = state.badges.includes("welcome-to-the-hub");
+      const ffBadge = document.getElementById("mh-ref-badge-first-friend");
+      const wBadge = document.getElementById("mh-ref-badge-welcome");
+      const noneBadge = document.getElementById("mh-ref-badge-none");
+      if (ffBadge) ffBadge.hidden = !hasFirstFriend;
+      if (wBadge) wBadge.hidden = !hasWelcome;
+      if (noneBadge) noneBadge.hidden = hasFirstFriend || hasWelcome;
+
+      const tierState = document.querySelector('[data-tier-state="first-friend"]');
+      if (tierState) {
+        tierState.textContent = hasFirstFriend ? "Unlocked" : "Locked";
+        tierState.classList.toggle("ref-tier-state-unlocked", hasFirstFriend);
+      }
+
+      // Share links: plain share URLs only — no SDKs, no tracking pixels.
+      const encodedLink = encodeURIComponent(state.inviteLink);
+      const encodedText = encodeURIComponent(`${shareText} ${state.inviteLink}`);
+      const x = document.getElementById("mh-ref-share-x") as HTMLAnchorElement | null;
+      const tg = document.getElementById("mh-ref-share-telegram") as HTMLAnchorElement | null;
+      const wa = document.getElementById("mh-ref-share-whatsapp") as HTMLAnchorElement | null;
+      if (x) x.href = `https://twitter.com/intent/tweet?text=${encodedText}`;
+      if (tg) tg.href = `https://t.me/share/url?url=${encodedLink}&text=${encodeURIComponent(shareText)}`;
+      if (wa) wa.href = `https://wa.me/?text=${encodedText}`;
+
+      // Friend-side status (this browser arrived via an invite).
+      const friendBlock = document.getElementById("mh-ref-friend-block");
+      const friendText = document.getElementById("mh-ref-friend-text");
+      const friendRow = document.getElementById("mh-ref-friend-receipt-row");
+      const friendReceipt = document.getElementById("mh-ref-friend-receipt") as HTMLInputElement | null;
+      if (friendBlock && friendText) {
+        if (state.invitedBy && state.myReceipt) {
+          friendBlock.hidden = false;
+          friendText.textContent =
+            "You played your first game as an invited friend. Share this receipt code with the player who invited you so they can add your play here:";
+          if (friendRow) friendRow.hidden = false;
+          if (friendReceipt) friendReceipt.value = state.myReceipt;
+        } else if (state.invitedBy) {
+          friendBlock.hidden = false;
+          friendText.textContent =
+            "You were invited by a Matrix Hub player. Play a game, then use the finished-round button on the game page to get your receipt code and unlock your \"Welcome to the Hub\" badge + \"Neon Grid\" theme.";
+          if (friendRow) friendRow.hidden = true;
+        } else {
+          friendBlock.hidden = true;
+        }
+      }
+    }
+
+    async function copyText(text: string): Promise<boolean> {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    copyBtn?.addEventListener("click", async () => {
+      if (!linkInput || cooldownActive()) return;
+      startCooldown();
+      recordInviteSent(store);
+      const ok = await copyText(linkInput.value);
+      if (copyStatus) {
+        copyStatus.textContent = ok
+          ? "Invite link copied. Send it to a friend — when they play a game, you both unlock a perk."
+          : "Copy did not work here — select the link above and copy it manually.";
+      }
+    });
+
+    document.querySelectorAll(".ref-share-btn").forEach((btn) => {
+      btn.addEventListener("click", (event) => {
+        if (cooldownActive()) {
+          event.preventDefault();
+          return;
+        }
+        startCooldown();
+        recordInviteSent(store);
+      });
+    });
+
+    const receiptForm = document.getElementById("mh-ref-receipt-form") as HTMLFormElement | null;
+    const receiptInput = document.getElementById("mh-ref-receipt-input") as HTMLInputElement | null;
+    const receiptStatus = document.getElementById("mh-ref-receipt-status");
+    receiptForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!receiptInput || !receiptStatus) return;
+      const result = redeemReceipt(store, receiptInput.value);
+      if (result.status === "ok") {
+        receiptInput.value = "";
+        receiptStatus.textContent = "Referral added — thank you! Your count went up by one.";
+        render();
+        if (result.unlockedFirstFriend && unlockBox) {
+          unlockBox.hidden = false;
+          unlockBox.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      } else if (result.status === "already-used") {
+        receiptStatus.textContent = "That receipt code was already used — each code works once.";
+      } else if (result.status === "expired") {
+        receiptStatus.textContent = "That receipt code has expired. Receipt codes work for 7 days after a friend plays.";
+      } else if (result.status === "wrong-inviter") {
+        receiptStatus.textContent = "That receipt code belongs to a different invite code, so it was not added.";
+      } else if (result.status === "own-receipt") {
+        receiptStatus.textContent = "That is a receipt code from this browser — it cannot be added to your own count.";
+      } else {
+        receiptStatus.textContent = "That does not look like a receipt code. Receipt codes look like PLAYED-ABC123-XXXXXX.";
+      }
+    });
+
+    const friendCopy = document.getElementById("mh-ref-friend-receipt-copy") as HTMLButtonElement | null;
+    const friendReceiptInput = document.getElementById("mh-ref-friend-receipt") as HTMLInputElement | null;
+    friendCopy?.addEventListener("click", async () => {
+      if (!friendReceiptInput) return;
+      await copyText(friendReceiptInput.value);
+    });
+
+    render();
+  })();
+</script>
