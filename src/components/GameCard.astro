@@ -28,6 +28,7 @@ const categoryLabel: Record<GameCategory, string> = {
 
     <h3 class="game-name">{game.name}</h3>
     <p class="game-tag">{game.tag}</p>
+    <p class="game-best" data-best-slug={game.slug} hidden></p>
 
     <div class="device-icons">
       {game.mobile && (
@@ -138,6 +139,13 @@ const categoryLabel: Record<GameCategory, string> = {
     color: rgb(156, 163, 175);
     margin: 0;
     font-style: italic;
+  }
+
+  .game-best {
+    font-size: 0.85rem;
+    color: rgb(34, 197, 94);
+    font-family: 'Courier New', monospace;
+    margin: 0;
   }
 
   .device-icons {
