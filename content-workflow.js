@@ -105,7 +105,15 @@ async function scanContent() {
     for (const file of files) {
       try {
         const content = await fs.readFile(file, 'utf-8');
-        const parsed = matter(content);
+        // Astro files use --- fences for TypeScript/JavaScript frontmatter,
+        // not YAML. gray-matter throws on those, so fall back to treating
+        // the whole file as content with no frontmatter data.
+        let parsed;
+        try {
+          parsed = matter(content);
+        } catch {
+          parsed = { data: {}, content };
+        }
         
         const fileStats = await fs.stat(file);
         
