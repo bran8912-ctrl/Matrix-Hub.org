@@ -1,0 +1,100 @@
+---
+/**
+ * Referral theme picker — Phase 1 (HUB task 154, design §5 item 5).
+ * The "Neon Grid" theme (cyan-on-black) is the one working perk theme
+ * in Phase 1. It unlocks for the invited friend after their first
+ * completed game round (Tier 1). The choice is stored as `mh_theme`
+ * in localStorage and applied by the early script in Layout.
+ */
+export const prerender = true;
+---
+
+<div class="mh-theme-picker" aria-label="Game theme">
+  <span class="mh-theme-picker-label">Game theme</span>
+  <div class="mh-theme-picker-row">
+    <button type="button" id="mh-theme-default" class="mh-theme-btn">Site default</button>
+    <button type="button" id="mh-theme-neon" class="mh-theme-btn">Neon Grid</button>
+  </div>
+  <p id="mh-theme-status" class="mh-theme-status" role="status" aria-live="polite"></p>
+</div>
+
+<style>
+  .mh-theme-picker {
+    max-width: 640px;
+    margin: 1.25rem auto;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+  }
+  .mh-theme-picker-label {
+    display: block;
+    color: rgb(34, 197, 94);
+    font-size: 0.9rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+  .mh-theme-picker-row { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; }
+  .mh-theme-btn {
+    padding: 0.5rem 1rem;
+    background: rgba(34, 197, 94, 0.08);
+    color: rgb(134, 239, 172);
+    border: 1px solid rgba(34, 197, 94, 0.45);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.88rem;
+    cursor: pointer;
+  }
+  .mh-theme-btn:hover { box-shadow: 0 0 10px rgba(34, 197, 94, 0.3); }
+  .mh-theme-btn[aria-pressed="true"] {
+    background: rgba(34, 197, 94, 0.22);
+    font-weight: bold;
+  }
+  .mh-theme-btn:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
+  .mh-theme-status { margin: 0.6rem 0 0; min-height: 1.2em; font-size: 0.85rem; color: rgb(156, 163, 175); line-height: 1.5; }
+</style>
+
+<script>
+  import { browserStorage, getReferralState, applyTheme, NEON_GRID_THEME } from "../lib/referral";
+
+  (function () {
+    const store = browserStorage();
+    if (!store) return;
+    const defaultBtn = document.getElementById("mh-theme-default") as HTMLButtonElement | null;
+    const neonBtn = document.getElementById("mh-theme-neon") as HTMLButtonElement | null;
+    const status = document.getElementById("mh-theme-status");
+    if (!defaultBtn || !neonBtn || !status) return;
+
+    function render() {
+      const state = getReferralState(store, window.location.origin);
+      const unlocked = state.unlockedThemes.includes(NEON_GRID_THEME);
+      const active = state.activeTheme === NEON_GRID_THEME;
+      neonBtn.disabled = !unlocked;
+      neonBtn.setAttribute("aria-pressed", active ? "true" : "false");
+      defaultBtn.setAttribute("aria-pressed", active ? "false" : "true");
+      status.textContent = unlocked
+        ? active
+          ? "Neon Grid is on. It only changes how the site looks — same games, same play."
+          : "Neon Grid is unlocked — tap it to switch the look."
+        : "Neon Grid is locked. It unlocks with the \"Welcome to the Hub\" perk after an invited friend's first game.";
+    }
+
+    defaultBtn.addEventListener("click", () => {
+      applyTheme(store, "");
+      document.documentElement.classList.remove("mh-theme-neon-grid");
+      render();
+    });
+    neonBtn.addEventListener("click", () => {
+      if (applyTheme(store, NEON_GRID_THEME)) {
+        document.documentElement.classList.add("mh-theme-neon-grid");
+      }
+      render();
+    });
+
+    window.addEventListener("mh-ref-updated", render);
+    render();
+  })();
+</script>
