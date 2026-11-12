@@ -4,16 +4,18 @@ import MoneyPrinterIsland from "../components/MoneyPrinter.tsx";
 
 export const prerender = true;
 
-export const title = "Money Printer";
+export const title = "Hypothetical Calculator";
 export const navCategory = "mtx-token";
 ---
 
-<Layout title="MTX Money Printer - Matrix Hub">
+<Layout title="MTX Hypothetical Calculator - Matrix Hub">
   <div class="money-printer-page">
-    <h1 class="page-title">MTX MONEY PRINTER 🖨️</h1>
+    <h1 class="page-title">MTX HYPOTHETICAL CALCULATOR 🧮</h1>
     <p class="page-description">
-      Calculate your staking yields, compound earnings, and casino returns.
-      Find out how much MTX your stack can generate.
+      Hypothetical illustration only: enter your own amount and your own
+      assumed rate to see the maths. This is not a promise of returns — there
+      is no live MTX staking programme, and MTX is a utility token, not an
+      investment, with no guaranteed value.
     </p>
 
     <MoneyPrinterIsland client:load />
