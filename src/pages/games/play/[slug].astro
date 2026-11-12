@@ -1,5 +1,6 @@
 ---
 import Layout from "../../../components/Layout.astro";
+import ReferralGamePanel from "../../../components/ReferralGamePanel.astro";
 import { games } from "../../../data/games";
 
 export const prerender = true;
@@ -81,6 +82,9 @@ const sandboxPolicy = isLocal
       </div>
     </div>
   </div>
+
+  <!-- Referral Program Phase 1: credit-on-play panel + perk theme picker -->
+  <ReferralGamePanel />
 </Layout>
 
 <style>
