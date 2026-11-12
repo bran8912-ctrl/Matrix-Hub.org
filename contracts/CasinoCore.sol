@@ -67,7 +67,32 @@ contract CasinoCore is ReentrancyGuard {
         bool win;
         uint256 placedAt;
         uint256 requestId;
+        // Slots (gameId == GAME_SLOTS): the three reel stop positions
+        // (0-19 each) derived from the VRF word at settlement. All zero
+        // for Dice bets and for Slots bets still Pending.
+        uint8 gameId;
+        uint8 reel0;
+        uint8 reel1;
+        uint8 reel2;
     }
+
+    uint8 public constant GAME_DICE = 0;
+    uint8 public constant GAME_SLOTS = 1;
+
+    // Slots v1 (design: bot-core/go-live/next-casino-game-design.md,
+    // Nina Petrov 2026-11-10). 3 reels, 20 stops each, identical strip:
+    // symbol ids 0=SEVEN (1 stop), 1=BAR (2), 2=BELL (3), 3=PLUM (4),
+    // 4=LEMON (4), 5=CHERRY (6). Paytable multipliers of the bet:
+    // 3x SEVEN 100, 3x BAR 100, 3x BELL 40, 3x PLUM 25, 3x LEMON 15,
+    // 3x CHERRY 12, plus two CHERRY on reels 1-2 only pays 1x (stake
+    // back). RTP = 7,636 / 8,000 = 95.45% (see slotsRtpBps()).
+    uint256 public constant SLOTS_MAX_MULTIPLIER = 100;
+    uint8 public constant SLOTS_SYMBOL_SEVEN = 0;
+    uint8 public constant SLOTS_SYMBOL_BAR = 1;
+    uint8 public constant SLOTS_SYMBOL_BELL = 2;
+    uint8 public constant SLOTS_SYMBOL_PLUM = 3;
+    uint8 public constant SLOTS_SYMBOL_LEMON = 4;
+    uint8 public constant SLOTS_SYMBOL_CHERRY = 5;
 
     event BetPlaced(
         uint256 indexed betId,
@@ -82,6 +107,18 @@ contract CasinoCore is ReentrancyGuard {
         uint256 reservedPayout
     );
     event BetResolved(uint256 indexed betId, uint8 roll, bool win, uint256 payout);
+    event SlotsBetPlaced(uint256 indexed betId, address indexed player, uint256 amount);
+    event SlotsBetResolved(
+        uint256 indexed betId,
+        uint8 reel0,
+        uint8 reel1,
+        uint8 reel2,
+        uint8 symbol0,
+        uint8 symbol1,
+        uint8 symbol2,
+        bool win,
+        uint256 payout
+    );
     event PayoutClaimed(uint256 indexed betId, address indexed player, uint256 payout);
     event PercentagesUpdated(uint256 payout, uint256 liquidity, uint256 reserve, uint256 dev);
     event BetLimitsUpdated(uint256 minBet, uint256 maxBet);
@@ -200,21 +237,16 @@ contract CasinoCore is ReentrancyGuard {
         _;
     }
 
-    function placeDiceBet(uint256 amount, uint8 target)
-        external
-        notPaused
-        nonReentrant
-        returns (uint256 betId)
-    {
-        if (amount < minBet) revert BetBelowMinimum();
-        if (amount > maxBet) revert BetAboveMaximum();
-        if (target < MIN_TARGET || target > MAX_TARGET) revert InvalidTarget();
-
+    /// @notice Shared bet-acceptance path for every game (Dice + Slots):
+    /// per-block limit, max-payout cap, reserve headroom check, stake
+    /// pull, and the G-01 fee routing. Game entry points compute their
+    /// own worst-case `potentialPayout` and validate their own inputs
+    /// before calling this.
+    function _acceptStake(uint256 amount, uint256 potentialPayout) private {
         uint256 blockBets = _betsInBlock[msg.sender][block.number];
         if (blockBets >= maxBetsPerBlock) revert TooManyBetsInBlock();
         _betsInBlock[msg.sender][block.number] = blockBets + 1;
 
-        uint256 potentialPayout = _calculateDicePayout(amount, target);
         if (potentialPayout > maxPayoutPerBet) revert ExceedsMaxPayout();
         if (
             amount > uint256(type(int256).max) ||
@@ -231,8 +263,9 @@ contract CasinoCore is ReentrancyGuard {
         // Fee routing (G-01): payoutPercent is a RESERVE-routing share, not
         // a player payout. 88% + 4% = 92% of every bet lands in CasinoReserve;
         // 6% queues in the LiquidityRouter; 2% goes to dev. The player's
-        // payout, if they win, comes from the reserve per dice maths
-        // (_calculateDicePayout, 98% RTP) — never from these percentages.
+        // payout, if they win, comes from the reserve per game maths
+        // (Dice _calculateDicePayout 98% RTP; Slots paytable 95.45% RTP)
+        // — never from these percentages.
         uint256 liquidityAmount = Math.mulDiv(amount, liquidityPercent, 100);
         uint256 reserveAmount =
             Math.mulDiv(amount, payoutPercent, 100) +
@@ -248,6 +281,36 @@ contract CasinoCore is ReentrancyGuard {
             reserve.deposit(reserveAmount);
         }
         if (devAmount > 0) mtx.safeTransfer(dev, devAmount);
+    }
+
+    /// @notice Lock the worst-case payout and request the VRF word for a
+    /// bet whose record is already stored. Shared by Dice and Slots.
+    function _requestRandomnessForBet(uint256 betId, uint256 potentialPayout) private {
+        lockedPayouts += potentialPayout;
+        activeRandomnessRequests++;
+
+        uint256 requestId = rng.requestRandomWords();
+        if (requestToBetId[requestId] != 0) revert DuplicateRandomnessRequest();
+        requestToBetId[requestId] = betId;
+        _bets[betId].requestId = requestId;
+
+        totalBets++;
+        totalWagered += _bets[betId].amount;
+        emit BetRequested(betId, requestId, _bets[betId].player, potentialPayout);
+    }
+
+    function placeDiceBet(uint256 amount, uint8 target)
+        external
+        notPaused
+        nonReentrant
+        returns (uint256 betId)
+    {
+        if (amount < minBet) revert BetBelowMinimum();
+        if (amount > maxBet) revert BetAboveMaximum();
+        if (target < MIN_TARGET || target > MAX_TARGET) revert InvalidTarget();
+
+        uint256 potentialPayout = _calculateDicePayout(amount, target);
+        _acceptStake(amount, potentialPayout);
 
         betId = ++nextBetId;
         _bets[betId] = Bet({
@@ -260,20 +323,54 @@ contract CasinoCore is ReentrancyGuard {
             status: BetStatus.Pending,
             win: false,
             placedAt: block.timestamp,
-            requestId: 0
+            requestId: 0,
+            gameId: GAME_DICE,
+            reel0: 0,
+            reel1: 0,
+            reel2: 0
         });
-        lockedPayouts += potentialPayout;
-        activeRandomnessRequests++;
-
-        uint256 requestId = rng.requestRandomWords();
-        if (requestToBetId[requestId] != 0) revert DuplicateRandomnessRequest();
-        requestToBetId[requestId] = betId;
-        _bets[betId].requestId = requestId;
-
-        totalBets++;
-        totalWagered += amount;
+        _requestRandomnessForBet(betId, potentialPayout);
         emit BetPlaced(betId, msg.sender, amount, target);
-        emit BetRequested(betId, requestId, msg.sender, potentialPayout);
+    }
+
+    /// @notice Slots v1: one spin, one VRF word, three reels. The
+    /// worst-case payout is `amount * SLOTS_MAX_MULTIPLIER` (100x), so
+    /// with the shipped maxPayoutPerBet of 100 MTX only 1 MTX spins are
+    /// accepted (ExceedsMaxPayout above that) — exactly the design's
+    /// cap note. Settlement happens in fulfillRandomness; winnings are
+    /// paid through the shared claimPayout flow.
+    function placeSlotsBet(uint256 amount)
+        external
+        notPaused
+        nonReentrant
+        returns (uint256 betId)
+    {
+        if (amount < minBet) revert BetBelowMinimum();
+        if (amount > maxBet) revert BetAboveMaximum();
+
+        uint256 potentialPayout = amount * SLOTS_MAX_MULTIPLIER;
+        _acceptStake(amount, potentialPayout);
+
+        betId = ++nextBetId;
+        _bets[betId] = Bet({
+            player: msg.sender,
+            amount: amount,
+            payout: 0,
+            reservedPayout: potentialPayout,
+            target: 0,
+            roll: 0,
+            status: BetStatus.Pending,
+            win: false,
+            placedAt: block.timestamp,
+            requestId: 0,
+            gameId: GAME_SLOTS,
+            reel0: 0,
+            reel1: 0,
+            reel2: 0
+        });
+        _requestRandomnessForBet(betId, potentialPayout);
+        emit BetPlaced(betId, msg.sender, amount, 0);
+        emit SlotsBetPlaced(betId, msg.sender, amount);
     }
 
     function fulfillRandomness(uint256 requestId, uint256 randomWord) external {
@@ -287,6 +384,37 @@ contract CasinoCore is ReentrancyGuard {
 
         delete requestToBetId[requestId];
         activeRandomnessRequests--;
+
+        if (bet.gameId == GAME_SLOTS) {
+            (uint8 r0, uint8 r1, uint8 r2) = slotsReelsFromWord(randomWord);
+            uint256 multiplier = slotsMultiplierForReels(r0, r1, r2);
+            uint256 slotsPayout = bet.amount * multiplier;
+            bool slotsWin = slotsPayout > 0;
+
+            lockedPayouts -= bet.reservedPayout - slotsPayout;
+            bet.reservedPayout = slotsPayout;
+            bet.payout = slotsPayout;
+            bet.reel0 = r0;
+            bet.reel1 = r1;
+            bet.reel2 = r2;
+            bet.win = slotsWin;
+            bet.status = BetStatus.Settled;
+            totalPayout += slotsPayout;
+            houseProfit += int256(bet.amount) - int256(slotsPayout);
+
+            emit SlotsBetResolved(
+                betId,
+                r0,
+                r1,
+                r2,
+                slotsSymbolAt(r0),
+                slotsSymbolAt(r1),
+                slotsSymbolAt(r2),
+                slotsWin,
+                slotsPayout
+            );
+            return;
+        }
 
         uint8 roll = uint8(randomWord % 100) + 1;
         bool win = roll < bet.target;
@@ -302,6 +430,133 @@ contract CasinoCore is ReentrancyGuard {
         houseProfit += int256(bet.amount) - int256(payout);
 
         emit BetResolved(betId, roll, win, payout);
+    }
+
+    // ---- Slots maths (pure: anyone can reproduce a spin off-chain) ----
+
+    /// @notice Symbol id at a reel stop position (0-19) on the shared
+    /// 20-stop strip: 0 -> SEVEN; 1-2 -> BAR; 3-5 -> BELL; 6-9 -> PLUM;
+    /// 10-13 -> LEMON; 14-19 -> CHERRY.
+    function slotsSymbolAt(uint8 position) public pure returns (uint8) {
+        if (position == 0) return SLOTS_SYMBOL_SEVEN;
+        if (position <= 2) return SLOTS_SYMBOL_BAR;
+        if (position <= 5) return SLOTS_SYMBOL_BELL;
+        if (position <= 9) return SLOTS_SYMBOL_PLUM;
+        if (position <= 13) return SLOTS_SYMBOL_LEMON;
+        return SLOTS_SYMBOL_CHERRY;
+    }
+
+    /// @notice Derive the three reel positions from one VRF word:
+    /// `word % 20`, `(word / 20) % 20`, `(word / 400) % 20` — the exact
+    /// derivation in the Slots design doc. One derivation, no variants.
+    function slotsReelsFromWord(uint256 word)
+        public
+        pure
+        returns (uint8 reel0, uint8 reel1, uint8 reel2)
+    {
+        reel0 = uint8(word % 20);
+        reel1 = uint8((word / 20) % 20);
+        reel2 = uint8((word / 400) % 20);
+    }
+
+    /// @notice Paytable multiplier (of the bet) for three reel positions.
+    /// Three of a kind pays per symbol; two CHERRY pays 1x ONLY when the
+    /// cherries are on reels 1 and 2 (positions reel0/reel1) and reel 3
+    /// is not a cherry — three cherries is the 12x line, and a cherry on
+    /// reels 1+3 alone pays nothing.
+    function slotsMultiplierForReels(uint8 reel0, uint8 reel1, uint8 reel2)
+        public
+        pure
+        returns (uint256)
+    {
+        uint8 s0 = slotsSymbolAt(reel0);
+        uint8 s1 = slotsSymbolAt(reel1);
+        uint8 s2 = slotsSymbolAt(reel2);
+        if (s0 == s1 && s1 == s2) {
+            if (s0 == SLOTS_SYMBOL_SEVEN) return 100;
+            if (s0 == SLOTS_SYMBOL_BAR) return 100;
+            if (s0 == SLOTS_SYMBOL_BELL) return 40;
+            if (s0 == SLOTS_SYMBOL_PLUM) return 25;
+            if (s0 == SLOTS_SYMBOL_LEMON) return 15;
+            return 12; // CHERRY
+        }
+        if (s0 == SLOTS_SYMBOL_CHERRY && s1 == SLOTS_SYMBOL_CHERRY) return 1;
+        return 0;
+    }
+
+    /// @notice Payout a spin of `amount` would settle at for a given VRF
+    /// word. Pure mirror of the fulfillRandomness Slots path.
+    function slotsPayoutForWord(uint256 amount, uint256 word) public pure returns (uint256) {
+        (uint8 r0, uint8 r1, uint8 r2) = slotsReelsFromWord(word);
+        return amount * slotsMultiplierForReels(r0, r1, r2);
+    }
+
+    /// @notice Slots RTP in basis points, computed by enumerating all
+    /// 20^3 = 8,000 reel combinations through the live paytable:
+    /// 7,636 / 8,000 = 9545 bps (95.45%). The deploy guard and the test
+    /// suite assert this stays inside 90-99%.
+    function slotsRtpBps() public pure returns (uint256) {
+        uint256 totalMultiplier = 0;
+        for (uint8 a = 0; a < 20; a++) {
+            for (uint8 b = 0; b < 20; b++) {
+                for (uint8 c = 0; c < 20; c++) {
+                    totalMultiplier += slotsMultiplierForReels(a, b, c);
+                }
+            }
+        }
+        return (totalMultiplier * 10000) / 8000;
+    }
+
+    /// @notice Game marker for a bet: GAME_DICE (0) or GAME_SLOTS (1).
+    function getBetGame(uint256 betId) external view returns (uint8) {
+        Bet storage bet = _bets[betId];
+        if (bet.status == BetStatus.None) revert BetNotFound();
+        return bet.gameId;
+    }
+
+    /// @notice Full Slots view of a bet. Reel positions and symbols are
+    /// zero while the bet is Pending (the VRF word has not landed yet);
+    /// `multiplier` is the settled paytable multiplier (0 while pending
+    /// or on a loss).
+    function getSlotsBet(uint256 betId)
+        external
+        view
+        returns (
+            address player,
+            uint256 amount,
+            BetStatus status,
+            bool win,
+            uint256 payout,
+            uint8 reel0,
+            uint8 reel1,
+            uint8 reel2,
+            uint8 symbol0,
+            uint8 symbol1,
+            uint8 symbol2,
+            uint256 multiplier
+        )
+    {
+        Bet storage bet = _bets[betId];
+        if (bet.status == BetStatus.None) revert BetNotFound();
+        if (bet.gameId != GAME_SLOTS) revert BetNotFound();
+        multiplier = bet.amount == 0 ? 0 : bet.payout / bet.amount;
+        // While Pending the reels have not been drawn: report the symbol
+        // sentinel 255 instead of symbol-of-position-0 (SEVEN).
+        bool drawn = bet.status != BetStatus.Pending;
+        return (
+            bet.player,
+            bet.amount,
+            bet.status,
+            bet.win,
+            bet.payout,
+            bet.reel0,
+            bet.reel1,
+            bet.reel2,
+            drawn ? slotsSymbolAt(bet.reel0) : 255,
+            drawn ? slotsSymbolAt(bet.reel1) : 255,
+            drawn ? slotsSymbolAt(bet.reel2) : 255,
+            multiplier
+        );
     }
 
     function claimPayout(uint256 betId) external nonReentrant {
