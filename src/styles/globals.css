@@ -374,3 +374,29 @@ body {
   color: #ff9900;
   text-decoration: underline;
 }
+
+/* Referral perk theme: "Neon Grid" (Referral Phase 1, HUB task 154).
+   Cosmetic only — cyan-on-black with a faint grid. Applied when the
+   visitor has unlocked the theme and selected it (localStorage
+   `mh_theme` = "neon-grid"); the Layout head script adds this class
+   to <html> before first paint. Same games, same play — only the
+   look changes. Placed last so it wins over the preset theme classes
+   at equal specificity. */
+html.mh-theme-neon-grid {
+  --theme-primary: #00e5ff;
+  --theme-secondary: #00ffff;
+  --theme-glow: rgba(0, 229, 255, 0.65);
+  --theme-bg-dark: #000508;
+  --theme-bg-panel: rgba(0, 30, 40, 0.35);
+  --theme-text: #a5f3fc;
+  --theme-border: #00e5ff;
+  --theme-name: 'Neon Grid';
+}
+
+html.mh-theme-neon-grid body {
+  background-color: #000508;
+  background-image:
+    linear-gradient(rgba(0, 229, 255, 0.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 229, 255, 0.07) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
