@@ -6,15 +6,25 @@ export const prerender = true;
 // Get password from environment variable at build time
 // Use a hashed version for better security
 // Safe handling to prevent build failures if env var is missing
-// 2026-11-10: there is NO placeholder fallback. When unconfigured the
-// portal renders only the "not configured" message and no portal content
-// or password hash is emitted into the page at all.
+// 2026-11-12 (owner-ordered): the gate on this page is client-side ONLY —
+// it is obscurity, not access control. The portal HTML is rendered into
+// the built page hidden with display:none, and an unlock path below
+// reveals it in the browser:
+//   1. Owner wallet (primary): the visitor's browser wallet must be the
+//      MTX contract owner/deployer address, checked in-page via
+//      window.ethereum against a hardcoded public address.
+//   2. Access code (secondary, optional): SHA-256 check against
+//      OWNERS_PASSWORD_HASH when one is configured at build time.
+// Nothing sensitive lives behind this gate: the portal is a static
+// info/terminal page, and anything with real authority (e.g. the deploy
+// console's actions) is separately gated on-chain by wallet signatures.
+// There is NO placeholder password fallback.
 let OWNERS_PASSWORD_HASH = import.meta.env.OWNERS_PASSWORD_HASH || '';
 let passwordConfigured = false;
 
 // Check if password is configured properly
 if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OWNERS_PASSWORD_HASH.trim() === '') {
-  console.warn("⚠️ OWNERS_PASSWORD_HASH not configured. Owners portal will display a configuration message.");
+  console.warn("⚠️ OWNERS_PASSWORD_HASH not configured. Access-code unlock is disabled; the owner-wallet unlock still works.");
   OWNERS_PASSWORD_HASH = '';
   passwordConfigured = false;
 } else {
@@ -32,13 +42,23 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
         <h1 class="portal-title">🔐 MATRIX-HUB OWNERS PORTAL</h1>
         <p class="portal-subtitle">Authorized Access Only</p>
         
+        <div class="wallet-section">
+          <button type="button" id="wallet-unlock-btn" class="submit-btn wallet-btn">
+            Connect MetaMask (owner wallet)
+          </button>
+          <div id="wallet-message" class="wallet-message"></div>
+        </div>
+
+        {passwordConfigured && (
+          <p class="gate-divider">— or use the access code —</p>
+        )}
+
         {!passwordConfigured && (
-          <div class="config-message">
-            <p><strong>⚠️ Configuration Required</strong></p>
-            <p>The owners portal password has not been configured.</p>
-            <p>To enable access, set the <code>OWNERS_PASSWORD_HASH</code> environment variable.</p>
-            <p>Run: <code>node scripts/generate-password-hash.js 'your-password'</code></p>
-          </div>
+          <p class="gate-note">
+            No access code is configured, so the owner wallet above is the way in.
+            An optional code can be enabled by setting the
+            <code>OWNERS_PASSWORD_HASH</code> build-time environment variable.
+          </p>
         )}
         
         {passwordConfigured && (
@@ -64,11 +84,12 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
       </div>
     </div>
 
-    {/* 2026-11-10: portal content is only rendered when a password hash is
-        configured. When unconfigured, no portal HTML is emitted at all —
-        previously the whole portal was in the static HTML hidden with
-        display:none, which is not access control. */}
-    {passwordConfigured && (
+    {/* 2026-11-12: portal content is always rendered into the built page,
+        hidden with display:none until a gate unlock reveals it (owner
+        wallet, or the access code when one is configured). That is
+        client-side obscurity, not access control — see the frontmatter
+        note. The owner ordered this trade-off: the portal holds nothing
+        sensitive, and anything with real authority is gated on-chain. */}
     <div id="portal-content" class="portal-content" style="display: none;">
       <h1 class="welcome-title">🎯 WELCOME TO THE MATRIX-HUB COMMAND CENTER</h1>
       
@@ -287,31 +308,93 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
         <p>🌟 Matrix-Hub: Signal Over Noise</p>
       </div>
     </div>
-    )}
   </div>
 </Layout>
 
-{passwordConfigured && (
 <script define:vars={{ OWNERS_PASSWORD_HASH, passwordConfigured }}>
-  // Client-side authentication with password hashing
+  // Client-side gate — obscurity, not access control. The portal HTML
+  // ships in this page hidden with display:none; this script reveals it
+  // after one of the unlock paths succeeds:
+  //   1. Owner wallet: the connected browser wallet must be the MTX
+  //      contract owner/deployer address (checked in-page).
+  //   2. Access code: SHA-256 check, only when a hash was configured
+  //      at build time (OWNERS_PASSWORD_HASH).
+  // Anything with real authority (deploy console actions etc.) is
+  // gated separately on-chain by wallet signatures.
   const passwordGate = document.getElementById('password-gate');
   const portalContent = document.getElementById('portal-content');
   const passwordForm = document.getElementById('password-form');
   const passwordInput = document.getElementById('password-input');
   const errorMessage = document.getElementById('error-message');
+  const walletButton = document.getElementById('wallet-unlock-btn');
+  const walletMessage = document.getElementById('wallet-message');
 
-  // Only initialize authentication if password is configured
+  // MTX contract owner / deployer wallet. This address is public
+  // on-chain and already appears in the site's contract config.
+  const OWNER_WALLET = '0x9fb4bb44d8d962d695fc93b3dc15f1b287391077';
+
+  function showPortal() {
+    if (passwordGate) passwordGate.style.display = 'none';
+    if (portalContent) portalContent.style.display = 'block';
+  }
+
+  function isOwnerWallet(address) {
+    return typeof address === 'string' && address.toLowerCase() === OWNER_WALLET;
+  }
+
+  // --- Unlock path 1: owner wallet ---
+
+  function unlockWithWallet() {
+    sessionStorage.setItem('owners_wallet_auth', 'owner-wallet');
+    showPortal();
+  }
+
+  // Already unlocked with the wallet earlier in this tab session
+  if (sessionStorage.getItem('owners_wallet_auth') === 'owner-wallet') {
+    showPortal();
+  }
+
+  // Silent check on load (eth_accounts never pops up): if the browser
+  // wallet is already connected and it is the owner wallet, open up.
+  if (window.ethereum) {
+    window.ethereum
+      .request({ method: 'eth_accounts' })
+      .then((accounts) => {
+        if (accounts && accounts.length > 0 && isOwnerWallet(accounts[0])) {
+          unlockWithWallet();
+        }
+      })
+      .catch(() => {
+        // Silent check only — a failure here just means no auto-unlock.
+      });
+  }
+
+  walletButton?.addEventListener('click', async () => {
+    if (!window.ethereum) {
+      if (walletMessage) walletMessage.textContent = "No browser wallet found — open this page in MetaMask's browser or connect a wallet first.";
+      return;
+    }
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+      const account = accounts && accounts.length > 0 ? accounts[0] : '';
+      if (isOwnerWallet(account)) {
+        if (walletMessage) walletMessage.textContent = '';
+        unlockWithWallet();
+      } else {
+        if (walletMessage) walletMessage.textContent = "That wallet isn't the owner wallet.";
+      }
+    } catch (walletError) {
+      if (walletMessage) walletMessage.textContent = 'Wallet connection was cancelled.';
+    }
+  });
+
+  // --- Unlock path 2: access code (only when a hash is configured) ---
   if (passwordConfigured) {
     // Check if already authenticated
     const isAuthenticated = sessionStorage.getItem('owners_auth') === 'authenticated';
     
     if (isAuthenticated) {
       showPortal();
-    }
-
-    function showPortal() {
-      if (passwordGate) passwordGate.style.display = 'none';
-      if (portalContent) portalContent.style.display = 'block';
     }
 
     // Simple SHA-256 hash function
@@ -359,9 +442,6 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
         }
       }
     });
-  } else {
-    // Password not configured - disable form if it exists
-    console.log('Owners portal password not configured');
   }
 
   // Terminal functionality
@@ -491,7 +571,6 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
     `;
   });
 </script>
-)}
 
 <style>
   .owners-portal {
@@ -575,6 +654,46 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
     color: #ff3333;
     font-weight: bold;
     min-height: 1.5rem;
+  }
+
+  /* Wallet Unlock Styles */
+  .wallet-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .wallet-btn {
+    width: 100%;
+  }
+
+  .wallet-message {
+    color: #ffaa00;
+    font-weight: bold;
+  }
+
+  .wallet-message:empty {
+    display: none;
+  }
+
+  .gate-divider {
+    color: #00cc00;
+    margin: 0.5rem 0 1rem;
+  }
+
+  .gate-note {
+    color: #00cc00;
+    line-height: 1.6;
+    margin-top: 1rem;
+  }
+
+  .gate-note code {
+    background: rgba(0, 255, 0, 0.1);
+    color: #00ff00;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.9rem;
   }
 
   .config-message {
