@@ -10,6 +10,7 @@ import CasinoGamesPanel from "../components/CasinoGamesPanel.astro";
 import DonateBanner from "../components/DonateBanner.astro";
 import TelegramWidget from "../components/TelegramWidget.astro";
 import MTXStatsWidget from "../components/MTXStatsWidget.tsx";
+import ReferralCodeEntry from "../components/ReferralCodeEntry.astro";
 
 export const prerender = true;
 
@@ -24,6 +25,13 @@ export const navCategory = "home";
       Your gateway to blockchain tools, MTX token ecosystem, and provably fair casino games.
     </p>
   </div>
+
+  <!-- Referral Program Phase 1: invite strip + code entry (approved design §1) -->
+  <section class="invite-strip">
+    <p class="invite-strip-text">🤝 Invite a friend, unlock perks</p>
+    <a class="invite-strip-link" href="/wallet#invite">Get your invite link</a>
+  </section>
+  <ReferralCodeEntry />
 
   <section class="n8n-cta">
     <div class="n8n-cta-card">
@@ -81,6 +89,38 @@ export const navCategory = "home";
 </Layout>
 
 <style>
+  .invite-strip {
+    max-width: 760px;
+    margin: 0 auto 8px auto;
+    padding: 1rem 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    border: 1px solid rgba(0, 255, 153, 0.35);
+    border-radius: 14px;
+    background: rgba(0, 255, 153, 0.06);
+    font-family: 'Courier New', monospace;
+  }
+
+  .invite-strip-text {
+    margin: 0;
+    color: var(--theme-text, #ffffff);
+    font-size: 1.05rem;
+  }
+
+  .invite-strip-link {
+    display: inline-flex;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    border: 1px solid var(--theme-primary, #00ff99);
+    color: var(--theme-primary, #00ff99);
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
   .homepage-header {
     text-align: center;
     margin-bottom: 40px;
