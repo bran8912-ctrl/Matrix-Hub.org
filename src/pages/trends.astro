@@ -1,0 +1,129 @@
+---
+import Layout from "../components/Layout.astro";
+import { trendPosts } from "../data/trends";
+
+export const prerender = true;
+
+export const title = "Trends";
+export const navExclude = true;
+
+// Plan rule: top of Trends shows the last 5 posts only, newest first.
+const posts = [...trendPosts]
+  .sort((a, b) => b.date.localeCompare(a.date))
+  .slice(0, 5);
+---
+
+<Layout title="Trends - Matrix Hub">
+  <div class="trends-page">
+    <div class="trends-header">
+      <h1 class="page-title">TRENDS</h1>
+      <p class="page-subtitle">
+        What is worth checking on Matrix Hub today — new and notable on the site, in short, plain posts.
+      </p>
+    </div>
+
+    <div class="trends-list">
+      {posts.map((post) => (
+        <article class="trend-card">
+          <div class="trend-meta">
+            <span class="trend-kind">{post.kind === "site" ? "Site" : "World"}</span>
+            <time datetime={post.date}>{post.dateLabel}</time>
+          </div>
+          <h2 class="trend-headline">{post.headline}</h2>
+          <p class="trend-body">{post.body}</p>
+        </article>
+      ))}
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .trends-page {
+    width: 100%;
+    padding: 2rem 0;
+  }
+
+  .trends-header {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .page-title {
+    font-size: 2.8rem;
+    color: var(--theme-primary);
+    text-shadow: 0 0 20px var(--theme-glow);
+    font-family: 'Courier New', monospace;
+    letter-spacing: 4px;
+    margin-bottom: 1rem;
+  }
+
+  .page-subtitle {
+    font-size: 1.1rem;
+    color: var(--theme-text);
+    max-width: 700px;
+    margin: 0 auto;
+    opacity: 0.9;
+  }
+
+  .trends-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+
+  .trend-card {
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(0, 255, 153, 0.2);
+    border-radius: 8px;
+    padding: 1.5rem;
+  }
+
+  .trend-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    color: var(--theme-text);
+    font-size: 0.85rem;
+    opacity: 0.9;
+  }
+
+  .trend-kind {
+    background: rgba(0, 255, 153, 0.2);
+    color: var(--theme-primary);
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+  }
+
+  .trend-headline {
+    font-size: 1.4rem;
+    color: var(--theme-primary);
+    margin-bottom: 0.75rem;
+    font-family: 'Courier New', monospace;
+    line-height: 1.3;
+  }
+
+  .trend-body {
+    color: var(--theme-text);
+    font-size: 1rem;
+    line-height: 1.6;
+    opacity: 0.9;
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .page-title {
+      font-size: 2rem;
+      letter-spacing: 2px;
+    }
+
+    .trend-card {
+      padding: 1.25rem;
+    }
+  }
+</style>
