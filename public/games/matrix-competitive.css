@@ -1,0 +1,175 @@
+/* matrix-competitive.css — shared Competitive Phase 1 styling (HUB 155).
+   Used by every wired game for the daily-challenge banner, the end-screen
+   best / NEW BEST / local-board block, and the share button.
+   Theme follows the Game Studio style guide: black, Matrix green,
+   Courier New monospace. */
+
+.mh-banner {
+    font-family: 'Courier New', monospace;
+    color: #9f9;
+    background: rgba(0, 40, 0, 0.55);
+    border: 1px solid rgba(0, 255, 0, 0.35);
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin: 10px auto;
+    max-width: 600px;
+    font-size: 0.9rem;
+    text-align: center;
+}
+
+.mh-banner:empty {
+    display: none;
+}
+
+.mh-challenge-label {
+    color: #0f0;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.mh-challenge-done {
+    color: #0ff;
+    font-weight: bold;
+}
+
+.mh-streak {
+    font-family: 'Courier New', monospace;
+    color: #ffb347;
+    text-align: center;
+    font-size: 0.9rem;
+    margin: 4px auto;
+}
+
+.mh-streak:empty {
+    display: none;
+}
+
+.mh-newbest {
+    font-family: 'Courier New', monospace;
+    color: #ff0;
+    font-weight: bold;
+    font-size: 1.2rem;
+    text-shadow: 0 0 12px rgba(255, 255, 0, 0.7);
+    letter-spacing: 2px;
+    margin: 6px 0;
+}
+
+.mh-best-line,
+.mh-rank-line,
+.mh-challenge-result {
+    font-family: 'Courier New', monospace;
+    color: #0f0;
+    margin: 4px 0;
+}
+
+.mh-challenge-result {
+    color: #0ff;
+}
+
+.mh-board {
+    font-family: 'Courier New', monospace;
+    color: #0a0;
+    margin: 10px auto;
+    max-width: 320px;
+    text-align: left;
+}
+
+.mh-board-label {
+    color: #0f0;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-align: center;
+    margin: 0 0 6px;
+}
+
+.mh-board-empty {
+    text-align: center;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.mh-board-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.mh-board-list li {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 8px;
+    border: 1px solid rgba(0, 255, 0, 0.25);
+    background: rgba(0, 20, 0, 0.3);
+    border-radius: 4px;
+    margin-bottom: 4px;
+    font-size: 0.9rem;
+}
+
+.mh-board-list .mh-rank {
+    color: #0ff;
+    font-weight: bold;
+}
+
+.mh-board-list .mh-score {
+    color: #0f0;
+    font-weight: bold;
+}
+
+.mh-board-list .mh-date {
+    color: #080;
+}
+
+.mh-share-btn {
+    font-family: 'Courier New', monospace;
+    background: #000;
+    color: #0ff;
+    border: 2px solid #0ff;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 8px;
+    transition: all 0.3s ease;
+}
+
+.mh-share-btn:hover {
+    background: #0ff;
+    color: #000;
+}
+
+.mh-hidden {
+    display: none !important;
+}
+
+.mh-end-screen {
+    font-family: 'Courier New', monospace;
+    color: #0f0;
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid #0f0;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 16px auto;
+    max-width: 480px;
+    text-align: center;
+    box-shadow: 0 0 20px rgba(0, 255, 0, 0.35);
+}
+
+.mh-end-screen button {
+    font-family: 'Courier New', monospace;
+    background: #000;
+    color: #0f0;
+    border: 2px solid #0f0;
+    border-radius: 5px;
+    padding: 10px 20px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.mh-end-screen button:hover {
+    background: #0f0;
+    color: #000;
+}
