@@ -3,12 +3,21 @@ import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
 import { walletConnectEnabled } from '../config/appkit';
+// Shared connect path (task 136): one-tap direct connect through an
+// injected browser wallet when present, AppKit modal as fallback — the
+// same behaviour as the header WalletConnect bar. The import also
+// guarantees AppKit is initialized before this island renders (see
+// lib/initAppKit).
+import { connectWallet, hasInjectedWallet, WALLET_DIRECT_HINT } from '../lib/connectWallet';
 import {
   claimCasinoPayout,
   getCasinoBetStatus,
+  getSlotsBetStatus,
   placeCasinoBet,
+  placeSlotsCasinoBet,
   type BetResult,
   type BetStatus,
+  type SlotsBetStatus,
 } from '../utils/casinoBet';
 import { Casino } from '../config/casino';
 
@@ -27,6 +36,8 @@ interface CasinoGameWrapperProps {
     mtxBalance: number;
     placeBet: (amount: number, target: number) => Promise<BetResult>;
     getBetStatus: (betId: string) => Promise<BetStatus>;
+    placeSlotsBet: (amount: number) => Promise<BetResult>;
+    getSlotsBetStatus: (betId: string) => Promise<SlotsBetStatus>;
     claimPayout: (betId: string) => Promise<string>;
     refreshBalance: () => void;
   }) => React.ReactNode;
@@ -40,6 +51,26 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
   const [balance, setBalance] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
+  const [injectedAvailable] = useState<boolean>(() => hasInjectedWallet());
+
+  // Shared connect action (task 136): direct one-tap connect through the
+  // injected provider when a browser wallet is present (modal skipped);
+  // the AppKit modal is the fallback otherwise / on failure. The outcome
+  // never throws and `loading` is reset in finally, so the strip can
+  // never stick on "Connecting..." — failures render inline below and
+  // the game preview stays mounted either way.
+  const handleConnect = useCallback(async () => {
+    setError('');
+    setLoading(true);
+    try {
+      const outcome = await connectWallet({ open });
+      if (outcome.status === 'error') {
+        setError(outcome.message);
+      }
+    } finally {
+      setLoading(false);
+    }
+  }, [open]);
 
   const fetchBalance = useCallback(async () => {
     // Only run client-side and when wallet is connected
@@ -91,6 +122,20 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
     return getCasinoBetStatus(walletProvider as unknown as Eip1193Provider, betId);
   }, [walletProvider]);
 
+  const handlePlaceSlotsBet = useCallback(async (amount: number): Promise<BetResult> => {
+    if (!walletProvider) {
+      throw new Error('Wallet not connected.');
+    }
+    const result = await placeSlotsCasinoBet(walletProvider as unknown as Eip1193Provider, amount);
+    await fetchBalance();
+    return result;
+  }, [walletProvider, fetchBalance]);
+
+  const handleGetSlotsBetStatus = useCallback(async (betId: string): Promise<SlotsBetStatus> => {
+    if (!walletProvider) throw new Error('Wallet not connected.');
+    return getSlotsBetStatus(walletProvider as unknown as Eip1193Provider, betId);
+  }, [walletProvider]);
+
   const handleClaimPayout = useCallback(async (betId: string): Promise<string> => {
     if (!walletProvider) throw new Error('Wallet not connected.');
     const txHash = await claimCasinoPayout(walletProvider as unknown as Eip1193Provider, betId);
@@ -98,12 +143,12 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
     return txHash;
   }, [walletProvider, fetchBalance]);
 
-  if (game !== 'dice') {
+  if (game !== 'dice' && game !== 'slots') {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
         <h3 className="text-2xl font-bold text-yellow-300 mb-3">Coming soon</h3>
         <p className="text-gray-300">
-          This game isn't live yet — Dice is the only casino game on-chain right now. Slots, Blackjack, Roulette, Mines and Plinko arrive as their outcomes move on-chain.
+          This game isn't live yet — Dice and Slots are the casino games with on-chain outcomes. Blackjack, Roulette, Mines and Plinko arrive as their outcomes move on-chain.
         </p>
         <a href="/games/casino/dice" className="inline-block mt-4 text-green-400 underline">
           Play Dice
@@ -112,10 +157,12 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
     );
   }
 
+  const gameLabel = game === 'slots' ? 'Slots' : 'Dice';
+
   if (!Casino.isFullyDeployed) {
     return (
       <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
-        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Dice wagers are not live</h3>
+        <h3 className="text-2xl font-bold text-yellow-300 mb-3">{gameLabel} wagers are not live</h3>
         <p className="text-gray-300">
           The VRF casino contracts have not been deployed and validated on {Casino.chainName}.
           No MTX will be transferred.
@@ -126,14 +173,28 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
 
   // Wallet connect is live on the production build (Reown project ID wired
   // via astro.yml). A local build without the env var shows it disabled,
-  // which is expected — not a bug.
+  // which is expected — not a bug. Even in that state the page must never
+  // go blank (task 136): show the unavailable copy inline in the strip
+  // and STILL render the game preview below it.
   if (!walletConnectEnabled) {
     return (
-      <div className="max-w-2xl mx-auto p-6 bg-gray-900 rounded-lg border-2 border-yellow-500 text-center">
-        <h3 className="text-2xl font-bold text-yellow-300 mb-3">Wallet connection is currently unavailable</h3>
-        <p className="text-gray-300">
-          WalletConnect is not configured yet, so no wallet can be connected right now.
-        </p>
+      <div>
+        <div className="max-w-lg mx-auto p-3 bg-gray-900 rounded-lg border border-yellow-500 text-center mb-4">
+          <span className="text-yellow-300 font-bold">Wallet connection is currently unavailable</span>
+          <p className="text-gray-300 text-sm mt-1">
+            WalletConnect is not configured yet, so no wallet can be connected right now. You can still preview the game below.
+          </p>
+        </div>
+        {children({
+          walletAddress: address,
+          mtxBalance: balance,
+          placeBet: handlePlaceBet,
+          getBetStatus: handleGetBetStatus,
+          placeSlotsBet: handlePlaceSlotsBet,
+          getSlotsBetStatus: handleGetSlotsBetStatus,
+          claimPayout: handleClaimPayout,
+          refreshBalance: fetchBalance,
+        })}
       </div>
     );
   }
@@ -143,15 +204,18 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
       {!isConnected || !address ? (
         <div className="max-w-lg mx-auto p-3 bg-gray-900 rounded-lg border border-green-500 text-center mb-4">
           <div className="flex items-center justify-center gap-3 flex-wrap">
-            <span className="text-green-400 font-bold">Connect your wallet to play Dice</span>
+            <span className="text-green-400 font-bold">Connect your wallet to play {gameLabel}</span>
             <button
-              onClick={async () => { setLoading(true); await open(); setLoading(false); }}
+              onClick={handleConnect}
               disabled={loading}
               className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
             >
               {loading ? 'Connecting...' : 'Connect Wallet'}
             </button>
           </div>
+          {injectedAvailable && (
+            <div className="mt-2 text-gray-400 text-xs">{WALLET_DIRECT_HINT}</div>
+          )}
           {error && (
             <div className="mt-2 text-red-400 text-sm">{error}</div>
           )}
@@ -168,6 +232,9 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
               <span className="text-yellow-400 font-bold">{balance.toFixed(2)} MTX</span>
             </div>
           </div>
+          {error && (
+            <div className="mt-2 text-red-400 text-sm">{error}</div>
+          )}
         </div>
       )}
       {children({
@@ -175,6 +242,8 @@ export default function CasinoGameWrapper({ game, children }: CasinoGameWrapperP
         mtxBalance: balance,
         placeBet: handlePlaceBet,
         getBetStatus: handleGetBetStatus,
+        placeSlotsBet: handlePlaceSlotsBet,
+        getSlotsBetStatus: handleGetSlotsBetStatus,
         claimPayout: handleClaimPayout,
         refreshBalance: fetchBalance,
       })}
