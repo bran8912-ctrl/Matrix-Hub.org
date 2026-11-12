@@ -17,7 +17,25 @@ let waiting = false;
 let reactionTimes = [];
 let bestTime = Infinity;
 let timeoutId = null;
-let playerName = '';
+
+// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
+// The stored best is the fastest single reaction time (lower is better).
+let mhRunStart = Date.now();
+let mhRunId = null;
+let mhStoredBestMs = null;
+function mhNewRun() {
+    mhRunStart = Date.now();
+    mhRunId = 'neos-training-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
+}
+if (window.MatrixBest) {
+    const stored = MatrixBest.getBest('neos-training');
+    if (stored) {
+        mhStoredBestMs = stored.timeMs;
+        bestTimeDisplay.textContent = stored.timeMs;
+    }
+    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'neos-training');
+    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
+}
 
 function startRound() {
     if (round >= maxRounds) {
@@ -147,26 +165,28 @@ function endGame() {
     
     ratingDisplay.textContent = rating;
     resultsScreen.classList.remove('hidden');
-    
-    // Submit score to leaderboard (use best time as score, lower is better so invert it)
-    if (playerName && bestTime < Infinity && window.parent) {
-        const score = Math.max(0, 1000 - bestTime); // Convert to higher-is-better score
-        window.parent.postMessage({
-            type: 'gameScore',
-            game: 'neos-training',
-            name: playerName,
-            score: score
-        }, '*');
+
+    // Competitive Phase 1: record the run (best, board, daily challenge).
+    if (window.MatrixBest && bestTime < Infinity && reactionTimes.length) {
+        MatrixBest.finishRun('neos-training', { timeMs: bestTime }, {
+            durationSec: (Date.now() - mhRunStart) / 1000,
+            runId: mhRunId,
+            scoreText: bestTime + ' ms',
+            verb: 'My fastest reaction was'
+        });
+        const storedNow = MatrixBest.getBest('neos-training');
+        if (storedNow) mhStoredBestMs = storedNow.timeMs;
     }
 }
 
 function resetGame() {
+    mhNewRun();
     round = 0;
     reactionTimes = [];
     bestTime = Infinity;
     roundDisplay.textContent = '0';
     reactionTimeDisplay.textContent = '---';
-    bestTimeDisplay.textContent = '---';
+    bestTimeDisplay.textContent = mhStoredBestMs !== null ? mhStoredBestMs : '---';
     instructions.textContent = 'Click when the target appears!';
     resultsScreen.classList.add('hidden');
     target.classList.add('hidden');
@@ -221,16 +241,8 @@ document.body.addEventListener('touchmove', (e) => {
     e.preventDefault();
 }, { passive: false });
 
-// Prompt for player name and start first round
-playerName = localStorage.getItem('matrix_player_name');
-if (!playerName) {
-    const name = prompt('Enter your name to begin training:');
-    if (name && name.trim()) {
-        playerName = name.trim().substring(0, 20);
-        localStorage.setItem('matrix_player_name', playerName);
-    }
-}
-
+// Start immediately — no name prompt (personal bests only, HUB 155).
+mhNewRun();
 setTimeout(() => {
     startRound();
 }, 1500);
