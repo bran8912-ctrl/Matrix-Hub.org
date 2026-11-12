@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Neo's Training</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../matrix-competitive.css">
 </head>
 <body>
     <div class="game-container">
@@ -15,6 +16,8 @@
             <div class="stat">Best Time: <span id="bestTime">---</span> ms</div>
             <div class="stat">Round: <span id="round">0</span>/10</div>
         </div>
+        <div id="mh-challenge" class="mh-banner"></div>
+        <div id="mh-streak" class="mh-streak"></div>
         <div id="targetArea" class="target-area">
             <div id="instructions">Click when the target appears!</div>
             <div id="target" class="target hidden"></div>
@@ -24,9 +27,16 @@
             <p>Average Reaction Time: <span id="avgTime">0</span> ms</p>
             <p>Best Time: <span id="finalBest">0</span> ms</p>
             <p class="rating" id="rating"></p>
-            <button id="restartBtn" class="btn">TRAIN AGAIN</button>
+            <p id="mh-newbest" class="mh-newbest" hidden>NEW BEST!</p>
+            <p id="mh-best-line" class="mh-best-line"></p>
+            <p id="mh-rank-line" class="mh-rank-line"></p>
+            <p id="mh-challenge-result" class="mh-challenge-result"></p>
+            <div id="mh-board" class="mh-board"></div>
+            <button id="restartBtn" class="btn">PLAY AGAIN</button>
+            <button id="mh-share" class="mh-share-btn" type="button">SHARE SCORE</button>
         </div>
     </div>
+    <script src="../matrix-best.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
