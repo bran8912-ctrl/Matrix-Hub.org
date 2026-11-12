@@ -1,0 +1,159 @@
+---
+/**
+ * Referral panel for game pages — Phase 1 (HUB task 154, design §2/§5).
+ *
+ * Credit-on-play: a referral counts only when the invited friend
+ * completes a full game round. Arcade games run in iframes (several
+ * cross-origin), so Phase 1 cannot observe the round directly; the
+ * friend confirms the finished round here, exactly once per inviter.
+ * That confirmation issues the single-use receipt code the friend
+ * shares back, and unlocks the friend's Tier 1 perks ("Welcome to
+ * the Hub" badge + "Neon Grid" theme). Nothing is gated: visitors
+ * without an invite simply see a short note and play as normal.
+ */
+import ReferralThemePicker from "./ReferralThemePicker.astro";
+
+export const prerender = true;
+---
+
+<div class="mh-ref-game-panel">
+  <h2 class="mh-ref-game-title">Invite perk</h2>
+  <div id="mh-ref-game-invited" hidden>
+    <p class="mh-ref-game-text">
+      You were invited by a Matrix Hub player. Finish a full game round, then tap the button below.
+      You'll unlock the "Welcome to the Hub" badge and the "Neon Grid" theme, and you'll get a
+      receipt code to share with the player who invited you.
+    </p>
+    <button type="button" id="mh-ref-game-complete" class="mh-ref-game-btn">I finished a game round</button>
+    <div id="mh-ref-game-result" hidden>
+      <p class="mh-ref-game-text" id="mh-ref-game-result-text">
+        You played your first game! Share this code with the player who invited you so they can add your play on their Invite card:
+      </p>
+      <div class="mh-ref-game-receipt-row">
+        <input id="mh-ref-game-receipt" type="text" readonly class="mh-ref-game-receipt" value="" />
+        <button type="button" id="mh-ref-game-receipt-copy" class="mh-ref-game-btn">Copy code</button>
+      </div>
+      <p class="mh-ref-game-text">Your "Welcome to the Hub" badge and the "Neon Grid" theme are unlocked — pick Neon Grid in the theme picker below.</p>
+    </div>
+    <p id="mh-ref-game-status" class="mh-ref-game-status" role="status" aria-live="polite"></p>
+  </div>
+  <p id="mh-ref-game-plain" class="mh-ref-game-text">
+    Playing for fun — no invite needed. Nothing here is gated behind an invite; invites only unlock site perks.
+  </p>
+  <ReferralThemePicker />
+</div>
+
+<style>
+  .mh-ref-game-panel {
+    max-width: 760px;
+    margin: 1.5rem auto;
+    padding: 1.25rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(34, 197, 94, 0.35);
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+    text-align: center;
+  }
+  .mh-ref-game-title {
+    color: rgb(34, 197, 94);
+    font-size: 1.15rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0 0 0.7rem;
+  }
+  .mh-ref-game-text {
+    color: rgb(209, 250, 229);
+    font-size: 0.92rem;
+    line-height: 1.65;
+    margin: 0 auto 0.8rem;
+    max-width: 620px;
+  }
+  .mh-ref-game-btn {
+    padding: 0.6rem 1.2rem;
+    background: rgba(34, 197, 94, 0.16);
+    color: rgb(34, 197, 94);
+    border: 1px solid rgba(34, 197, 94, 0.6);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92rem;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .mh-ref-game-btn:hover { box-shadow: 0 0 12px rgba(34, 197, 94, 0.35); }
+  .mh-ref-game-receipt-row {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 0.8rem;
+  }
+  .mh-ref-game-receipt {
+    min-width: 260px;
+    padding: 0.55rem 0.75rem;
+    background: rgba(0, 0, 0, 0.75);
+    color: #a7f3d0;
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    text-align: center;
+    outline: none;
+  }
+  .mh-ref-game-status { min-height: 1.2em; font-size: 0.86rem; color: rgb(156, 163, 175); line-height: 1.5; margin: 0.5rem 0 0; }
+</style>
+
+<script>
+  import { browserStorage, getReferralState, completeInvitedGameRound } from "../lib/referral";
+
+  (function () {
+    const store = browserStorage();
+    if (!store) return;
+    const invitedBox = document.getElementById("mh-ref-game-invited");
+    const plainNote = document.getElementById("mh-ref-game-plain");
+    const completeBtn = document.getElementById("mh-ref-game-complete") as HTMLButtonElement | null;
+    const resultBox = document.getElementById("mh-ref-game-result");
+    const receiptInput = document.getElementById("mh-ref-game-receipt") as HTMLInputElement | null;
+    const status = document.getElementById("mh-ref-game-status");
+    if (!invitedBox || !plainNote) return;
+
+    function showReceipt(receipt: string) {
+      if (resultBox) resultBox.hidden = false;
+      if (receiptInput) receiptInput.value = receipt;
+      if (completeBtn) completeBtn.hidden = true;
+    }
+
+    function render() {
+      const state = getReferralState(store, window.location.origin);
+      const invited = !!state.invitedBy && state.invitedBy !== state.myCode;
+      invitedBox.hidden = !invited;
+      plainNote.hidden = invited;
+      if (invited && state.creditedInviters.includes(state.invitedBy) && state.myReceipt) {
+        showReceipt(state.myReceipt);
+        if (status) status.textContent = "This play is already counted for your inviter — the same receipt code still works for them once.";
+      }
+    }
+
+    completeBtn?.addEventListener("click", () => {
+      const result = completeInvitedGameRound(store);
+      if (result.status === "credited") {
+        showReceipt(result.receipt);
+        if (status) status.textContent = "";
+        // Let the theme picker on this page re-render its unlocked state.
+        window.dispatchEvent(new CustomEvent("mh-ref-updated"));
+      } else if (result.status === "already-credited") {
+        showReceipt(result.receipt);
+      } else if (status) {
+        status.textContent = "No invite is saved on this browser, so there is nothing to add here.";
+      }
+      render();
+    });
+
+    document.getElementById("mh-ref-game-receipt-copy")?.addEventListener("click", async () => {
+      if (!receiptInput) return;
+      try { await navigator.clipboard.writeText(receiptInput.value); } catch { /* manual copy still works */ }
+    });
+
+    render();
+  })();
+</script>
