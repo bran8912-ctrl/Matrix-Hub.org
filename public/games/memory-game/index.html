@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Matrix Memory Game</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../matrix-competitive.css">
 </head>
 <body>
     <div class="container">
@@ -26,6 +27,9 @@
             </div>
         </div>
 
+        <div id="mh-challenge" class="mh-banner"></div>
+        <div id="mh-streak" class="mh-streak"></div>
+        <div class="stats"><div class="stat-item"><span class="label">BEST:</span> <span id="best"></span></div></div>
         <div id="game-board" class="game-board"></div>
 
         <div class="controls">
@@ -39,9 +43,16 @@
                 <span>Moves: <span id="final-moves">0</span></span><br>
                 <span>Time: <span id="final-time">00:00</span></span>
             </p>
-            <button id="play-again-btn">INITIALIZE NEW SEQUENCE</button>
+            <p id="mh-newbest" class="mh-newbest" hidden>NEW BEST!</p>
+            <p id="mh-best-line" class="mh-best-line"></p>
+            <p id="mh-rank-line" class="mh-rank-line"></p>
+            <p id="mh-challenge-result" class="mh-challenge-result"></p>
+            <div id="mh-board" class="mh-board"></div>
+            <button id="play-again-btn">PLAY AGAIN</button>
+            <button id="mh-share" class="mh-share-btn" type="button">SHARE SCORE</button>
         </div>
     </div>
+    <script src="../matrix-best.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
