@@ -1,0 +1,115 @@
+---
+/**
+ * "Got an invite code?" box — Phase 1 (HUB task 154).
+ * Code-only fallback for friends who received a 6-character code in a
+ * chat message rather than a link (design §1). Same capture rules as
+ * the link: first inviter wins, self-referral ignored.
+ */
+export const prerender = true;
+---
+
+<div class="mh-ref-code-entry">
+  <form id="mh-ref-code-form" class="mh-ref-code-form" novalidate>
+    <label for="mh-ref-code-input" class="mh-ref-code-label">Got an invite code?</label>
+    <div class="mh-ref-code-row">
+      <input
+        id="mh-ref-code-input"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        autocapitalize="characters"
+        spellcheck="false"
+        maxlength="6"
+        placeholder="ABC123"
+        class="mh-ref-code-input"
+      />
+      <button type="submit" class="mh-ref-code-btn">Use code</button>
+    </div>
+    <p id="mh-ref-code-status" class="mh-ref-code-status" role="status" aria-live="polite"></p>
+  </form>
+</div>
+
+<style>
+  .mh-ref-code-entry {
+    max-width: 520px;
+    margin: 1.5rem auto;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid rgba(0, 255, 153, 0.3);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+  }
+  .mh-ref-code-label {
+    display: block;
+    color: var(--theme-primary, #00ff99);
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    margin-bottom: 0.6rem;
+    text-align: center;
+  }
+  .mh-ref-code-row { display: flex; gap: 0.5rem; }
+  .mh-ref-code-input {
+    flex: 1;
+    min-width: 0;
+    padding: 0.55rem 0.75rem;
+    background: rgba(0, 0, 0, 0.7);
+    color: #a7f3d0;
+    border: 1px solid rgba(0, 255, 153, 0.4);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 1rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    text-align: center;
+    outline: none;
+  }
+  .mh-ref-code-input:focus { border-color: rgba(0, 255, 153, 0.8); }
+  .mh-ref-code-btn {
+    padding: 0.55rem 1.1rem;
+    background: rgba(0, 255, 153, 0.15);
+    color: var(--theme-primary, #00ff99);
+    border: 1px solid rgba(0, 255, 153, 0.55);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    font-weight: bold;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .mh-ref-code-btn:hover { box-shadow: 0 0 10px rgba(0, 255, 153, 0.3); }
+  .mh-ref-code-status {
+    margin: 0.6rem 0 0;
+    min-height: 1.2em;
+    color: #a7f3d0;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+</style>
+
+<script>
+  import { browserStorage, captureInvite, normalizeInviteCode } from "../lib/referral";
+
+  (function () {
+    const store = browserStorage();
+    const form = document.getElementById("mh-ref-code-form") as HTMLFormElement | null;
+    const input = document.getElementById("mh-ref-code-input") as HTMLInputElement | null;
+    const status = document.getElementById("mh-ref-code-status");
+    if (!store || !form || !input || !status) return;
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      const code = normalizeInviteCode(input.value);
+      const result = captureInvite(store, code);
+      if (result.status === "saved" || result.status === "already-saved") {
+        status.textContent = "Invite code saved. Play a game and you'll both unlock a perk.";
+      } else if (result.status === "kept-existing") {
+        status.textContent = "An invite code is already saved on this browser, so this one was not added.";
+      } else if (result.status === "self") {
+        status.textContent = "That is your own invite code — share it with a friend instead.";
+      } else {
+        status.textContent = "That code does not look right. Invite codes are 6 letters or numbers.";
+      }
+    });
+  })();
+</script>
