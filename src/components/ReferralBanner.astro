@@ -1,0 +1,102 @@
+---
+/**
+ * Referral invite banner — Phase 1 (HUB task 154).
+ * Captures `?ref=` on landing (first-inviter-wins, self-referral
+ * ignored), strips the param from the URL, and shows the design's
+ * slim, dismissible welcome banner. Included from Layout so an
+ * invite link landing on any page is captured, not just the homepage.
+ */
+export const prerender = true;
+---
+
+<div id="mh-ref-banner" class="mh-ref-banner" hidden role="status">
+  <p class="mh-ref-banner-text">
+    You were invited by a Matrix Hub player! Play a game and you'll both unlock a perk.
+  </p>
+  <div class="mh-ref-banner-actions">
+    <button type="button" id="mh-ref-banner-ok" class="mh-ref-banner-btn mh-ref-banner-btn-primary">Got it</button>
+    <button type="button" id="mh-ref-banner-dismiss" class="mh-ref-banner-btn">Dismiss</button>
+  </div>
+</div>
+
+<style>
+  .mh-ref-banner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 0 auto 1rem;
+    max-width: 900px;
+    padding: 0.75rem 1rem;
+    background: rgba(0, 255, 153, 0.08);
+    border: 1px solid rgba(0, 255, 153, 0.45);
+    border-radius: 8px;
+    font-family: 'Courier New', monospace;
+  }
+  .mh-ref-banner[hidden] { display: none; }
+  .mh-ref-banner-text {
+    margin: 0;
+    color: var(--theme-text, #d1fae5);
+    font-size: 0.95rem;
+    line-height: 1.5;
+    text-align: center;
+  }
+  .mh-ref-banner-actions { display: flex; gap: 0.5rem; }
+  .mh-ref-banner-btn {
+    padding: 0.4rem 0.9rem;
+    background: transparent;
+    color: var(--theme-primary, #00ff99);
+    border: 1px solid var(--theme-border, rgba(0, 255, 153, 0.5));
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .mh-ref-banner-btn-primary {
+    background: rgba(0, 255, 153, 0.16);
+    font-weight: bold;
+  }
+  .mh-ref-banner-btn:hover { box-shadow: 0 0 10px rgba(0, 255, 153, 0.3); }
+</style>
+
+<script>
+  import { browserStorage, captureInviteFromUrl } from "../lib/referral";
+
+  (function () {
+    const store = browserStorage();
+    if (!store) return;
+    const banner = document.getElementById("mh-ref-banner");
+    if (!banner) return;
+
+    let capturedNow = false;
+    try {
+      const url = new URL(window.location.href);
+      if (url.searchParams.has("ref")) {
+        const result = captureInviteFromUrl(store, url);
+        capturedNow = !!result && (result.status === "saved" || result.status === "already-saved");
+        // Strip ?ref= so the link looks clean if shared onward.
+        url.searchParams.delete("ref");
+        window.history.replaceState({}, "", url.pathname + url.search + url.hash);
+      }
+    } catch {
+      /* never let referral handling break the page */
+    }
+
+    let dismissed = false;
+    try {
+      dismissed = sessionStorage.getItem("mh_ref_banner_dismissed") === "1";
+    } catch { /* ignore */ }
+
+    if (capturedNow && !dismissed) {
+      banner.hidden = false;
+    }
+
+    function hide() {
+      banner.hidden = true;
+      try { sessionStorage.setItem("mh_ref_banner_dismissed", "1"); } catch { /* ignore */ }
+    }
+    document.getElementById("mh-ref-banner-ok")?.addEventListener("click", hide);
+    document.getElementById("mh-ref-banner-dismiss")?.addEventListener("click", hide);
+  })();
+</script>
