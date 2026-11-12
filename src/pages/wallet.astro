@@ -1,6 +1,7 @@
 ---
 import Layout from "../components/Layout.astro";
 import WalletIsland from "../components/Wallet.jsx";
+import ReferralInviteCard from "../components/ReferralInviteCard.astro";
 
 export const prerender = true;
 
@@ -19,6 +20,9 @@ export const navCategory = "mtx-token";
     <div class="wallet-section">
       <WalletIsland client:only="react" />
     </div>
+
+    <!-- Referral Program Phase 1: Invite Friends card (below the wallet balance, per the approved design) -->
+    <ReferralInviteCard />
 
     <div class="info-section">
       <h2>Features</h2>
