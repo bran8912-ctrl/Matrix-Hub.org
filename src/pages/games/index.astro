@@ -1,6 +1,7 @@
 ---
 import Layout from "../../components/Layout.astro";
 import GameCard from "../../components/GameCard.astro";
+import ReferralThemePicker from "../../components/ReferralThemePicker.astro";
 import LiveChat from "../../components/LiveChat.tsx";
 import { games } from "../../data/games";
 
@@ -18,7 +19,24 @@ export const navCategory = "games";
       All games sourced from the open-source community.
     </p>
     <p class="hero-count">{games.length} titles available</p>
+    <p class="hero-invite">
+      Invite friends, unlock perks — <a href="/wallet#invite">get your invite link</a>
+    </p>
   </div>
+
+  <!-- Daily challenge + streak (Competitive Phase 1, HUB 155).
+       Filled client-side by the shared matrix-best module; stays hidden
+       when storage or the module is unavailable. All data is local to
+       this device — there is no global board. -->
+  <div class="challenge-card" id="mh-hub-challenge-wrap" hidden>
+    <div id="mh-hub-challenge" class="mh-hub-challenge"></div>
+    <div id="mh-hub-streak" class="mh-hub-streak"></div>
+    <a id="mh-hub-challenge-play" class="challenge-play-btn" href="/games">▶ Play today's challenge</a>
+    <p class="mh-local-note">Your scores, boards and streaks live on this device only.</p>
+  </div>
+
+  <!-- Referral Program Phase 1: perk theme picker ("Neon Grid") -->
+  <ReferralThemePicker />
 
   <!-- Live Chat: games room -->
   <div class="live-chat-section">
@@ -168,6 +186,78 @@ export const navCategory = "games";
     color: rgba(34, 197, 94, 0.7);
     font-size: 0.85rem;
     font-family: 'Courier New', monospace;
+  }
+
+  .hero-invite {
+    color: rgb(156, 163, 175);
+    font-size: 0.9rem;
+    font-family: 'Courier New', monospace;
+    margin-top: 0.5rem;
+  }
+
+  .hero-invite a {
+    color: rgb(34, 197, 94);
+  }
+
+  /* Daily challenge card (Competitive Phase 1) */
+  .challenge-card {
+    text-align: center;
+    margin: 0 auto 2rem;
+    max-width: 560px;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(34, 197, 94, 0.4);
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .mh-hub-challenge {
+    color: rgb(134, 239, 172);
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .mh-hub-challenge .mh-challenge-label {
+    color: rgb(34, 197, 94);
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .mh-hub-challenge .mh-challenge-done {
+    color: rgb(34, 211, 238);
+    font-weight: bold;
+  }
+
+  .mh-hub-streak {
+    color: #ffb347;
+    font-size: 0.95rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .mh-hub-streak:empty {
+    display: none;
+  }
+
+  .challenge-play-btn {
+    display: inline-block;
+    padding: 0.5rem 1.25rem;
+    background: rgba(34, 197, 94, 0.15);
+    color: rgb(34, 197, 94);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  .challenge-play-btn:hover {
+    background: rgba(34, 197, 94, 0.3);
+  }
+
+  .mh-local-note {
+    color: rgb(107, 114, 128);
+    font-size: 0.8rem;
+    margin: 0.6rem 0 0;
   }
 
   /* Controls */
@@ -342,4 +432,50 @@ export const navCategory = "games";
 
   searchInput.addEventListener('input', applyFilters);
   mobileOnly.addEventListener('change', applyFilters);
+</script>
+
+<script src="/games/matrix-best.js" is:inline></script>
+<script is:inline>
+  // Competitive Phase 1 (HUB 155): fill hub-card bests, today's
+  // challenge and the streak from device-local storage. Everything is
+  // best-effort — if the module or storage is unavailable, the slots
+  // simply stay empty/hidden and the hub works as before.
+  (function () {
+    if (!window.MatrixBest) return;
+    try {
+      document.querySelectorAll('[data-best-slug]').forEach(function (el) {
+        var slug = el.getAttribute('data-best-slug');
+        if (!slug || window.MatrixBest.games.indexOf(slug) === -1) return;
+        var best = window.MatrixBest.getBest(slug);
+        if (!best) return;
+        var text = '';
+        if (slug === 'memory-game') {
+          var diffs = ['easy', 'medium', 'hard'];
+          for (var i = 0; i < diffs.length; i++) {
+            text = window.MatrixBest.formatBest(slug, best, diffs[i]);
+            if (text) break;
+          }
+        } else {
+          text = window.MatrixBest.formatBest(slug, best);
+        }
+        if (text) {
+          el.textContent = text;
+          el.hidden = false;
+        }
+      });
+
+      var challenge = window.MatrixBest.getDailyChallenge();
+      var wrap = document.getElementById('mh-hub-challenge-wrap');
+      var challengeEl = document.getElementById('mh-hub-challenge');
+      var playLink = document.getElementById('mh-hub-challenge-play');
+      if (wrap && challengeEl && challenge) {
+        window.MatrixBest.renderChallengeInto(challengeEl, null);
+        if (playLink) playLink.setAttribute('href', '/games/play/' + challenge.game);
+        window.MatrixBest.renderStreakInto(document.getElementById('mh-hub-streak'));
+        wrap.hidden = false;
+      }
+    } catch (e) {
+      // Local competitive data must never break the hub.
+    }
+  })();
 </script>
