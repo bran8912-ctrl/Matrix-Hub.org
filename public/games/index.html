@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix Games Hub</title>
+    <link rel="stylesheet" href="matrix-competitive.css">
     <style>
         * {
             margin: 0;
@@ -213,6 +214,53 @@
             }
         }
 
+        .game-best {
+            text-align: center;
+            color: #0ff;
+            font-size: 15px;
+            margin-bottom: 15px;
+            min-height: 0;
+        }
+
+        .challenge-card {
+            text-align: center;
+            margin: 0 0 40px;
+            padding: 24px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #0f0;
+            border-radius: 12px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+        }
+
+        .challenge-card .mh-challenge-label {
+            color: #0f0;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .challenge-card .mh-challenge-done { color: #0ff; font-weight: bold; }
+
+        .mh-hub-streak { color: #ffb347; margin: 8px 0; }
+        .mh-hub-streak:empty { display: none; }
+
+        .challenge-play {
+            display: inline-block;
+            margin-top: 10px;
+            padding: 12px 28px;
+            background: #000;
+            color: #0f0;
+            border: 2px solid #0f0;
+            border-radius: 6px;
+            font-weight: bold;
+            text-decoration: none;
+            letter-spacing: 2px;
+        }
+
+        .challenge-play:hover { background: #0f0; color: #000; }
+
+        .mh-local-note { opacity: 0.6; font-size: 12px; margin-top: 12px; }
+
         .matrix-bg {
             position: fixed;
             top: 0;
@@ -236,6 +284,16 @@
             <h1>MATRIX GAMES HUB</h1>
             <p class="subtitle">ENTER THE DIGITAL REALM</p>
         </header>
+
+        <!-- Daily challenge + streak (Competitive Phase 1, HUB 155).
+             Filled by the shared matrix-best module from device-local
+             storage; stays hidden when storage is unavailable. -->
+        <div class="challenge-card" id="mh-hub-challenge-wrap" hidden>
+            <div id="mh-hub-challenge"></div>
+            <div id="mh-hub-streak" class="mh-hub-streak"></div>
+            <a id="mh-hub-challenge-play" class="challenge-play" href="#">▶ PLAY TODAY'S CHALLENGE</a>
+            <p class="mh-local-note">Your scores, boards and streaks live on this device only.</p>
+        </div>
 
         <div class="features">
             <div class="feature">
@@ -272,6 +330,7 @@
                 <p class="game-description">
                     Type code sequences to hack into the system. Test your typing speed and accuracy as difficulty increases!
                 </p>
+                <p class="game-best" data-best-slug="hacking-simulator" hidden></p>
                 <a href="hacking-simulator/" class="play-button">START HACKING</a>
             </div>
 
@@ -281,6 +340,7 @@
                 <p class="game-description">
                     Dodge incoming bullets in this fast-paced arcade game. How long can you survive in bullet time?
                 </p>
+                <p class="game-best" data-best-slug="bullet-dodge" hidden></p>
                 <a href="bullet-dodge/" class="play-button">DODGE BULLETS</a>
             </div>
 
@@ -290,6 +350,7 @@
                 <p class="game-description">
                     Match Matrix symbols in this classic memory game. Three difficulty levels to challenge your mind!
                 </p>
+                <p class="game-best" data-best-slug="memory-game" hidden></p>
                 <a href="memory-game/" class="play-button">TEST MEMORY</a>
             </div>
         </div>
@@ -298,5 +359,42 @@
             <p>&copy; 2025 MATRIX GAMES HUB | ALL SYSTEMS OPERATIONAL</p>
         </footer>
     </div>
+    <script src="matrix-best.js"></script>
+    <script>
+    // Competitive Phase 1 (HUB 155): hub-card bests, today's challenge
+    // and the streak, all from device-local storage. Best-effort only.
+    (function () {
+        if (!window.MatrixBest) return;
+        try {
+            document.querySelectorAll('[data-best-slug]').forEach(function (el) {
+                var slug = el.getAttribute('data-best-slug');
+                if (!slug || window.MatrixBest.games.indexOf(slug) === -1) return;
+                var best = window.MatrixBest.getBest(slug);
+                if (!best) return;
+                var text = '';
+                if (slug === 'memory-game') {
+                    var diffs = ['easy', 'medium', 'hard'];
+                    for (var i = 0; i < diffs.length; i++) {
+                        text = window.MatrixBest.formatBest(slug, best, diffs[i]);
+                        if (text) break;
+                    }
+                } else {
+                    text = window.MatrixBest.formatBest(slug, best);
+                }
+                if (text) { el.textContent = text; el.hidden = false; }
+            });
+            var challenge = window.MatrixBest.getDailyChallenge();
+            var wrap = document.getElementById('mh-hub-challenge-wrap');
+            var challengeEl = document.getElementById('mh-hub-challenge');
+            var playLink = document.getElementById('mh-hub-challenge-play');
+            if (wrap && challengeEl && challenge) {
+                window.MatrixBest.renderChallengeInto(challengeEl, null);
+                if (playLink) playLink.setAttribute('href', challenge.game + '/');
+                window.MatrixBest.renderStreakInto(document.getElementById('mh-hub-streak'));
+                wrap.hidden = false;
+            }
+        } catch (e) { /* local data must never break the hub */ }
+    })();
+    </script>
 </body>
 </html>
