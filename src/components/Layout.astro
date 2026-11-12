@@ -9,6 +9,7 @@ import PersistentThemeCustomizer from "./PersistentThemeCustomizer.tsx";
 import PersistentMusicPlayer from "./PersistentMusicPlayer.tsx";
 import OracleBot from "./OracleBot.astro";
 import AppKitProvider from "./AppKitProvider.tsx";
+import ReferralBanner from "./ReferralBanner.astro";
 
 interface Props {
   title: string;
@@ -45,6 +46,15 @@ const { title } = Astro.props;
           }
         } catch (error) {}
       })();
+    </script>
+    <script is:inline>
+      // Referral perk theme (Phase 1): apply the unlocked "Neon Grid"
+      // theme before first paint when the visitor selected it.
+      try {
+        if (localStorage.getItem('mh_theme') === 'neon-grid') {
+          document.documentElement.classList.add('mh-theme-neon-grid');
+        }
+      } catch (error) {}
     </script>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-CKWFL856MZ"></script>
@@ -120,6 +130,7 @@ const { title } = Astro.props;
     <TabNav />
     <Header />
     <main class="w-full max-w-6xl mx-auto px-4 sm:px-8 py-8">
+      <ReferralBanner />
       <slot />
     </main>
     <Footer />
