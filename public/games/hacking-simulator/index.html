@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Matrix Hacking Simulator</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../matrix-competitive.css">
 </head>
 <body>
     <div class="container">
@@ -14,8 +15,11 @@
                 <span>ACCESS LEVEL: <span id="level">1</span></span>
                 <span>SCORE: <span id="score">0</span></span>
                 <span>ACCURACY: <span id="accuracy">100%</span></span>
+                <span>BEST: <span id="best"></span></span>
             </div>
         </div>
+        <div id="mh-challenge" class="mh-banner"></div>
+        <div id="mh-streak" class="mh-streak"></div>
         
         <div class="terminal">
             <div id="terminal-output"></div>
@@ -31,10 +35,24 @@
             <p id="mission-text">Type the highlighted code sequences as they appear to hack into the system...</p>
             <div class="controls">
                 <button id="start-btn">START HACKING</button>
+                <button id="finish-btn">FINISH RUN</button>
                 <button id="restart-btn">RESTART</button>
             </div>
         </div>
+
+        <div id="end-screen" class="mh-end-screen mh-hidden">
+            <h2>RUN COMPLETE</h2>
+            <p>Final Score: <span id="final-score">0</span></p>
+            <p id="mh-newbest" class="mh-newbest" hidden>NEW BEST!</p>
+            <p id="mh-best-line" class="mh-best-line"></p>
+            <p id="mh-rank-line" class="mh-rank-line"></p>
+            <p id="mh-challenge-result" class="mh-challenge-result"></p>
+            <div id="mh-board" class="mh-board"></div>
+            <button id="play-again-btn">PLAY AGAIN</button>
+            <button id="mh-share" class="mh-share-btn" type="button">SHARE SCORE</button>
+        </div>
     </div>
+    <script src="../matrix-best.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
