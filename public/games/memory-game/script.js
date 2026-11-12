@@ -30,6 +30,7 @@ const difficulties = {
 };
 
 function initGame() {
+    mhNewRun();
     resetGame();
     const numPairs = difficulties[difficulty].pairs;
     const selectedSymbols = symbols.slice(0, numPairs);
@@ -166,11 +167,42 @@ function resetGame() {
     winScreen.classList.add('hidden');
 }
 
+// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
+// Best is per difficulty: fewest moves, then fastest time.
+let mhRunStart = Date.now();
+let mhRunId = null;
+function mhNewRun() {
+    mhRunStart = Date.now();
+    mhRunId = 'memory-game-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
+}
+const bestDisplay = document.getElementById('best');
+function mhShowStoredBest() {
+    if (!window.MatrixBest || !bestDisplay) return;
+    const stored = MatrixBest.getBest('memory-game');
+    bestDisplay.textContent = stored ? MatrixBest.formatBest('memory-game', stored, difficulty).replace(/^Best \([^)]+\): /, '') : '';
+}
+if (window.MatrixBest) {
+    mhShowStoredBest();
+    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'memory-game');
+    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
+}
+
 function winGame() {
     stopTimer();
     finalMovesDisplay.textContent = moves;
     finalTimeDisplay.textContent = timerDisplay.textContent;
     winScreen.classList.remove('hidden');
+    // Competitive Phase 1: record the run (best, board, daily challenge).
+    if (window.MatrixBest) {
+        MatrixBest.finishRun('memory-game', { moves: moves, time: seconds }, {
+            durationSec: (Date.now() - mhRunStart) / 1000,
+            runId: mhRunId,
+            difficulty: difficulty,
+            scoreText: moves + ' moves · ' + timerDisplay.textContent,
+            verb: 'I finished in'
+        });
+        mhShowStoredBest();
+    }
 }
 
 function changeDifficulty() {
@@ -179,6 +211,7 @@ function changeDifficulty() {
     difficulty = difficultyOrder[(currentIndex + 1) % 3];
     
     difficultyBtn.textContent = `DIFFICULTY: ${difficulty.toUpperCase()}`;
+    mhShowStoredBest();
     initGame();
 }
 
