@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Matrix Bullet Dodge</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../matrix-competitive.css">
 </head>
 <body>
     <div class="game-container">
@@ -20,19 +21,31 @@
                     <span id="level">1</span>
                 </div>
                 <div class="stat">
+                    <span class="label">BEST:</span>
+                    <span id="best"></span>
+                </div>
+                <div class="stat">
                     <span class="label">LIVES:</span>
                     <span id="lives">❤❤❤</span>
                 </div>
             </div>
         </div>
         
+        <div id="mh-challenge" class="mh-banner"></div>
+        <div id="mh-streak" class="mh-streak"></div>
         <canvas id="game-canvas"></canvas>
         
         <div id="game-over" class="overlay hidden">
             <h2>CONNECTION LOST</h2>
             <p>Final Score: <span id="final-score">0</span></p>
             <p>Level Reached: <span id="final-level">1</span></p>
-            <button id="restart-btn">RECONNECT</button>
+            <p id="mh-newbest" class="mh-newbest" hidden>NEW BEST!</p>
+            <p id="mh-best-line" class="mh-best-line"></p>
+            <p id="mh-rank-line" class="mh-rank-line"></p>
+            <p id="mh-challenge-result" class="mh-challenge-result"></p>
+            <div id="mh-board" class="mh-board"></div>
+            <button id="restart-btn">PLAY AGAIN</button>
+            <button id="mh-share" class="mh-share-btn" type="button">SHARE SCORE</button>
         </div>
         
         <div id="start-screen" class="overlay">
@@ -47,6 +60,7 @@
             <p>📱 Touch and drag on mobile</p>
         </div>
     </div>
+    <script src="../matrix-best.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
