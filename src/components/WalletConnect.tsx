@@ -4,6 +4,11 @@ import type { Eip1193Provider } from 'ethers';
 import { useAppKitProvider, useAppKitAccount, useAppKit } from '@reown/appkit/react'
 import { MTX } from '../config/mtx';
 import { walletConnectEnabled } from '../config/appkit';
+// Shared connect path (task 136): one-tap direct connect through an
+// injected browser wallet when present, AppKit modal as fallback. The
+// import also guarantees AppKit is initialized before this island
+// renders (see lib/initAppKit).
+import { connectWallet, hasInjectedWallet, WALLET_DIRECT_HINT } from '../lib/connectWallet';
 
 // Deployed MTX token contract address and ABI
 const MTX_TOKEN_ADDRESS = MTX.address;
@@ -37,6 +42,11 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [provider, setProvider] = useState<BrowserProvider | null>(null);
+  // Connect-flow state (task 136): `connecting` drives the button label
+  // and is always reset via finally; failures land in `error` and render
+  // inline in the bar — the bar itself never disappears.
+  const [connecting, setConnecting] = useState<boolean>(false);
+  const [injectedAvailable] = useState<boolean>(() => hasInjectedWallet());
   const [locked, setLocked] = useState<number>(0);
   const [lockUntil, setLockUntil] = useState<number>(0);
 
@@ -73,6 +83,8 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
       // Track a successful wallet connection once per connect (transition false → true).
       if (isConnected && !prevConnectedRef.current) {
         (window as any).trackMatrixEvent?.('wallet_connect', { result: 'success' });
+        // A successful (re)connect clears any stale connect error copy.
+        setError('');
       }
       prevConnectedRef.current = isConnected;
 
@@ -246,6 +258,25 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     setLockUntil(0);
   };
 
+  // Shared connect action (task 136): direct one-tap connect through the
+  // injected provider when a browser wallet is present (modal skipped);
+  // the AppKit modal is the fallback otherwise / on failure. The outcome
+  // never throws — a declined or failed attempt surfaces as inline error
+  // copy in this bar and the bar stays rendered.
+  const handleConnect = async (): Promise<void> => {
+    (window as any).trackMatrixEvent?.('wallet_connect', { result: 'attempt' });
+    setError('');
+    setConnecting(true);
+    try {
+      const outcome = await connectWallet({ open });
+      if (outcome.status === 'error') {
+        setError(outcome.message);
+      }
+    } finally {
+      setConnecting(false);
+    }
+  };
+
   // Wallet connect is live on the production build (Reown project ID wired
   // via astro.yml). A local build without the env var shows it disabled,
   // which is expected — not a bug.
@@ -264,8 +295,8 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
         {isConnected && address ? (
           <span style={{ fontSize: '0.875rem' }}>{address.slice(0, 6)}...{address.slice(-4)} · {balance !== null ? balance : '…'} MTX</span>
         ) : (
-          <button onClick={() => { (window as any).trackMatrixEvent?.('wallet_connect', { result: 'attempt' }); open(); }} disabled={loading} style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-            {loading ? 'Connecting...' : 'Connect Wallet'}
+          <button onClick={handleConnect} disabled={connecting} style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+            {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
         )}
         {isConnected && address && (
@@ -274,6 +305,9 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
           </button>
         )}
       </div>
+      {!isConnected && injectedAvailable && (
+        <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.35rem' }}>{WALLET_DIRECT_HINT}</div>
+      )}
       {isConnected && address && !minimized && (
         <div style={{ marginTop: '0.5rem', borderTop: '1px solid #333', paddingTop: '0.5rem' }}>
           <div><strong>Tier:</strong> {tier}</div>
