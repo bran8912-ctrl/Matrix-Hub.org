@@ -16,9 +16,9 @@ const TOOLS = [
     emoji: "🐝",
     title: "MiroFish",
     description:
-      "Open-source universal swarm intelligence engine for prediction and analysis. Spawns thousands of autonomous AI agents that simulate collective behavior to produce prediction reports for finance, markets, politics, and more. Knowledge-graph extraction, multi-agent simulation, and configurable agent personalities.",
+      "Open-source universal swarm intelligence engine for prediction and analysis. Spawns autonomous AI agents that simulate collective behavior to produce prediction reports for finance, markets, politics, and more. Knowledge-graph extraction, multi-agent simulation, and configurable agent personalities.",
     github: "https://github.com/666ghj/MiroFish",
-    stars: "★ Trending",
+    stars: "★ 85,415",
     badge: "SWARM AI",
     badgeColor: "#00ff99",
     tags: ["swarm", "prediction", "finance", "multi-agent"],
@@ -31,7 +31,7 @@ const TOOLS = [
     description:
       "Autonomous AI hedge fund powered by swarm intelligence. Multiple specialized agents handle trading strategies, technical analysis, statistical modeling, risk management, and live execution. JSON-based institutional-grade output with modular agent design.",
     github: "https://github.com/The-Swarm-Corporation/AutoHedge",
-    stars: "The-Swarm-Corporation",
+    stars: "★ 6,682",
     badge: "AUTONOMOUS",
     badgeColor: "#bf00ff",
     tags: ["hedge-fund", "trading", "swarm", "automation"],
@@ -44,7 +44,7 @@ const TOOLS = [
     description:
       "Open-source portfolio risk management and analysis system built with real-time data processing and advanced ML models. Risk assessment for stocks, derivatives, and bonds; real-time updates; extensible risk metrics; portfolio optimization; and API integration.",
     github: "https://github.com/The-Swarm-Corporation/Volara",
-    stars: "The-Swarm-Corporation",
+    stars: "★ 40",
     badge: "RISK MGMT",
     badgeColor: "#00aaff",
     tags: ["portfolio", "risk", "ML", "real-time"],
@@ -57,7 +57,7 @@ const TOOLS = [
     description:
       "Curated GitHub list of agent-based frameworks and tools focused on financial analysis and trading. Covers frameworks like Tickr Agent and open-aladdin, specialised crypto and stock analysis agents, and step-by-step guides for building multi-agent financial systems.",
     github: "https://github.com/The-Swarm-Corporation/awesome-financial-agents",
-    stars: "The-Swarm-Corporation",
+    stars: "★ 22",
     badge: "CURATED LIST",
     badgeColor: "#FFD700",
     tags: ["agents", "finance", "curated", "frameworks"],
@@ -72,7 +72,7 @@ const TOOLS = [
     description:
       "Python library for financial portfolio optimization. Implements classical mean-variance optimization, Black-Litterman allocation, risk models (sample covariance, Ledoit-Wolf, semi-covariance), and efficient frontier generation. Battle-tested and widely used.",
     github: "https://github.com/robertmartin8/PyPortfolioOpt",
-    stars: "★ 4k+",
+    stars: "★ 6,162",
     badge: "OPEN SOURCE",
     badgeColor: "#00ff99",
     tags: ["python", "portfolio", "optimization", "quant"],
@@ -83,10 +83,10 @@ const TOOLS = [
     emoji: "🔧",
     title: "FinanceToolkit",
     description:
-      "Comprehensive open-source financial analysis toolkit. Covers 150+ financial ratios and performance measurements including fundamental analysis, technical indicators, risk metrics, and factor analysis. Works with any stock or asset.",
+      "Comprehensive open-source financial analysis toolkit. Covers 80+ financial ratios (per the project's README, checked 2026-11-12) plus performance measurements including fundamental analysis, technical indicators, risk metrics, and factor analysis. Works with any stock or asset.",
     github: "https://github.com/JerBouma/FinanceToolkit",
-    stars: "★ 3.5k+",
-    badge: "150+ METRICS",
+    stars: "★ 5,520",
+    badge: "80+ RATIOS",
     badgeColor: "#00aaff",
     tags: ["toolkit", "analysis", "ratios", "technicals"],
   },
@@ -100,7 +100,7 @@ const TOOLS = [
     description:
       "Free and open-source crypto trading bot written in Python. Supports backtesting, plotting, machine learning optimization, and paper and live trading on major exchanges. Strategy-first design — write your own logic or use community strategies.",
     github: "https://github.com/freqtrade/freqtrade",
-    stars: "★ 33k+",
+    stars: "★ 56,816",
     badge: "TRADING BOT",
     badgeColor: "#FFD700",
     tags: ["crypto", "bot", "backtesting", "python"],
@@ -113,7 +113,7 @@ const TOOLS = [
     description:
       "Industry-standard quantitative finance library. Pricing of bonds, options, swaps, interest-rate models, yield curves, and Monte Carlo simulations. Used by banks, hedge funds, and quant researchers worldwide. Available in Python, C++, and more.",
     github: "https://github.com/lballabio/QuantLib",
-    stars: "★ 5k+",
+    stars: "★ 7,757",
     badge: "INDUSTRY STD",
     badgeColor: "#ff6600",
     tags: ["quant", "pricing", "bonds", "options"],
@@ -126,7 +126,7 @@ const TOOLS = [
     description:
       "The definitive curated list of quantitative finance resources on GitHub. Libraries, data sources, research papers, books, and tutorials covering algorithmic trading, risk management, portfolio theory, market microstructure, and more.",
     github: "https://github.com/wilsonfreitas/awesome-quant",
-    stars: "★ 17k+",
+    stars: "★ 30,595",
     badge: "RESOURCE HUB",
     badgeColor: "#bf00ff",
     tags: ["curated", "quant", "resources", "trading"],
@@ -172,36 +172,36 @@ const CATEGORIES = [
         botName="📊 FinBot"
         botTips={[
           // ── BTC buy/short signals ────────────────────────────────────────
-          "📊 [Chart Scanner] BTC/USDT — Watch the 1H chart: if RSI drops below 30 and price bounces off a key support level (e.g. a prior weekly low), that's a potential long setup. Confirm with a bullish engulfing candle. ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] BTC/USDT — Potential short signal: if BTC is rejected at a major resistance (previous ATH zone or 200-day MA) and RSI is overbought above 70 on the daily, consider watching for a reversal candle as a short entry. ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] BTC/USDT — Breakout watch: if BTC consolidates tightly for 3–5 candles below a resistance level on the 4H chart, a high-volume breakout above it can be a strong long signal. Volume confirmation is key. ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] BTC/USDT — MACD signal: when the MACD line crosses above the signal line on the daily chart after an extended downtrend, it can signal a momentum shift. Most reliable when the crossover happens below the zero line (i.e. from deeply negative territory). ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] BTC/USDT — Fibonacci retracement: after a significant BTC rally, pull a Fib from the swing low to swing high. The 0.618 level (~61.8% retracement) is statistically the strongest support zone and often acts as a high-probability long entry. ⚠️ Not financial advice.",
+          "📊 [TA idea] BTC/USDT — Watch the 1H chart: if RSI drops below 30 and price bounces off a key support level (e.g. a prior weekly low), that's a potential long setup. Confirm with a bullish engulfing candle. ⚠️ Not financial advice.",
+          "📊 [TA idea] BTC/USDT — Potential short signal: if BTC is rejected at a major resistance (previous ATH zone or 200-day MA) and RSI is overbought above 70 on the daily, consider watching for a reversal candle as a short entry. ⚠️ Not financial advice.",
+          "📊 [TA idea] BTC/USDT — Breakout watch: if BTC consolidates tightly for 3–5 candles below a resistance level on the 4H chart, a high-volume breakout above it can be a strong long signal. Volume confirmation is key. ⚠️ Not financial advice.",
+          "📊 [TA idea] BTC/USDT — MACD signal: when the MACD line crosses above the signal line on the daily chart after an extended downtrend, it can signal a momentum shift. Most reliable when the crossover happens below the zero line (i.e. from deeply negative territory). ⚠️ Not financial advice.",
+          "📊 [TA idea] BTC/USDT — Fibonacci retracement: after a significant BTC rally, pull a Fib from the swing low to swing high. The 0.618 level (~61.8% retracement) is a level many traders watch as a possible support zone — it is not a guarantee of a bounce. ⚠️ Not financial advice.",
 
           // ── ETH buy/short signals ────────────────────────────────────────
-          "📊 [Chart Scanner] ETH/USDT — Look for the ETH/BTC pair in the screener below: when ETH outperforms BTC (ETH/BTC rising), ETH is often worth rotating into for a long. ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] ETH/USDT — Short setup: if ETH fails to break above a descending trendline on the 4H chart and the MACD histogram is crossing bearish, that convergence can signal downside momentum. ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] ETH/USDT — Gas fee watch: extremely high ETH gas fees often coincide with market tops (high on-chain activity = euphoria). Check gas trackers when ETH is making new highs — sustained gas spikes can precede corrections. ⚠️ Not financial advice.",
-          "📊 [Chart Scanner] ETH/USDT — Stochastic RSI signal: when Stoch RSI is below 20 and both lines curl upward on the 4H chart, this is one of the earliest momentum reversal signals available — often fires before regular RSI crosses. ⚠️ Not financial advice.",
+          "📊 [TA idea] ETH/USDT — Look for the ETH/BTC pair in the screener below: when ETH outperforms BTC (ETH/BTC rising), ETH is often worth rotating into for a long. ⚠️ Not financial advice.",
+          "📊 [TA idea] ETH/USDT — Short setup: if ETH fails to break above a descending trendline on the 4H chart and the MACD histogram is crossing bearish, that convergence can signal downside momentum. ⚠️ Not financial advice.",
+          "📊 [TA idea] ETH/USDT — Gas fee watch: extremely high ETH gas fees often coincide with market tops (high on-chain activity = euphoria). Check gas trackers when ETH is making new highs — sustained gas spikes can precede corrections. ⚠️ Not financial advice.",
+          "📊 [TA idea] ETH/USDT — Stochastic RSI signal: when Stoch RSI is below 20 and both lines curl upward on the 4H chart, this is one of the earliest momentum reversal signals available — often fires before regular RSI crosses. ⚠️ Not financial advice.",
 
           // ── Altcoin screener signals ─────────────────────────────────────
-          "🔍 [Screener Scan] Open the Crypto Market Screener below and sort by '% Change 24h' descending — assets with unusually high volume AND positive price change are often breaking out. Cross-check on the chart above before acting. ⚠️ Not financial advice.",
-          "🔍 [Screener Scan] In the Screener below, filter by RSI < 35 to find potentially oversold crypto assets. These aren't automatic buys — check the chart trend first. Oversold in a downtrend can keep going lower. ⚠️ Not financial advice.",
-          "🔍 [Screener Scan] Scan for coins where RSI is between 50–60 and price is above the 50-day MA — these are often in healthy uptrends with room to run. Use the Screener below to find candidates. ⚠️ Not financial advice.",
-          "🔍 [Screener Scan] Check SOL, BNB, and ADA in the Screener — compare their 24h volume vs 7-day average. A volume spike above 2× average alongside a price breakout is a historically strong continuation signal. ⚠️ Not financial advice.",
-          "🔍 [Screener Scan] Use the Screener to identify altcoins with rising Relative Strength vs BTC (RS line trending up). When an altcoin holds value or rises while BTC corrects, it signals institutional accumulation or a structural shift — strong candidates for the next leg up. ⚠️ Not financial advice.",
-          "🔍 [Screener Scan] Look for altcoins that have compressed into a tight range (low ATR / low Bollinger Band width) in the Screener. Low-volatility compression often precedes explosive breakouts — these are breakout setups in formation. ⚠️ Not financial advice.",
+          "🔍 [TA idea — screener] Open the Crypto Market Screener below and sort by '% Change 24h' descending — assets with unusually high volume AND positive price change are often breaking out. Cross-check on the chart above before acting. ⚠️ Not financial advice.",
+          "🔍 [TA idea — screener] In the Screener below, filter by RSI < 35 to find potentially oversold crypto assets. These aren't automatic buys — check the chart trend first. Oversold in a downtrend can keep going lower. ⚠️ Not financial advice.",
+          "🔍 [TA idea — screener] Scan for coins where RSI is between 50–60 and price is above the 50-day MA — these are often in healthy uptrends with room to run. Use the Screener below to find candidates. ⚠️ Not financial advice.",
+          "🔍 [TA idea — screener] Check SOL, BNB, and ADA in the Screener — compare their 24h volume vs 7-day average. A volume spike above 2× average alongside a price breakout is a pattern some traders watch for possible continuation. ⚠️ Not financial advice.",
+          "🔍 [TA idea — screener] Use the Screener to identify altcoins with rising Relative Strength vs BTC (RS line trending up). When an altcoin holds value or rises while BTC corrects, it signals institutional accumulation or a structural shift — strong candidates for the next leg up. ⚠️ Not financial advice.",
+          "🔍 [TA idea — screener] Look for altcoins that have compressed into a tight range (low ATR / low Bollinger Band width) in the Screener. Low-volatility compression often precedes explosive breakouts — these are breakout setups in formation. ⚠️ Not financial advice.",
 
           // ── Ticker tape signals ──────────────────────────────────────────
-          "📡 [Ticker Watch] Keep an eye on the live ticker above — if DOGE or XRP show sudden spikes in the daily % change, check the chart. Meme/news-driven pumps often have sharp reversals, making them potential short setups after the euphoria peak. ⚠️ Not financial advice.",
-          "📡 [Ticker Watch] Watch the S&P 500 (SPX) in the ticker — crypto often lags SPX moves by 24–48h. If SPX drops sharply, risk-off sentiment may hit BTC and altcoins next. Consider reducing leverage exposure early. ⚠️ Not financial advice.",
-          "📡 [Ticker Watch] Monitor NVDA in the ticker alongside BTC. Tech and crypto sentiment are increasingly correlated — a sharp NVDA selloff often acts as an early warning of broader risk-off across all speculative assets. ⚠️ Not financial advice.",
+          "📡 [TA idea — ticker] Keep an eye on the live ticker above — if DOGE or XRP show sudden spikes in the daily % change, check the chart. Meme/news-driven pumps often have sharp reversals, making them potential short setups after the euphoria peak. ⚠️ Not financial advice.",
+          "📡 [TA idea — ticker] Watch the S&P 500 (SPX) in the ticker — crypto often lags SPX moves by 24–48h. If SPX drops sharply, risk-off sentiment may hit BTC and altcoins next. Consider reducing leverage exposure early. ⚠️ Not financial advice.",
+          "📡 [TA idea — ticker] Monitor NVDA in the ticker alongside BTC. Tech and crypto sentiment are increasingly correlated — a sharp NVDA selloff often acts as an early warning of broader risk-off across all speculative assets. ⚠️ Not financial advice.",
 
           // ── NVDA / AAPL equity signals ───────────────────────────────────
-          "📈 [Chart Scanner] NVDA — Pull up NVDA on the chart above (Quick switch). If it's building higher lows on the 4H and holds above the 50-day MA, the trend is bullish and momentum favors longs. ⚠️ Not financial advice.",
-          "📈 [Chart Scanner] NVDA earnings watch: IV (implied volatility) on NVDA options spikes before earnings — buying options pre-earnings often leads to 'IV crush' after the report regardless of direction. Sell-the-news setups are worth watching. ⚠️ Not financial advice.",
-          "📈 [Chart Scanner] AAPL — A classic mean-reversion play: if AAPL dips 5–8% from a recent high on low-volume selling, it has historically attracted institutional buying. Look for a hammer candle on the daily chart as a potential entry signal. ⚠️ Not financial advice.",
-          "📈 [Chart Scanner] AAPL short setup: if AAPL gaps up into earnings above the upper Bollinger Band and RSI is above 75 on the daily, a short-term short (or protective put) to fade the gap can be worth watching. ⚠️ Not financial advice.",
+          "📈 [TA idea] NVDA — Pull up NVDA on the chart above (Quick switch). If it's building higher lows on the 4H and holds above the 50-day MA, the trend is bullish and momentum favors longs. ⚠️ Not financial advice.",
+          "📈 [TA idea] NVDA earnings watch: IV (implied volatility) on NVDA options spikes before earnings — buying options pre-earnings often leads to 'IV crush' after the report regardless of direction. Sell-the-news setups are worth watching. ⚠️ Not financial advice.",
+          "📈 [TA idea] AAPL — A classic mean-reversion play: if AAPL dips 5–8% from a recent high on low-volume selling, some traders watch for signs of buying interest. A hammer candle on the daily chart is one pattern they look for. ⚠️ Not financial advice.",
+          "📈 [TA idea] AAPL short setup: if AAPL gaps up into earnings above the upper Bollinger Band and RSI is above 75 on the daily, a short-term short (or protective put) to fade the gap can be worth watching. ⚠️ Not financial advice.",
 
           // ── MACD & momentum indicators ───────────────────────────────────
           "💡 [TA Signal — MACD] A bullish MACD divergence (price making lower lows, MACD making higher lows) on the daily chart is one of the highest-conviction reversal signals in crypto. Add it to your indicator panel on the chart above and watch for it at key support zones. ⚠️ Not financial advice.",
@@ -219,7 +219,7 @@ const CATEGORIES = [
           "💡 [TA Signal — Wyckoff] Watch for 'spring' patterns at support: a brief dip below a key support level followed by an immediate reclaim (spring + sign of strength) is a Wyckoff accumulation signal. Particularly reliable on BTC and ETH daily charts. ⚠️ Not financial advice.",
 
           // ── Risk management ──────────────────────────────────────────────
-          "🛡️ [Risk Management] Never risk more than 1–2% of your total portfolio on a single trade. This lets you sustain 50 consecutive losses before losing half your capital — giving strategies time to play out without catastrophic drawdown. ⚠️ Not financial advice.",
+          "🛡️ [Risk Management] Never risk more than 1–2% of your total portfolio on a single trade. Keeping each loss small gives a strategy time to play out without a catastrophic drawdown from a losing streak. ⚠️ Not financial advice.",
           "🛡️ [Risk Management] Always define your stop-loss before entering a trade, not after. Pre-defining your exit removes emotion from the decision. A stop at the invalidation point (the level that disproves your thesis) is the most logical placement. ⚠️ Not financial advice.",
           "🛡️ [Risk Management] Risk/Reward ratio: only take trades where your target profit is at least 2× your maximum loss (R:R ≥ 2:1). At this ratio, you need less than a 34% win rate to break even — giving your strategy a wide margin for error. ⚠️ Not financial advice.",
           "🛡️ [Risk Management] Correlation risk: if you hold BTC, ETH, SOL, and AAPL, you effectively have one trade — they're all risk-on assets. True diversification means assets that move independently. Use the chart above to check price correlation between your holdings. ⚠️ Not financial advice.",
@@ -266,6 +266,25 @@ const CATEGORIES = [
           ))}
         </div>
 
+        <!-- Interval selector (drives the shareable chart link) -->
+        <div class="symbol-row">
+          <span class="symbol-label">Interval:</span>
+          {[
+            { interval: "15",  label: "15m" },
+            { interval: "60",  label: "1H" },
+            { interval: "240", label: "4H" },
+            { interval: "D",   label: "1D" },
+          ].map((s) => (
+            <button class="sym-btn interval-btn" data-interval={s.interval} type="button">{s.label}</button>
+          ))}
+        </div>
+
+        <!-- Share this chart view (fix #7) -->
+        <div class="symbol-row">
+          <button class="sym-btn copy-chart-btn" id="copy-chart-link" type="button">Copy chart link</button>
+          <span class="symbol-label" id="copy-chart-status" role="status" aria-live="polite"></span>
+        </div>
+
         <!-- TradingView Advanced Chart container -->
         <div class="tv-chart-wrap">
           <div id="tv-advanced-chart"></div>
@@ -300,7 +319,7 @@ const CATEGORIES = [
       </h2>
       <p class="section-desc">
         These are GitHub projects you can clone, run locally, or deploy on your own server.
-        They are powerful swarm-AI and quant-finance libraries — not browser embeds, but freely available to build with.
+        They are powerful swarm-AI and quant-finance libraries — not browser embeds, but freely available to build with. Star counts below were checked via the GitHub API on 2026-11-12 — counts change over time, and descriptions are each project's own.
       </p>
 
       <!-- ── Category Filter Tabs ────────────────────────────────────────── -->
@@ -375,7 +394,7 @@ const CATEGORIES = [
       <p class="about-desc">
         Swarm intelligence applies collective behavior principles — borrowed from ant colonies, bird flocking, and bee swarms —
         to financial analysis. Multiple autonomous AI agents each analyze different facets of a market (fundamentals, sentiment,
-        technical indicators, on-chain data) and their combined output produces more accurate predictions than any single model.
+        technical indicators, on-chain data) and their outputs are combined into a single analysis. No accuracy comparison against single models is claimed here — check each project's own documentation for its method.
         Tools like <strong>MiroFish</strong> and <strong>AutoHedge</strong> bring this approach to open-source finance.
       </p>
       <div class="about-links">
@@ -405,11 +424,58 @@ const CATEGORIES = [
 <script is:inline>
 (function () {
   const DEFAULT_SYM = 'BINANCE:BTCUSDT';
+  const DEFAULT_INTERVAL = '60';
+  const ALLOWED_INTERVALS = ['15', '60', '240', 'D'];
   const FALLBACK_MSG = 'TradingView chart could not be loaded. ' +
     'Please check your network connection or disable ad blockers.';
 
+  /* ── Shareable chart state (fix #7): symbol + interval live in the page
+        URL (?symbol=…&interval=…) and are read back on load, so a copied
+        link recreates the exact chart view the sender was looking at. ── */
+  function readChartStateFromUrl() {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const sym = params.get('symbol');
+      const interval = params.get('interval');
+      return {
+        symbol: sym && /^[A-Za-z0-9:._/-]{1,40}$/.test(sym) ? sym : DEFAULT_SYM,
+        interval: interval && ALLOWED_INTERVALS.indexOf(interval) !== -1 ? interval : DEFAULT_INTERVAL,
+      };
+    } catch (e) {
+      return { symbol: DEFAULT_SYM, interval: DEFAULT_INTERVAL };
+    }
+  }
+
+  let currentSymbol = readChartStateFromUrl().symbol;
+  let currentInterval = readChartStateFromUrl().interval;
+
+  function updatePageUrl() {
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('symbol', currentSymbol);
+      url.searchParams.set('interval', currentInterval);
+      window.history.replaceState(null, '', url.toString());
+    } catch (e) { /* URL update is a convenience; the copy button builds its own link */ }
+  }
+
+  function buildShareUrl() {
+    const url = new URL(window.location.origin + window.location.pathname);
+    url.searchParams.set('symbol', currentSymbol);
+    url.searchParams.set('interval', currentInterval);
+    return url.toString();
+  }
+
+  function markActiveButtons() {
+    document.querySelectorAll('.sym-btn[data-sym]').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.sym === currentSymbol);
+    });
+    document.querySelectorAll('.interval-btn').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.interval === currentInterval);
+    });
+  }
+
   /* ── Advanced Chart (requires tv.js — called from onload) ──────────── */
-  function buildChart(sym) {
+  function buildChart(sym, interval) {
     const el = document.getElementById('tv-advanced-chart');
     if (!el) return;
     el.innerHTML = '';
@@ -421,7 +487,7 @@ const CATEGORIES = [
       new window.TradingView.widget({
         container_id:        'tv-advanced-chart',
         symbol:              sym || DEFAULT_SYM,
-        interval:            '60',
+        interval:            interval || DEFAULT_INTERVAL,
         timezone:            'Etc/UTC',
         theme:               'dark',
         style:               '1',
@@ -446,21 +512,60 @@ const CATEGORIES = [
   const tvScript = document.createElement('script');
   tvScript.src = 'https://s3.tradingview.com/tv.js';
   tvScript.async = true;
-  tvScript.onload = function () { buildChart(DEFAULT_SYM); };
+  tvScript.onload = function () { markActiveButtons(); buildChart(currentSymbol, currentInterval); };
   tvScript.onerror = function () {
     const el = document.getElementById('tv-advanced-chart');
     if (el) el.textContent = FALLBACK_MSG;
   };
   document.head.appendChild(tvScript);
+  markActiveButtons();
 
   /* ── Symbol quick-switch buttons (delegate; chart init is async) ───── */
   document.addEventListener('click', function (e) {
-    const btn = e.target.closest('.sym-btn');
-    if (!btn) return;
-    document.querySelectorAll('.sym-btn').forEach(function (b) { b.classList.remove('active'); });
-    btn.classList.add('active');
-    buildChart(btn.dataset.sym);
+    const symBtn = e.target.closest('.sym-btn[data-sym]');
+    if (symBtn) {
+      currentSymbol = symBtn.dataset.sym;
+      markActiveButtons();
+      updatePageUrl();
+      buildChart(currentSymbol, currentInterval);
+      return;
+    }
+    const intervalBtn = e.target.closest('.interval-btn');
+    if (intervalBtn) {
+      currentInterval = intervalBtn.dataset.interval;
+      markActiveButtons();
+      updatePageUrl();
+      buildChart(currentSymbol, currentInterval);
+    }
   });
+
+  /* ── Copy chart link (fix #7) ──────────────────────────────────────── */
+  (function () {
+    const copyBtn = document.getElementById('copy-chart-link');
+    const status = document.getElementById('copy-chart-status');
+    if (!copyBtn) return;
+    copyBtn.addEventListener('click', function () {
+      const link = buildShareUrl();
+      function done(ok) {
+        if (status) status.textContent = ok
+          ? 'Chart link copied ✓ — ' + currentSymbol + ' · ' + currentInterval
+          : 'Copy failed — copy the address bar link manually.';
+        setTimeout(function () { if (status) status.textContent = ''; }, 4000);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link).then(function () { done(true); }, function () { done(false); });
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = link;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { done(document.execCommand('copy')); } catch (err) { done(false); }
+        document.body.removeChild(ta);
+      }
+    });
+  })();
 
   /* ── Crypto Screener (self-loading embed — no tv.js dependency) ─────── */
   (function () {
@@ -693,6 +798,14 @@ const CATEGORIES = [
     color: #000;
     opacity: 1;
     box-shadow: 0 0 8px var(--theme-glow);
+  }
+
+  .copy-chart-btn {
+    border-color: var(--theme-primary);
+    color: var(--theme-primary);
+    font-weight: bold;
+    letter-spacing: 1px;
+    opacity: 1;
   }
 
   /* ── TradingView chart containers ─────────────────────────────────────── */
