@@ -6,6 +6,47 @@ const scoreDisplay = document.getElementById('score');
 const levelDisplay = document.getElementById('level');
 const accuracyDisplay = document.getElementById('accuracy');
 const missionText = document.getElementById('mission-text');
+const finishBtn = document.getElementById('finish-btn');
+const endScreen = document.getElementById('end-screen');
+const finalScoreDisplay = document.getElementById('final-score');
+const playAgainBtn = document.getElementById('play-again-btn');
+const bestDisplay = document.getElementById('best');
+
+// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
+// This game previously had no end state at all (roadmap fix H-1): a run
+// now ends when the player clicks FINISH RUN, which lands the end screen.
+let mhRunStart = Date.now();
+let mhRunId = null;
+function mhNewRun() {
+    mhRunStart = Date.now();
+    mhRunId = 'hacking-simulator-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
+}
+if (window.MatrixBest) {
+    const stored = MatrixBest.getBest('hacking-simulator');
+    if (bestDisplay && stored) bestDisplay.textContent = stored.score;
+    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'hacking-simulator');
+    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
+}
+
+function finishRun() {
+    if (!gameActive) return;
+    gameActive = false;
+    finalScoreDisplay.textContent = score;
+    endScreen.classList.remove('mh-hidden');
+    terminalInput.disabled = true;
+    startBtn.disabled = false;
+    addLine('');
+    addLine('Run finished. Final score: ' + score, 'system-line');
+    // Competitive Phase 1: record the run (best, board, daily challenge).
+    if (window.MatrixBest) {
+        const out = MatrixBest.finishRun('hacking-simulator', { score: score }, {
+            durationSec: (Date.now() - mhRunStart) / 1000,
+            runId: mhRunId,
+            scoreText: String(score)
+        });
+        if (bestDisplay && out.best.best) bestDisplay.textContent = out.best.best.score;
+    }
+}
 
 let score = 0;
 let level = 1;
@@ -75,6 +116,8 @@ function getRandomMessage() {
 }
 
 function startGame() {
+    mhNewRun();
+    endScreen.classList.add('mh-hidden');
     gameActive = true;
     score = 0;
     level = 1;
@@ -159,6 +202,7 @@ function updateStats() {
 }
 
 function restartGame() {
+    endScreen.classList.add('mh-hidden');
     gameActive = false;
     terminalOutput.innerHTML = '';
     terminalInput.value = '';
@@ -175,6 +219,8 @@ function restartGame() {
 // Event listeners
 startBtn.addEventListener('click', startGame);
 restartBtn.addEventListener('click', restartGame);
+finishBtn.addEventListener('click', finishRun);
+playAgainBtn.addEventListener('click', startGame);
 
 terminalInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter' && gameActive) {
