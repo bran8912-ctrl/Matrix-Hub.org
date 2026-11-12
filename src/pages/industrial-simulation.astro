@@ -11,7 +11,7 @@ export const navCategory = 'academy';
 <Layout title="Industrial Simulation | Matrix Hub Academy">
   <div class="academy-shell">
     <header class="academy-hero">
-      <p class="academy-eyebrow">Level 8 · Shipyard job simulation</p>
+      <p class="academy-eyebrow">Shipyard job simulation</p>
       <h1>Inspect. Lay out. Fit. Verify.</h1>
       <p>Interpret the drawing, mark the reference lines, choose a preparation, fit and align the stiffener, then complete a virtual inspection and explain your decisions.</p>
       <p class="academy-disclaimer"><strong>Training, not qualification.</strong> This simulator teaches recognition, planning, and measurement. It does not certify welders or replace supervised practice, approved procedures, required testing, or qualified inspection. Do not use schematic values as job instructions.</p>
@@ -30,10 +30,9 @@ export const navCategory = 'academy';
           ></iframe>
         </div>
         <p class="simulator-status" id="simulator-status" role="status" aria-live="polite">Loading simulator preview…</p>
-        <a class="academy-inline-link" href="/simulations/factory/index.html" target="_blank" rel="noopener noreferrer">Open full simulator in a new tab ↗</a>
         <section class="academy-card" aria-labelledby="mock-heading">
           <h2 id="mock-heading">Demo the checklist without the Cocos build</h2>
-          <p>The mock runs locally in this page and emits the same validated events as the simulator. Each step is an example, not a measurement record.</p>
+          <p>The mock runs locally in this page and emits the same validated events as the simulator. Each step is an example, not a measurement record. The mock's challenge score is a scripted example (100/100) — it is not a measured result of your performance.</p>
           <div class="mock-controls">
             <button class="academy-button" type="button" id="mock-start">Start mock simulator demo</button>
             <p id="mock-instruction" aria-live="polite">The full Cocos build has not been deployed; use the mock to walk through the job sequence.</p>
@@ -58,6 +57,13 @@ export const navCategory = 'academy';
         <label for="inspection-rationale">Virtual inspection rationale: identify the datum, measurements checked, and any correction or hold point.</label>
         <textarea id="inspection-rationale" rows="5" maxlength="500" placeholder="Example: I checked the stiffener offset from datum B, then rechecked the gap and squareness after repositioning."></textarea>
         <p class="academy-eyebrow">Your rationale stays in this page and is not submitted or saved.</p>
+        <h3>Share your result</h3>
+        <p id="share-summary">Run the mock walkthrough to build your result summary — it will list only the steps and example values from your own run.</p>
+        <div class="mock-controls">
+          <button class="academy-button secondary" type="button" id="copy-result">Copy my result + rationale</button>
+          <p id="copy-result-status" role="status" aria-live="polite"></p>
+        </div>
+        <p class="academy-eyebrow">Sharing copies your result summary and, if you wrote one, your rationale. The mock score is a scripted example — it is labelled that way in the shared text.</p>
         <h3>Matching academy lessons</h3>
         <ul>
           {lessons.slice(1).map((lesson) => (
@@ -81,6 +87,70 @@ export const navCategory = 'academy';
   const checklist = document.querySelectorAll<HTMLElement>('[data-sim-task]');
   let mockIndex = 0;
 
+  // ── Shareable result (fix #7) ──────────────────────────────────────────
+  // State is built only from events that actually occur in this visitor's
+  // run (mock or real simulator events through applyEvent). Nothing is
+  // pre-filled: a step, defect, or score appears in the shared text only
+  // after its event has fired here. The mock's score is scripted, and the
+  // shared text labels it that way — it is not a measured result.
+  type ShareState = {
+    steps: Set<string>;
+    defectIds: string[];
+    datum?: string;
+    baseline?: string;
+    partId?: string;
+    offsetMm?: number;
+    correction?: string;
+    verificationSummary?: string;
+    score?: number;
+    verified?: boolean;
+  };
+  const newShareState = (): ShareState => ({ steps: new Set<string>(), defectIds: [] });
+  let shareState = newShareState();
+
+  const shareSummaryEl = document.querySelector<HTMLElement>('#share-summary');
+
+  const buildShareLines = (): string[] => {
+    const lines: string[] = [
+      'My Industrial Fit-Up Simulation result — Matrix Hub',
+      'Training walkthrough only — not a qualification. Schematic example values, not job instructions.',
+    ];
+    if (typeof shareState.score === 'number') {
+      lines.push(`Mock challenge score: ${shareState.score}/100 (scripted example — not a measured result of my performance)`);
+    }
+    lines.push(`Steps completed in my run: ${shareState.steps.size}/7${shareState.steps.size ? ` (${[...shareState.steps].join(', ')})` : ''}`);
+    if (shareState.defectIds.length) {
+      lines.push(`Joint-prep defects flagged in the example: ${shareState.defectIds.join(', ')}`);
+    }
+    if (shareState.datum) {
+      lines.push(`Reference: datum ${shareState.datum}${shareState.baseline ? `, baseline ${shareState.baseline}` : ''}`);
+    }
+    if (shareState.partId) {
+      lines.push(`Part in the example: ${shareState.partId}${typeof shareState.offsetMm === 'number' ? ` positioned at ${shareState.offsetMm} mm` : ''}`);
+    }
+    if (shareState.correction) {
+      lines.push(`Correction in the example: ${shareState.correction}`);
+    }
+    if (shareState.verificationSummary) {
+      lines.push(`Verification: ${shareState.verificationSummary}`);
+    }
+    const rationale = document.querySelector<HTMLTextAreaElement>('#inspection-rationale')?.value.trim();
+    if (rationale) {
+      lines.push(`My inspection rationale: ${rationale}`);
+    }
+    lines.push(`Try it: ${window.location.origin}${window.location.pathname}`);
+    return lines;
+  };
+
+  const renderShareSummary = () => {
+    if (!shareSummaryEl) return;
+    if (shareState.steps.size === 0 && typeof shareState.score !== 'number') {
+      shareSummaryEl.textContent = 'Run the mock walkthrough to build your result summary — it will list only the steps and example values from your own run.';
+      return;
+    }
+    shareSummaryEl.textContent = buildShareLines().slice(2).join(' · ');
+  };
+
   const applyEvent = (message: unknown) => {
     if (!isSimulatorEvent(message)) return;
     switch (message.type) {
@@ -89,23 +159,40 @@ export const navCategory = 'academy';
         break;
       case 'inspect-complete':
         checklist.forEach((item) => item.dataset.simTask === 'inspect' && (item.dataset.complete = 'true'));
+        shareState.steps.add('inspect');
+        renderShareSummary();
         if (feedback) feedback.textContent = 'Plate inspection recorded. Confirm part mark and surface condition.';
         break;
       case 'joint-prep-flagged':
         checklist.forEach((item) => item.dataset.simTask === 'joint' && (item.dataset.complete = 'true'));
+        shareState.steps.add('joint');
+        shareState.defectIds = [...message.payload.defectIds];
+        renderShareSummary();
         if (feedback) feedback.textContent = `Joint-prep review recorded: ${message.payload.defectIds.length} defect(s) flagged.`;
         break;
       case 'reference-established':
         checklist.forEach((item) => item.dataset.simTask === 'reference' && (item.dataset.complete = 'true'));
+        shareState.steps.add('reference');
+        shareState.datum = message.payload.datum;
+        shareState.baseline = message.payload.baseline;
+        renderShareSummary();
         if (feedback) feedback.textContent = `Reference recorded: datum ${message.payload.datum}, baseline ${message.payload.baseline}.`;
         break;
       case 'part-positioned':
         checklist.forEach((item) => item.dataset.simTask === 'position' && (item.dataset.complete = 'true'));
+        shareState.steps.add('position');
+        shareState.partId = message.payload.partId;
+        shareState.offsetMm = message.payload.offsetMm;
+        renderShareSummary();
         if (feedback) feedback.textContent = `${message.payload.partId} positioned at ${message.payload.offsetMm} mm; compare with the current drawing tolerance.`;
         break;
       case 'alignment-checked': {
         const allPassed = message.payload.checks.every(({ passed }) => passed);
-        if (allPassed) checklist.forEach((item) => item.dataset.simTask === 'alignment' && (item.dataset.complete = 'true'));
+        if (allPassed) {
+          checklist.forEach((item) => item.dataset.simTask === 'alignment' && (item.dataset.complete = 'true'));
+          shareState.steps.add('alignment');
+          renderShareSummary();
+        }
         if (feedback) feedback.textContent = allPassed
           ? 'All reported alignment checks passed.'
           : 'One or more alignment checks failed. Correct the cause and check again.';
@@ -113,14 +200,24 @@ export const navCategory = 'academy';
       }
       case 'correction-applied':
         checklist.forEach((item) => item.dataset.simTask === 'correct' && (item.dataset.complete = 'true'));
+        shareState.steps.add('correct');
+        shareState.correction = message.payload.issue;
+        renderShareSummary();
         if (feedback) feedback.textContent = `Correction recorded: ${message.payload.issue}.`;
         break;
       case 'verification-complete':
         checklist.forEach((item) => item.dataset.simTask === 'verify' && (item.dataset.complete = 'true'));
+        shareState.steps.add('verify');
+        shareState.verificationSummary = message.payload.summary;
+        renderShareSummary();
         if (feedback) feedback.textContent = `Final verification recorded: ${message.payload.summary}.`;
         break;
       case 'challenge-complete':
         if (message.payload.verified) checklist.forEach((item) => item.dataset.simTask === 'verify' && (item.dataset.complete = 'true'));
+        shareState.steps.add('verify');
+        shareState.score = message.payload.score;
+        shareState.verified = message.payload.verified;
+        renderShareSummary();
         if (feedback) feedback.textContent = `Challenge score ${message.payload.score}/100. ${message.payload.verified ? 'Verification complete.' : 'Complete verification before closing the challenge.'}`;
         break;
     }
@@ -149,8 +246,37 @@ export const navCategory = 'academy';
     applyEvent(event.data);
   });
 
+  document.querySelector<HTMLButtonElement>('#copy-result')?.addEventListener('click', async () => {
+    const copyStatus = document.querySelector<HTMLElement>('#copy-result-status');
+    const text = buildShareLines().join('\n');
+    const setStatus = (msg: string) => {
+      if (copyStatus) copyStatus.textContent = msg;
+      window.setTimeout(() => { if (copyStatus) copyStatus.textContent = ''; }, 4000);
+    };
+    try {
+      await navigator.clipboard.writeText(text);
+      setStatus('Copied ✓ — result + rationale');
+    } catch {
+      const textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand('copy');
+        setStatus('Copied ✓ — result + rationale');
+      } catch {
+        setStatus('Copy failed — select the summary above and copy it manually.');
+      }
+      document.body.removeChild(textarea);
+    }
+  });
+
   document.querySelector<HTMLButtonElement>('#mock-start')?.addEventListener('click', () => {
     mockIndex = 0;
+    shareState = newShareState();
+    renderShareSummary();
     checklist.forEach((item) => delete item.dataset.complete);
     const nextButton = document.querySelector<HTMLButtonElement>('#mock-next');
     nextButton?.removeAttribute('hidden');
