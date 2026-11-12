@@ -26,10 +26,33 @@ let direction = { x: 1, y: 0 };
 let nextDirection = { x: 1, y: 0 };
 let food = {};
 let score = 0;
-let highScore = localStorage.getItem('cyberSnakeHighScore') || 0;
+let highScore = 0;
 let gameActive = false;
 let gameSpeed = 100;
-let playerName = '';
+
+// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
+// The legacy 'cyberSnakeHighScore' key is migrated once into the shared key.
+let mhRunStart = Date.now();
+let mhRunId = null;
+function mhNewRun() {
+    mhRunStart = Date.now();
+    mhRunId = 'cyber-snake-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
+}
+if (window.MatrixBest) {
+    const stored = MatrixBest.getBest('cyber-snake');
+    if (stored) {
+        highScore = stored.score;
+    } else {
+        let legacy = 0;
+        try { legacy = parseInt(localStorage.getItem('cyberSnakeHighScore'), 10) || 0; } catch (e) { legacy = 0; }
+        if (legacy > 0) {
+            MatrixBest.saveBest('cyber-snake', { score: legacy });
+            highScore = legacy;
+        }
+    }
+    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'cyber-snake');
+    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
+}
 
 highScoreDisplay.textContent = highScore;
 
@@ -44,6 +67,7 @@ function initGame() {
     score = 0;
     scoreDisplay.textContent = score;
     gameActive = true;
+    mhNewRun();
     spawnFood();
     gameOverScreen.classList.add('hidden');
 }
@@ -159,7 +183,6 @@ function updateSnake() {
         if (score > highScore) {
             highScore = score;
             highScoreDisplay.textContent = highScore;
-            localStorage.setItem('cyberSnakeHighScore', highScore);
         }
     } else {
         snake.pop();
@@ -190,15 +213,22 @@ function endGame() {
     gameActive = false;
     finalScoreDisplay.textContent = score;
     gameOverScreen.classList.remove('hidden');
-    
-    // Submit score to leaderboard
-    if (playerName && score > 0 && window.parent) {
-        window.parent.postMessage({
-            type: 'gameScore',
-            game: 'cyber-snake',
-            name: playerName,
-            score: score
-        }, '*');
+    mhFinishRun();
+}
+
+// Competitive Phase 1: persist best + local board via the shared
+// finishRun path (best, NEW BEST, rank on this device, board top 5,
+// daily challenge, share card).
+function mhFinishRun() {
+    if (!window.MatrixBest) return;
+    const out = MatrixBest.finishRun('cyber-snake', { score: score }, {
+        durationSec: (Date.now() - mhRunStart) / 1000,
+        runId: mhRunId,
+        scoreText: String(score)
+    });
+    if (out.best.best) {
+        highScore = out.best.best.score;
+        highScoreDisplay.textContent = highScore;
     }
 }
 
@@ -308,16 +338,8 @@ document.body.addEventListener('touchmove', (e) => {
     e.preventDefault();
 }, { passive: false });
 
-// Prompt for player name and start
+// Start immediately — no name prompt (personal bests only, HUB 155).
 function startGame() {
-    playerName = localStorage.getItem('matrix_player_name');
-    if (!playerName) {
-        const name = prompt('Enter your name to join the Matrix:');
-        if (name && name.trim()) {
-            playerName = name.trim().substring(0, 20);
-            localStorage.setItem('matrix_player_name', playerName);
-        }
-    }
     initGame();
     gameLoop();
 }
