@@ -101,6 +101,21 @@ const levelDisplay = document.getElementById('level');
 const livesDisplay = document.getElementById('lives');
 const finalScoreDisplay = document.getElementById('final-score');
 const finalLevelDisplay = document.getElementById('final-level');
+const bestDisplay = document.getElementById('best');
+
+// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
+let mhRunStart = Date.now();
+let mhRunId = null;
+function mhNewRun() {
+    mhRunStart = Date.now();
+    mhRunId = 'bullet-dodge-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
+}
+if (window.MatrixBest) {
+    const stored = MatrixBest.getBest('bullet-dodge');
+    if (bestDisplay) bestDisplay.textContent = stored ? MatrixBest.formatBest('bullet-dodge', stored).replace('Best: ', '') : '';
+    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'bullet-dodge');
+    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
+}
 
 class Bullet {
     constructor(x, y, angle, speed) {
@@ -342,6 +357,7 @@ function updateLivesDisplay() {
 }
 
 function startGame() {
+    mhNewRun();
     gameRunning = true;
     score = 0;
     level = 1;
@@ -368,6 +384,17 @@ function endGame() {
     finalScoreDisplay.textContent = score;
     finalLevelDisplay.textContent = level;
     gameOverScreen.classList.remove('hidden');
+    // Competitive Phase 1: record the run (best, board, daily challenge).
+    if (window.MatrixBest) {
+        const out = MatrixBest.finishRun('bullet-dodge', { score: score }, {
+            durationSec: (Date.now() - mhRunStart) / 1000,
+            runId: mhRunId,
+            scoreText: String(score)
+        });
+        if (bestDisplay && out.best.best) {
+            bestDisplay.textContent = MatrixBest.formatBest('bullet-dodge', out.best.best).replace('Best: ', '');
+        }
+    }
 }
 
 startBtn.addEventListener('click', startGame);
