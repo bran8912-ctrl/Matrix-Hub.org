@@ -10,6 +10,7 @@ import DonateBanner from "../components/DonateBanner.astro";
 import TelegramWidget from "../components/TelegramWidget.astro";
 import MTXStatsWidget from "../components/MTXStatsWidget.tsx";
 import CasinoConnectionTest from "../components/CasinoConnectionTest.astro";
+import CasinoLegalNotice from "../components/CasinoLegalNotice.astro";
 
 export const prerender = true;
 
@@ -20,6 +21,7 @@ export const navCategory = "casino";
 <Layout title="MTX Casino - Matrix Hub">
   <div class="casino-header">
     <h1 class="matrix-title">MTX CASINO</h1>
+    <CasinoLegalNotice />
     <p class="matrix-subtitle">
       Provably fair blockchain casino with MTX token gaming and premium MTX ecosystem features.
     </p>
