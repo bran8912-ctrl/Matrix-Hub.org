@@ -1,5 +1,7 @@
 ---
 import Layout from "../components/Layout.astro";
+import AppKitProvider from "../components/AppKitProvider.tsx";
+import MintRatePanel from "../components/MintRatePanel.tsx";
 
 export const prerender = true;
 
@@ -102,6 +104,18 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
           <strong>🚀 Matrix-Hub</strong> is investor-ready, feature-rich, and built for scale.
         </p>
       </div>
+
+      <!-- MTX Mint Price Section — owner admin control (Nov 12): the
+          mint-rate panel from the deploy console, mounted here so the
+          rate can be changed from the portal after the wallet unlock.
+          The island is inert markup until the gate reveals this div;
+          sending still requires the deployer wallet + a manual tap. -->
+      <section class="tool-section">
+        <h2 class="section-title">💰 MTX Mint Price</h2>
+        <AppKitProvider client:only="react">
+          <MintRatePanel client:only="react" />
+        </AppKitProvider>
+      </section>
 
       <!-- Content Workflow Tools Section -->
       <section class="tool-section">
