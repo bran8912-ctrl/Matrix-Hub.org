@@ -17,6 +17,24 @@
 // error state and render `message` inline in the strip/bar. connectWallet
 // itself never throws, so no caller can be left stuck on "Connecting…"
 // or staring at a blank area after a declined/failed attempt.
+//
+// Switch / disconnect live here too (same rule: ONE behaviour for every
+// surface). switchWallet() forces a fresh account choice instead of
+// silently returning the already-authorized account; disconnectWallet()
+// tears the session down completely.
+//
+// Account changes made INSIDE the wallet (the user switches accounts in
+// MetaMask while the site is open) need no wiring in this lib — that
+// propagation is built into the installed stack and was verified in the
+// @reown 1.8.16 sources: ChainAdapterBlueprint registers
+// provider.on('accountsChanged') for the active connector and emits
+// 'accountChanged'; appkit-base-client subscribes to that event and
+// calls syncAccount(), which writes the new address into the same
+// reactive state useAppKitAccount() reads. WalletConnect and
+// CasinoGameWrapper both render from useAppKitAccount and refetch
+// balances in effects keyed on `address`, so their headers follow the
+// wallet with no reload. Non-React surfaces cannot use that hook — the
+// owners portal gate listens to the provider event itself (owners.astro).
 import { ConnectionController, ConnectorController } from '@reown/appkit-controllers';
 import type { Connector } from '@reown/appkit-controllers';
 import './initAppKit';
@@ -29,6 +47,12 @@ export const WALLET_DIRECT_FAILED_MESSAGE =
   'Direct wallet connection failed — opening the wallet chooser instead.';
 export const WALLET_MODAL_FAILED_MESSAGE =
   'Could not open the wallet chooser. Reload the page and try again.';
+export const WALLET_SWITCH_CANCELLED_MESSAGE =
+  'Switch cancelled in your wallet — you are still connected as before.';
+export const WALLET_SWITCH_FAILED_MESSAGE =
+  'Could not switch in your wallet — opening the wallet chooser instead.';
+export const WALLET_DISCONNECT_FAILED_MESSAGE =
+  'Disconnect did not finish cleanly. Reload the page and try again.';
 
 export type ConnectWalletOutcome =
   | { status: 'connected'; via: 'injected' | 'modal' }
@@ -156,4 +180,159 @@ export async function connectWallet(options: {
   } catch {
     return { status: 'error', message: WALLET_MODAL_FAILED_MESSAGE };
   }
+}
+
+// ---------------------------------------------------------------------------
+// Switch wallet / disconnect
+// ---------------------------------------------------------------------------
+
+export type SwitchWalletOutcome =
+  | { status: 'switched'; address?: string }
+  | { status: 'error'; message: string };
+
+export type DisconnectWalletOutcome =
+  | { status: 'disconnected' }
+  | { status: 'error'; message: string };
+
+type InjectedProviderLike = {
+  request: (args: { method: string; params?: unknown }) => Promise<unknown>;
+};
+
+function getInjectedProvider(): InjectedProviderLike | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const eth = (window as unknown as { ethereum?: unknown }).ethereum;
+  if (eth && typeof (eth as InjectedProviderLike).request === 'function') {
+    return eth as InjectedProviderLike;
+  }
+  return undefined;
+}
+
+/**
+ * Force a fresh account choice.
+ *
+ * A plain reconnect silently returns the account the wallet already
+ * authorized — that is what made the site feel "stuck" on one address.
+ * With an injected wallet this asks the wallet itself to re-open its
+ * account picker (EIP-2255 wallet_requestPermissions for eth_accounts),
+ * then re-syncs the AppKit session to whatever account is authorized
+ * afterwards. Picking the same account again is the user's choice, not
+ * an error. Cancelling the picker changes nothing: the current session
+ * is left exactly as it was and the outcome says so.
+ *
+ * Without an injected wallet — or when the wallet does not implement
+ * the permissions request — the AppKit modal is the switch path, the
+ * same fallback rule as connectWallet(). Never throws.
+ */
+export async function switchWallet(options: {
+  open: () => Promise<unknown>;
+}): Promise<SwitchWalletOutcome> {
+  const { open } = options;
+  const provider = getInjectedProvider();
+
+  if (!provider) {
+    try {
+      await open();
+      return { status: 'switched' };
+    } catch {
+      return { status: 'error', message: WALLET_MODAL_FAILED_MESSAGE };
+    }
+  }
+
+  try {
+    await provider.request({
+      method: 'wallet_requestPermissions',
+      params: [{ eth_accounts: {} }],
+    });
+  } catch (err) {
+    if (isUserRejection(err)) {
+      return { status: 'error', message: WALLET_SWITCH_CANCELLED_MESSAGE };
+    }
+    // The wallet cannot re-prompt for accounts (method unsupported) or
+    // the prompt failed some other way (e.g. another request already
+    // pending): the AppKit modal is the switch path. Never pretend a
+    // switch happened when it didn't.
+    try {
+      await open();
+      return { status: 'error', message: WALLET_SWITCH_FAILED_MESSAGE };
+    } catch {
+      return { status: 'error', message: WALLET_MODAL_FAILED_MESSAGE };
+    }
+  }
+
+  // Re-sync AppKit to the provider's now-current authorized account
+  // through the same direct connect used at sign-in.
+  try {
+    await connectDirectInjected();
+  } catch (err) {
+    if (isUserRejection(err)) {
+      return { status: 'error', message: WALLET_SWITCH_CANCELLED_MESSAGE };
+    }
+    try {
+      await open();
+      return { status: 'error', message: WALLET_SWITCH_FAILED_MESSAGE };
+    } catch {
+      return { status: 'error', message: WALLET_MODAL_FAILED_MESSAGE };
+    }
+  }
+
+  // Report the account the session now sits on (informational — the
+  // surfaces render reactively from AppKit state regardless).
+  try {
+    const accounts = (await provider.request({ method: 'eth_accounts' })) as
+      | string[]
+      | null;
+    if (Array.isArray(accounts) && accounts.length > 0) {
+      return { status: 'switched', address: accounts[0] };
+    }
+  } catch {
+    // eth_accounts is a silent read; if it fails the switch itself has
+    // already succeeded, so don't turn that into an error.
+  }
+  return { status: 'switched' };
+}
+
+// Portal unlock flags this site sets itself (src/pages/owners.astro):
+// `owners_wallet_auth` for the wallet unlock, `owners_auth` for the
+// access-code unlock. A disconnect must re-lock the portal — without
+// this the tab would stay "unlocked" for whoever uses the browser
+// next even though the wallet is gone. ONLY these site-owned keys are
+// touched: AppKit clears its own persisted session inside
+// ConnectionController.disconnect(), the wallet-bar minimize preference
+// (matrixhub:wallet:minimized) is a display setting rather than session
+// state, and the casino games' per-address bet pointers
+// (matrixhub:<game>:activeBet:<address>) belong to in-flight bets, not
+// to the session, so they are deliberately left alone.
+const SITE_PORTAL_UNLOCK_KEYS = ['owners_wallet_auth', 'owners_auth'] as const;
+
+function clearSitePortalUnlock(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    for (const key of SITE_PORTAL_UNLOCK_KEYS) {
+      window.sessionStorage.removeItem(key);
+    }
+  } catch {
+    // Storage can throw in locked-down browsers; the AppKit disconnect
+    // is the substantive part and has already happened by this point.
+  }
+}
+
+/**
+ * Full clean disconnect: AppKit tears down its session (connector,
+ * WalletConnect session and its persisted state), and the site's own
+ * portal unlock flags are cleared so nothing is left connected or
+ * unlocked. The portal flags are cleared even if the AppKit disconnect
+ * itself reports a failure. Never throws.
+ */
+export async function disconnectWallet(): Promise<DisconnectWalletOutcome> {
+  let failed = false;
+  try {
+    await ConnectionController.disconnect();
+  } catch {
+    failed = true;
+  }
+  clearSitePortalUnlock();
+  if (failed) {
+    return { status: 'error', message: WALLET_DISCONNECT_FAILED_MESSAGE };
+  }
+  return { status: 'disconnected' };
 }
