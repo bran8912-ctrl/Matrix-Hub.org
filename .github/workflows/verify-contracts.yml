@@ -1,0 +1,50 @@
+name: Verify mainnet contracts (PolygonScan via Etherscan V2 API)
+
+# One-purpose workflow: submits the source verification for the four live
+# Polygon mainnet casino contracts (CasinoCore, CasinoReserve, LiquidityRouter,
+# RNGEngine) through the Etherscan V2 API (chainid 137), which is what
+# PolygonScan verification runs on. The PolygonScan website route is blocked
+# by a Cloudflare Turnstile check, so this API route is used instead.
+#
+# The API key never leaves GitHub: it is read from the existing repository
+# secret POLYGONSCAN_API_KEY and passed to the script as an environment
+# variable only. The script never prints it.
+#
+# Manual dispatch only — nothing here runs on push, on a schedule, or as part
+# of any deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Contract to verify"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - CasinoCore
+          - CasinoReserve
+          - LiquidityRouter
+          - RNGEngine
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify ${{ inputs.target }} on PolygonScan (chain 137)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the branch this run was dispatched from
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Submit verification and poll for the result
+        env:
+          POLYGONSCAN_API_KEY: ${{ secrets.POLYGONSCAN_API_KEY }}
+        run: node verification/verify-mainnet.cjs "${{ inputs.target }}"
