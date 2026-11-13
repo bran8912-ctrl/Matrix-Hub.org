@@ -2,6 +2,7 @@
 import Layout from "../components/Layout.astro";
 import Wallet from "../components/Wallet.jsx";
 import LiveChat from "../components/LiveChat.tsx";
+import CasinoLegalNotice from "../components/CasinoLegalNotice.astro";
 
 export const prerender = true;
 
@@ -12,6 +13,7 @@ export const navCategory = "casino";
 <Layout title="Matrix-Hub Casino">
   <div class="casino-page">
     <h1 class="page-title">Matrix-Hub Casino</h1>
+    <CasinoLegalNotice />
 
     <!-- LIVE CHAT FEED -->
     <div class="live-chat-section">
