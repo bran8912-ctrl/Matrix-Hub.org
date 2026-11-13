@@ -1,0 +1,504 @@
+---
+import Layout from "../components/Layout.astro";
+import { MTX } from "../config/mtx";
+
+export const prerender = true;
+
+export const title = "Security & Proof";
+export const navCategory = "resources";
+
+// Public trust page. Every claim below comes from Daniel Okafor's proof
+// pack (bot-core/security/public-proof-pack-2026-11-12.md): figures were
+// read on-chain on 2026-11-12 (Polygon block 97,220,163) and the contract
+// verifications were confirmed on PolygonScan the same night. Balances,
+// supply and reserves change over time — the page is date-stamped and the
+// PolygonScan links always show the current state.
+const evidenceDate = "12 November 2026";
+const evidenceBlock = "97,220,163";
+
+const mtxAddress = MTX.address;
+const fakeMtxAddress = "0xDCb51dE3359C946364F707556aC8e6C6f2e69A8a";
+const pairAddress = "0x489a6592Cb2965c3512e6CeFA4EE160765674c44";
+const ownerAddress = "0x9fb4bb44d8d962d695fc93b3dc15f1b287391077";
+const safeAddress = "0x7Ee41D8A25641000661B1EF5E6AE8A00400466B0";
+const vrfCoordinator = "0xec0Ed46f36576541C75739E915ADbCb3DE24bD77";
+const vrfSubscriptionId =
+  "0xc3e2763c20013bc078418406c72a51aa6218554206fcb38e20c24f3dc7e097d3";
+
+const scan = (address: string) => `https://polygonscan.com/address/${address}`;
+
+const contracts = [
+  {
+    name: "MatrixHubCoin (MTX)",
+    address: mtxAddress,
+    role: "The MTX token itself (ERC-20) — minted directly from this contract.",
+  },
+  {
+    name: "CasinoCore",
+    address: "0x8a3dBD4BECcAAC89F818E7cB0246241c40938DcA",
+    role: "Runs the casino on-chain: takes bets, routes every bet, and pays winners.",
+  },
+  {
+    name: "CasinoReserve",
+    address: "0xA7A3F9D629B1a6942EF8434639Cb1c33010F55d5",
+    role: "Holds the payout reserve that winners are paid from.",
+  },
+  {
+    name: "LiquidityRouter",
+    address: "0x887eBC888a184E57Fe8EfA2B2E8E66C58f53De04",
+    role: "Holds MTX set aside for pool liquidity.",
+  },
+  {
+    name: "RNGEngine",
+    address: "0x00DB079bAC7D62e04f5BEd1B4c771b959935116f",
+    role: "Requests Chainlink VRF randomness for dice outcomes.",
+  },
+];
+
+const fingerprints = [
+  {
+    name: "MatrixHubCoin (MTX)",
+    address: mtxAddress,
+    size: "3,995 B",
+    hash: "0x22b64a3987d27c8fdc5256f8071ee0f3a84a43bdb5317d690f05ec7001e73546",
+  },
+  {
+    name: "CasinoCore",
+    address: "0x8a3dBD4BECcAAC89F818E7cB0246241c40938DcA",
+    size: "9,031 B",
+    hash: "0xd2857ca94f65ea7a0e1f5d230367e6cfee36f55adaf1b9ae37fd070be58adb29",
+  },
+  {
+    name: "CasinoReserve",
+    address: "0xA7A3F9D629B1a6942EF8434639Cb1c33010F55d5",
+    size: "2,151 B",
+    hash: "0x3a7f586fb6cc6203a5b877f7eca6b83e8e060ce4a3c988b4574c9efec037ebef",
+  },
+  {
+    name: "LiquidityRouter",
+    address: "0x887eBC888a184E57Fe8EfA2B2E8E66C58f53De04",
+    size: "3,575 B",
+    hash: "0x448c245bebb02e12d01b7519a12793fa2a44c865b854109a20b8f6260e124dfd",
+  },
+  {
+    name: "RNGEngine",
+    address: "0x00DB079bAC7D62e04f5BEd1B4c771b959935116f",
+    size: "2,538 B",
+    hash: "0xb32f7f76048b00c3b38e10d65fc9e6b7637d8ea1b097f543ccc545a4680c5936",
+  },
+];
+---
+
+<Layout title="Security & Proof - Matrix Hub">
+  <div class="security-page">
+    <h1 class="page-title">Security &amp; Proof</h1>
+    <p class="page-description">
+      Don't take our word for any of it. Every contract behind MTX and the
+      casino is verified on PolygonScan, and every figure on this page was
+      read directly from the Polygon blockchain on {evidenceDate} (block
+      {evidenceBlock}). The links on this page let you check each claim
+      yourself — the explorer always shows the current state.
+    </p>
+
+    <!-- Fake token warning -->
+    <div class="card warning-card">
+      <h2>⚠️ Warning: a fake “MTX” token exists</h2>
+      <p>
+        A fake “MTX” token exists at <code>{fakeMtxAddress}</code>.
+        PolygonScan itself flags it as <strong>Fake_Phishing8012348 / Phish
+        — Hack</strong> (reported by HashDit) and warns: “This is a fake
+        token on Polygon. Please exercise caution when interacting with
+        it.” <strong>Never buy it — it is not connected to Matrix Hub in
+        any way.</strong>
+      </p>
+      <p>
+        The real MTX is <strong>MatrixHubCoin (MTX)</strong>, contract
+        <a href={scan(mtxAddress)} target="_blank" rel="noopener noreferrer"><code>{mtxAddress}</code></a>
+        on Polygon. Any other address claiming to be MTX is not ours.
+      </p>
+    </div>
+
+    <!-- Verified contracts -->
+    <div class="card">
+      <h2>✅ Verified contracts</h2>
+      <p>
+        MTX is verified on PolygonScan — the full source code is public for
+        anyone to read. All four casino contracts are <strong>verified on
+        PolygonScan</strong> — the source code published there is exactly
+        the code running on Polygon.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Contract</th>
+              <th>Address</th>
+              <th>What it does</th>
+            </tr>
+          </thead>
+          <tbody>
+            {contracts.map((c) => (
+              <tr>
+                <td class="contract-name">{c.name}</td>
+                <td>
+                  <a href={scan(c.address)} target="_blank" rel="noopener noreferrer"><code>{c.address}</code></a>
+                </td>
+                <td>{c.role}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- How MTX works -->
+    <div class="card">
+      <h2>How MTX works</h2>
+      <ul>
+        <li>
+          <strong>Direct mint:</strong> minting is open and direct —
+          <strong>1 POL = 1,000 MTX</strong>, minted straight from the
+          contract into your own wallet. There is no site account holding
+          your MTX. Matrix Hub never holds your MTX, so there is no site
+          balance and no withdrawal to request.
+        </li>
+        <li>
+          <strong>Supply:</strong> total supply right now is
+          <strong>105,100 MTX</strong>. The contract's hard cap is
+          <strong>100,000,000 MTX</strong> (MAX_SUPPLY, fixed in the code at
+          deployment).
+        </li>
+        <li>
+          <strong>Minting is not paused</strong> — the mint is open today,
+          at the rate above.
+        </li>
+        <li>
+          <strong>Cashing out:</strong> to turn MTX back into POL you swap
+          it on QuickSwap — see <a href="/sell-mtx">Sell / Cash Out MTX</a>.
+        </li>
+        <li>
+          <strong>The pool is small — plainly:</strong> the QuickSwap
+          MTX/POL pool holds <strong>1 POL and 1,000 MTX</strong>. Only
+          small amounts swap cleanly right now; a larger sell pushes the
+          price down as it fills. A further <strong>99,000 MTX</strong>
+          sits in the LiquidityRouter contract, set aside for liquidity —
+          it is not in the pool yet, and we don't pretend it is.
+        </li>
+      </ul>
+    </div>
+
+    <!-- How casino fairness works -->
+    <div class="card">
+      <h2>How casino fairness works</h2>
+      <ul>
+        <li>
+          <strong>Randomness:</strong> dice outcomes are decided by
+          <strong>Chainlink VRF</strong> — verifiable randomness requested
+          from Chainlink's coordinator, not by our server and not by the
+          website. The RNGEngine contract is a registered consumer of VRF
+          subscription <code>{vrfSubscriptionId}</code> on the official
+          Polygon coordinator
+          <a href={scan(vrfCoordinator)} target="_blank" rel="noopener noreferrer"><code>{vrfCoordinator}</code></a>
+          (200-gwei lane, callback gas limit 250,000, 3 confirmations).
+        </li>
+        <li>
+          <strong>VRF funding:</strong> the VRF subscription is funded
+          with <strong>0.32 LINK</strong>.
+        </li>
+        <li>
+          <strong>Fee split:</strong> every bet is routed on-chain by the
+          contract: <strong>88% to the payout side, 6% to liquidity, 4% to
+          the reserve, 2% to development.</strong> No MTX is burned by
+          the casino.
+        </li>
+        <li>
+          <strong>Limits:</strong> bets run <strong>1 to 1,000 MTX</strong>.
+          The most a single bet can pay out is <strong>100 MTX</strong>.
+          The casino is <strong>not paused</strong>.
+        </li>
+        <li>
+          <strong>Reserve:</strong> the payout reserve holds
+          <strong>5,000 MTX</strong>. Its hard cap is
+          <strong>1,000,000 MTX</strong>.
+        </li>
+        <li>
+          <strong>What's live:</strong> Dice is the only casino game live
+          on mainnet today. The other games are still in testnet
+          development and are labelled that way on the site. Slots exists
+          only on the Amoy testnet deployment — it is not on mainnet.
+        </li>
+      </ul>
+    </div>
+
+    <!-- Who controls what -->
+    <div class="card">
+      <h2>Who controls what</h2>
+      <p>
+        Today, one wallet controls the MTX token and the casino
+        contracts: <code>{ownerAddress}</code> — the founder's wallet.
+        That wallet can change the mint rate, pause minting, and govern
+        the casino contracts. We publish the address so anyone can watch
+        what it does.
+      </p>
+    </div>
+
+    <!-- Honest gaps -->
+    <div class="card gaps-card">
+      <h2>What we can't claim yet — the honest gaps</h2>
+      <ul>
+        <li>
+          <strong>No external audit yet:</strong> the contracts passed an
+          internal audit and a full testnet rehearsal on Amoy. They have
+          <strong>not</strong> yet had an independent external audit.
+        </li>
+        <li>
+          <strong>Single-key control:</strong> a Safe multisig exists at
+          <code>{safeAddress}</code>, but its signers and threshold are
+          unconfirmed and no contract governance has been transferred to
+          it — today, control is the single founder wallet named above.
+        </li>
+        <li>
+          <strong>LINK cost per bet not yet measured:</strong> the exact
+          LINK cost per dice roll will be published after the first real
+          bets.
+        </li>
+        <li>
+          <strong>Zero bets so far:</strong> the casino is brand new — no
+          bets have been placed yet.
+        </li>
+        <li>
+          <strong>Small pool:</strong> with 1 POL of pool liquidity, only
+          small MTX sales clear cleanly today.
+        </li>
+      </ul>
+    </div>
+
+    <!-- Check it yourself -->
+    <div class="card">
+      <h2>Check it yourself</h2>
+      <ul class="check-links">
+        <li>
+          <a href={scan(mtxAddress)} target="_blank" rel="noopener noreferrer">MTX (MatrixHubCoin) on PolygonScan</a>
+        </li>
+        {contracts.slice(1).map((c) => (
+          <li>
+            <a href={scan(c.address)} target="_blank" rel="noopener noreferrer">{c.name} on PolygonScan</a>
+          </li>
+        ))}
+        <li>
+          <a href={scan(pairAddress)} target="_blank" rel="noopener noreferrer">QuickSwap MTX/POL pair on PolygonScan</a>
+        </li>
+        <li>
+          <a href={scan(vrfCoordinator)} target="_blank" rel="noopener noreferrer">Chainlink VRF coordinator on PolygonScan</a>
+          — the RNGEngine above is a consumer of subscription
+          <code>{vrfSubscriptionId}</code> on this coordinator.
+        </li>
+        <li>
+          <a href={scan(fakeMtxAddress)} target="_blank" rel="noopener noreferrer">The fake “MTX” token on PolygonScan</a>
+          — so you can see the phishing warning for yourself. Do not buy it.
+        </li>
+        <li>
+          Cashing out: <a href="/sell-mtx">Sell / Cash Out MTX</a>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Code fingerprints -->
+    <div class="card">
+      <h2>Code fingerprints (for the technically inclined)</h2>
+      <p>
+        Runtime code keccak256 hashes, read {evidenceDate}. Anyone can
+        reproduce them with <code>eth_getCode</code> + keccak256 and
+        compare against a local compile of the published sources.
+      </p>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Contract</th>
+              <th>Runtime size</th>
+              <th>keccak256 (runtime code)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fingerprints.map((f) => (
+              <tr>
+                <td class="contract-name">{f.name}</td>
+                <td>{f.size}</td>
+                <td><code class="hash">{f.hash}</code></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p class="evidence-note">
+        Evidence date-stamp: figures on this page were read on-chain on
+        {evidenceDate} (Polygon block {evidenceBlock}). Balances, supply
+        and reserves change over time — the PolygonScan links above always
+        show the current state.
+      </p>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .security-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+    color: var(--theme-primary);
+    text-align: center;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px var(--theme-glow);
+    font-family: 'Courier New', monospace;
+  }
+
+  .page-description {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--theme-text);
+    margin-bottom: 2rem;
+    opacity: 0.9;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .card {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 255, 153, 0.05);
+    border: 1px solid rgba(0, 255, 153, 0.2);
+    border-radius: 8px;
+  }
+
+  .card h2 {
+    color: var(--theme-primary);
+    font-size: 1.3rem;
+    margin-top: 0;
+    margin-bottom: 1rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .card p,
+  .card li {
+    color: var(--theme-text);
+    line-height: 1.8;
+  }
+
+  .card ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin: 0;
+  }
+
+  .card li {
+    padding: 0.5rem 0 0.5rem 1.5rem;
+    position: relative;
+  }
+
+  .card li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--theme-primary);
+    font-weight: bold;
+  }
+
+  .warning-card {
+    background: rgba(255, 153, 0, 0.05);
+    border-color: rgba(255, 153, 0, 0.3);
+  }
+
+  .warning-card h2 {
+    color: #ff9900;
+  }
+
+  .gaps-card {
+    background: rgba(0, 153, 255, 0.05);
+    border-color: rgba(0, 153, 255, 0.3);
+  }
+
+  code {
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+  }
+
+  th,
+  td {
+    text-align: left;
+    padding: 0.75rem;
+    border-bottom: 1px solid rgba(0, 255, 153, 0.1);
+    color: var(--theme-text);
+    vertical-align: top;
+  }
+
+  th {
+    color: var(--theme-primary);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+  }
+
+  .contract-name {
+    font-weight: bold;
+    white-space: nowrap;
+  }
+
+  .hash {
+    font-size: 0.75rem;
+  }
+
+  .check-links li {
+    padding-top: 0.35rem;
+    padding-bottom: 0.35rem;
+  }
+
+  .evidence-note {
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    opacity: 0.8;
+  }
+
+  a {
+    color: var(--theme-primary);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .security-page {
+      padding: 1rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .page-description {
+      font-size: 1rem;
+    }
+
+    .contract-name {
+      white-space: normal;
+    }
+  }
+</style>
