@@ -1,0 +1,46 @@
+---
+// CasinoLegalNotice — the age / jurisdiction / licence notice for casino pages.
+// Static HTML only: no JS, not dismissible, no popup. Single source of the
+// wording (HUB 128, approved wording — do not edit the text without HQ/Legal
+// re-review). Include on every casino entry surface and live-wager game page.
+---
+
+<aside class="casino-legal-notice" role="note" aria-label="Casino legal notice">
+  <p>
+    <strong>18+ only.</strong> You must be 18 or older to play. Do not play if
+    online wagering is prohibited where you live — checking your local laws
+    before you bet is your responsibility. The Matrix Hub casino is not
+    licensed or regulated by any gambling authority. You bet from your own
+    wallet, and you can lose the MTX you wager.
+  </p>
+  <p class="casino-legal-notice-link">
+    Contract addresses and on-chain proof: <a href="/security">Security &amp; proof</a>
+  </p>
+</aside>
+
+<style>
+  .casino-legal-notice {
+    border: 1px solid #a16207;
+    background: rgba(250, 204, 21, 0.08);
+    border-radius: 8px;
+    padding: 1rem 1.25rem;
+    margin: 1.5rem auto;
+    max-width: 900px;
+    font-size: 0.95rem;
+    line-height: 1.55;
+    text-align: left;
+  }
+
+  .casino-legal-notice p {
+    margin: 0 0 0.5rem;
+  }
+
+  .casino-legal-notice p.casino-legal-notice-link {
+    margin-bottom: 0;
+  }
+
+  .casino-legal-notice a {
+    color: #4ade80;
+    text-decoration: underline;
+  }
+</style>
