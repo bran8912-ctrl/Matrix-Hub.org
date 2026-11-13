@@ -2,6 +2,7 @@
 import Layout from "../components/Layout.astro";
 import AppKitProvider from "../components/AppKitProvider.tsx";
 import MintRatePanel from "../components/MintRatePanel.tsx";
+import OwnerApprovals from "../components/OwnerApprovals.tsx";
 
 export const prerender = true;
 
@@ -115,6 +116,14 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
         <AppKitProvider client:only="react">
           <MintRatePanel client:only="react" />
         </AppKitProvider>
+      </section>
+
+      <!-- Owner Sign-Off Queue Section — team items that need Brandon's
+          wallet signature or explicit go, approved from the portal
+          after the wallet unlock (Nov 12). Device-local state only. -->
+      <section class="tool-section">
+        <h2 class="section-title">✍️ Owner Sign-Off Queue</h2>
+        <OwnerApprovals client:only="react" />
       </section>
 
       <!-- Content Workflow Tools Section -->
