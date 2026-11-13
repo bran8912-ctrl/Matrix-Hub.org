@@ -8,7 +8,13 @@ import { walletConnectEnabled } from '../config/appkit';
 // injected browser wallet when present, AppKit modal as fallback. The
 // import also guarantees AppKit is initialized before this island
 // renders (see lib/initAppKit).
-import { connectWallet, hasInjectedWallet, WALLET_DIRECT_HINT } from '../lib/connectWallet';
+import {
+  connectWallet,
+  switchWallet,
+  disconnectWallet,
+  hasInjectedWallet,
+  WALLET_DIRECT_HINT,
+} from '../lib/connectWallet';
 
 // Deployed MTX token contract address and ABI
 const MTX_TOKEN_ADDRESS = MTX.address;
@@ -32,6 +38,19 @@ interface WalletConnectProps {
   onWalletChange?: (wallet: { address: string; balance: number }) => void;
 }
 
+// Slim-bar action buttons (Switch / Disconnect): same treatment as the
+// minimize toggle so the connected row stays one quiet line.
+const walletActionButtonStyle: React.CSSProperties = {
+  padding: '0.2rem 0.5rem',
+  fontSize: '0.8rem',
+  background: 'transparent',
+  color: '#00ff99',
+  border: '1px solid #333',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  whiteSpace: 'nowrap',
+};
+
 const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   const { address, isConnected } = useAppKitAccount()
   const { walletProvider } = useAppKitProvider('eip155')
@@ -46,6 +65,9 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   // and is always reset via finally; failures land in `error` and render
   // inline in the bar — the bar itself never disappears.
   const [connecting, setConnecting] = useState<boolean>(false);
+  // Switch-flow state: drives the Switch button label while MetaMask's
+  // account picker is open; always reset via finally.
+  const [switching, setSwitching] = useState<boolean>(false);
   const [injectedAvailable] = useState<boolean>(() => hasInjectedWallet());
   const [locked, setLocked] = useState<number>(0);
   const [lockUntil, setLockUntil] = useState<number>(0);
@@ -277,6 +299,35 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     }
   };
 
+  // Switch wallet (shared lib): forces the wallet's account picker
+  // instead of silently re-using the already-authorized account. A
+  // cancelled picker leaves the session untouched and says so inline;
+  // on success this bar re-renders on the new address by itself because
+  // it reads AppKit's reactive account state.
+  const handleSwitchWallet = async (): Promise<void> => {
+    setError('');
+    setSwitching(true);
+    try {
+      const outcome = await switchWallet({ open });
+      if (outcome.status === 'error') {
+        setError(outcome.message);
+      }
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  // Disconnect (shared lib): full teardown — AppKit session plus the
+  // site's own portal unlock flags — so nothing stays connected or
+  // unlocked behind the user's back.
+  const handleDisconnectWallet = async (): Promise<void> => {
+    setError('');
+    const outcome = await disconnectWallet();
+    if (outcome.status === 'error') {
+      setError(outcome.message);
+    }
+  };
+
   // Wallet connect is live on the production build (Reown project ID wired
   // via astro.yml). A local build without the env var shows it disabled,
   // which is expected — not a bug.
@@ -293,16 +344,24 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
     <div style={{ padding: '0.5rem 0.75rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'space-between' }}>
         {isConnected && address ? (
-          <span style={{ fontSize: '0.875rem' }}>{address.slice(0, 6)}...{address.slice(-4)} · {balance !== null ? balance : '…'} MTX</span>
+          <span style={{ fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{address.slice(0, 6)}...{address.slice(-4)} · {balance !== null ? balance : '…'} MTX</span>
         ) : (
           <button onClick={handleConnect} disabled={connecting} style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
         )}
         {isConnected && address && (
-          <button onClick={toggleMinimized} aria-label={minimized ? 'Expand wallet panel' : 'Minimize wallet panel'} style={{ padding: '0.2rem 0.5rem', fontSize: '0.9rem', background: 'transparent', color: '#00ff99', border: '1px solid #333', borderRadius: '4px', cursor: 'pointer' }}>
-            {minimized ? '▸' : '▾'}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem', flexShrink: 0 }}>
+            <button onClick={handleSwitchWallet} disabled={switching} style={walletActionButtonStyle}>
+              {switching ? 'Switching...' : 'Switch'}
+            </button>
+            <button onClick={handleDisconnectWallet} style={walletActionButtonStyle}>
+              Disconnect
+            </button>
+            <button onClick={toggleMinimized} aria-label={minimized ? 'Expand wallet panel' : 'Minimize wallet panel'} style={{ padding: '0.2rem 0.5rem', fontSize: '0.9rem', background: 'transparent', color: '#00ff99', border: '1px solid #333', borderRadius: '4px', cursor: 'pointer' }}>
+              {minimized ? '▸' : '▾'}
+            </button>
+          </div>
         )}
       </div>
       {!isConnected && injectedAvailable && (
