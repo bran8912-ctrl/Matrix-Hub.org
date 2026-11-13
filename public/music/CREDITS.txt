@@ -1,9 +1,42 @@
 Music Credits – Matrix Hub
+Updated 2026-11-12 — Audio Library verification run (Bots 92/94/95)
 
-Cipher – Kevin MacLeod (incompetech.com)
-Digital Ghost – Kevin MacLeod (incompetech.com)
-The Ambient – Ketsa (freemusicarchive.org)
-Night Owl – Broke For Free (freemusicarchive.org)
-Dark Sci-Fi Synth – Mixkit (mixkit.co)
+All tracks below are REAL, verified audio files (ffprobe-checked 2026-11-12),
+downloaded from the official incompetech.com royalty-free catalog.
 
-All tracks used under their respective royalty-free licenses.
+Kevin MacLeod (incompetech.com) — Creative Commons: By Attribution 4.0 (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+Attribution format: "<Title>" — Kevin MacLeod (incompetech.com), Licensed under
+Creative Commons: By Attribution 4.0 License — http://creativecommons.org/licenses/by/4.0/
+
+- Cipher (cipher.mp3)
+- Wallpaper (wallpaper.mp3)
+- Carefree (carefree.mp3)
+- Merry Go (merry-go.mp3)
+- Bright Wish (bright-wish.mp3)
+- Quasi Motion (quasi-motion.mp3)
+- Local Forecast (local-forecast.mp3)
+- Bossa Antigua (bossa-antigua.mp3)
+- Lobby Time (lobby-time.mp3)
+- Gymnopedie No 1 (gymnopedie-no-1.mp3)
+- Inspired (inspired.mp3)
+- The Descent (the-descent.mp3)
+- Floating Cities (floating-cities.mp3)
+- Rynos Theme (rynos-theme.mp3)
+- Spacial Harvest (spacial-harvest.mp3)
+
+Ludwig van Beethoven, performed by Gaodifan (Wikimedia Commons) — CC0 1.0
+Attribution: none required under CC0; credited voluntarily.
+
+- Für Elise (fur-elise-cc0.mp3)
+
+Full per-track details (source URLs, durations, bitrates, moods):
+see the Video Studio music INDEX.md (video-studio-mvp/assets/music/INDEX.md).
+
+REMOVED 2026-11-12: the previous .mp3 files in this folder were not audio
+(HTML/JavaScript/XML error pages saved with .mp3 names) and were quarantined.
+Previous credits that could not be re-verified or re-acquired: Digital Ghost
+(no such incompetech track found), The Ambient – Ketsa, Night Owl – Broke For
+Free, Dark Sci-Fi Synth – Mixkit. Cipher was recovered (real file: Cipher2.mp3).
+Floating Cities and Rynos Theme are the real tracks behind the old
+"Sci-Fi Ambient 2" and "Sci-Fi Ambient 1" entries.
