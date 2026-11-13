@@ -222,6 +222,16 @@ const fingerprints = [
           <strong>1,000,000 MTX</strong>.
         </li>
         <li>
+          <strong>Stuck-bet protection:</strong> if a bet's random
+          result never arrives, the bet becomes refundable after
+          <strong>1 hour</strong>, and the contract pays the player
+          back their <strong>full stake</strong> from the reserve —
+          the share already routed to liquidity and development at bet
+          time is not deducted. Anyone can check when any bet becomes
+          refundable on the contract itself (the
+          <code>refundableAt</code> function on CasinoCore).
+        </li>
+        <li>
           <strong>What's live:</strong> Dice is the only casino game live
           on mainnet today. The other games are still in testnet
           development and are labelled that way on the site. Slots exists
