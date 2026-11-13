@@ -1,0 +1,243 @@
+---
+import Layout from "../components/Layout.astro";
+import SellMTX from "../components/SellMTX.tsx";
+import { MTX } from "../config/mtx";
+
+export const prerender = true;
+
+export const title = "Sell MTX";
+export const navCategory = "mtx-token";
+
+// MTX is non-custodial: buying mints straight into the buyer's wallet, so
+// there is no site balance and no withdrawal. Cashing out = swapping
+// MTX -> WPOL on the QuickSwap V2 pair below.
+const contractAddress = MTX.address;
+const pairAddress = "0x489a6592Cb2965c3512e6CeFA4EE160765674c44";
+const wpolAddress = "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270";
+const quickswapSellUrl = `https://quickswap.exchange/#/swap?inputCurrency=${contractAddress}&outputCurrency=${wpolAddress}`;
+---
+
+<Layout title="Sell MTX - Matrix Hub">
+  <div class="sell-mtx-page">
+    <h1 class="page-title">Sell / Cash Out MTX</h1>
+    <p class="page-description">
+      When you buy MTX, it is minted directly into your own wallet on Polygon — Matrix Hub
+      never holds your MTX, so there is no site balance and no withdrawal to request. Your
+      tokens are already yours. To turn MTX back into POL, you swap it on QuickSwap, a
+      separate decentralised exchange. This page shows the balance in your wallet and
+      takes you to that swap.
+    </p>
+
+    <!-- Balance (read-only, from the connected wallet) -->
+    <div class="sell-section">
+      <SellMTX client:load />
+    </div>
+
+    <div class="info-section">
+      <div class="option-card">
+        <h3>💱 Swap MTX → POL on QuickSwap</h3>
+        <ul>
+          <li><strong>Where:</strong> QuickSwap, the exchange where the MTX/POL pool lives — not on Matrix Hub.</li>
+          <li><strong>Pre-filled:</strong> the button below opens the swap with MTX as the token you sell and WPOL (wrapped POL) as what you receive.</li>
+          <li><strong>Same wallet:</strong> connect the wallet that holds your MTX.</li>
+          <li><strong>Check before you confirm:</strong> QuickSwap shows the estimated POL and the price impact first — read them (see the pool note below).</li>
+        </ul>
+        <div class="cta">
+          <a href={quickswapSellUrl} target="_blank" rel="noopener noreferrer" class="cta-button uniswap">
+            Swap MTX → POL on QuickSwap ↗
+          </a>
+        </div>
+        <p class="contract-line">
+          MTX contract: {contractAddress} (<a href={`https://polygonscan.com/address/${contractAddress}`} target="_blank" rel="noopener noreferrer">PolygonScan</a>)
+          · Pool: <a href={`https://polygonscan.com/address/${pairAddress}`} target="_blank" rel="noopener noreferrer">pair on PolygonScan</a>
+        </p>
+      </div>
+
+      <div class="pool-notice">
+        <h3>⚠️ Small Pool — Read Before You Swap</h3>
+        <p>
+          The MTX/POL pool on QuickSwap is new and small — about 1 POL + 1,000 MTX of
+          liquidity today. Only small amounts swap cleanly right now. A larger sell pushes
+          the price down as it fills, so you would receive noticeably less per MTX than the
+          headline rate; QuickSwap shows that price impact before you confirm, so check it.
+          As the pool grows, larger swaps will get cleaner.
+        </p>
+        <p>
+          MTX has no guaranteed value and is not an investment. Only hold what you can
+          afford to lose; MTX is for use on Matrix Hub.
+        </p>
+      </div>
+
+      <div class="how-it-works">
+        <h3>How Cashing Out Works</h3>
+        <ol>
+          <li><strong>Your MTX is in your wallet</strong> — it arrived there the moment you bought. There is nothing stored on this site to withdraw.</li>
+          <li><strong>Open the swap</strong> with the button above — MTX is pre-filled as the token you sell, WPOL as what you receive.</li>
+          <li><strong>Enter an amount and review</strong> the estimated POL and price impact on QuickSwap.</li>
+          <li><strong>Confirm in your wallet.</strong> The swap pays out in WPOL — wrapped POL, the standard form POL takes inside exchanges on Polygon.</li>
+        </ol>
+        <p class="back-link">Need to buy first? <a href="/buy-mtx">Go to Buy MTX →</a></p>
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .sell-mtx-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  .page-title {
+    font-size: 2.5rem;
+    color: var(--theme-primary);
+    text-align: center;
+    margin-bottom: 1rem;
+    text-shadow: 0 0 15px var(--theme-glow);
+    font-family: 'Courier New', monospace;
+  }
+
+  .page-description {
+    text-align: center;
+    font-size: 1.1rem;
+    color: var(--theme-text);
+    margin-bottom: 2rem;
+    opacity: 0.9;
+    max-width: 800px;
+    margin-left: auto;
+    margin-right: auto;
+    line-height: 1.6;
+  }
+
+  .sell-section {
+    margin: 2rem 0 3rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .info-section {
+    margin-top: 3rem;
+  }
+
+  .info-section h3 {
+    color: var(--theme-primary);
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+    font-family: 'Courier New', monospace;
+  }
+
+  .option-card,
+  .pool-notice,
+  .how-it-works {
+    margin-top: 2rem;
+    padding: 1.5rem;
+    background: rgba(0, 255, 153, 0.05);
+    border: 1px solid rgba(0, 255, 153, 0.2);
+    border-radius: 8px;
+  }
+
+  .option-card h3 {
+    margin-top: 0;
+    font-size: 1.2rem;
+  }
+
+  .option-card ul {
+    list-style-type: none;
+    padding-left: 0;
+    margin-bottom: 1.5rem;
+  }
+
+  .option-card li {
+    padding: 0.5rem 0;
+    padding-left: 1.5rem;
+    position: relative;
+    color: var(--theme-text);
+  }
+
+  .option-card li::before {
+    content: "▸";
+    position: absolute;
+    left: 0;
+    color: var(--theme-primary);
+    font-weight: bold;
+  }
+
+  .cta {
+    text-align: center;
+  }
+
+  .cta-button {
+    display: inline-block;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    font-weight: bold;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s;
+  }
+
+  .cta-button.uniswap {
+    background: #FF007A;
+    color: #fff;
+  }
+
+  .cta-button:hover {
+    opacity: 0.8;
+    transform: translateY(-2px);
+  }
+
+  .contract-line {
+    margin-top: 1.25rem;
+    font-size: 0.85rem;
+    text-align: center;
+    opacity: 0.8;
+    word-break: break-all;
+  }
+
+  .pool-notice {
+    background: rgba(255, 153, 0, 0.05);
+    border-color: rgba(255, 153, 0, 0.3);
+  }
+
+  .pool-notice p,
+  .how-it-works ol {
+    color: var(--theme-text);
+    line-height: 1.8;
+  }
+
+  .how-it-works ol {
+    padding-left: 1.5rem;
+  }
+
+  .how-it-works li {
+    margin-bottom: 0.75rem;
+  }
+
+  .back-link {
+    margin-top: 1rem;
+  }
+
+  a {
+    color: var(--theme-primary);
+    text-decoration: none;
+  }
+
+  a:hover {
+    text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+    .sell-mtx-page {
+      padding: 1rem;
+    }
+
+    .page-title {
+      font-size: 2rem;
+    }
+
+    .page-description {
+      font-size: 1rem;
+    }
+  }
+</style>
