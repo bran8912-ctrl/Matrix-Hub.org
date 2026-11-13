@@ -1,0 +1,220 @@
+---
+import Layout from "../components/Layout.astro";
+
+export const prerender = true;
+
+export const title = "AI Video Generator";
+export const navCategory = "tools";
+
+const PRICING = [
+  { tier: "Short Ad / Reel", price: "$49", features: ["15–30s vertical video", "1 concept", "Voiceover + captions", "1 revision"] },
+  { tier: "Product Video", price: "$149", features: ["30–60s product video", "Your photos animated", "2 concepts, 2 revisions", "9:16 + 16:9 versions"] },
+  { tier: "Short Movie Scene", price: "$249", features: ["Multi-scene short (up to ~90s)", "Consistent character", "Script + storyboard approval", "2 revisions"] },
+];
+
+const PIPELINE = [
+  { step: "1. Brief", text: "You describe the video: business, offer, style, length, format." },
+  { step: "2. Storyboard", text: "We draft a shot list you can review before any rendering starts." },
+  { step: "3. Generate", text: "CPU lane today: animated scenes, captions, voiceover. GPU-generated clips are coming in a later phase." },
+  { step: "4. Voice + Edit", text: "Narration, captions burned in, end card with your call to action." },
+  { step: "5. QA + Rights", text: "Every video is checked and carries an AI-generated disclosure before delivery." },
+  { step: "6. Export", text: "MP4 in 9:16, 16:9, or 1:1 — yours to post anywhere." },
+];
+---
+
+<Layout title="AI Video Generator + Short Movie Maker - Matrix Hub">
+  <div class="video-page">
+    <div class="video-header">
+      <h1 class="page-title">AI VIDEO GENERATOR</h1>
+      <p class="page-subtitle">
+        Short ads, product videos, and short movie scenes — made by the Matrix Hub Video Studio.
+        Build a storyboard below in your browser, then request the finished video from our studio.
+      </p>
+      <p class="disclosure-note">All videos from this studio are AI-generated and are labelled as such.</p>
+      <p class="disclosure-note"><a href="/video-studio" style="color: var(--theme-primary);">For businesses: see live demos, packages, and ordering on the Video Studio page →</a></p>
+    </div>
+
+    <section class="studio-card">
+      <h2>🎬 Build Your Storyboard</h2>
+      <p class="hint">This preview runs entirely in your browser. It does not render a video — it drafts the storyboard our studio will produce from. When it looks right, use “Request this video”.</p>
+      <form id="brief-form" class="brief-form">
+        <label>Business or project name
+          <input id="f-business" type="text" placeholder="e.g. Sunrise Coffee — Farmington" required />
+        </label>
+        <label>What are you promoting?
+          <input id="f-offer" type="text" placeholder="e.g. Fresh-roasted coffee, open daily at 6 AM" required />
+        </label>
+        <label>Style
+          <select id="f-style">
+            <option value="warm">Warm &amp; friendly</option>
+            <option value="bold">Bold &amp; punchy</option>
+            <option value="calm">Calm &amp; premium</option>
+            <option value="fun">Fun &amp; playful</option>
+          </select>
+        </label>
+        <div class="row">
+          <label>Length
+            <select id="f-length">
+              <option value="15">~15 seconds (3 scenes)</option>
+              <option value="25" selected>~25 seconds (5 scenes)</option>
+              <option value="50">~50 seconds (5 longer scenes)</option>
+            </select>
+          </label>
+          <label>Format
+            <select id="f-aspect">
+              <option value="9:16" selected>9:16 — Reels / TikTok / Shorts</option>
+              <option value="16:9">16:9 — YouTube / website</option>
+              <option value="1:1">1:1 — Feed posts</option>
+            </select>
+          </label>
+        </div>
+        <label>Call to action
+          <input id="f-cta" type="text" placeholder="e.g. Visit us on Main Street today" />
+        </label>
+        <button type="submit" class="tool-cta">Generate storyboard preview →</button>
+      </form>
+      <div id="storyboard" class="storyboard" hidden>
+        <h3>Your storyboard</h3>
+        <div id="shots"></div>
+        <p id="sb-meta" class="hint"></p>
+        <button id="request-btn" type="button" class="tool-cta">Request this video</button>
+        <p id="request-note" class="hint" hidden>
+          Request noted in this browser only — online ordering opens in Phase 2.
+          For now, bring this storyboard to the studio: the Video Studio team reviews every
+          request, confirms price and timeline with you first, and only then renders.
+          No payment is taken on this page.
+        </p>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">HOW IT WORKS</h2>
+      <div class="tools-grid">
+        {PIPELINE.map((p) => (
+          <div class="tool-card">
+            <h3 class="tool-title">{p.step}</h3>
+            <p class="tool-description">{p.text}</p>
+          </div>
+        ))}
+      </div>
+      <p class="hint center">Pipeline status: the CPU lane (animated scenes, captions, Kokoro voiceover, FFmpeg edit) is built and producing samples today. The GPU lane (fully generated motion clips) arrives in a later phase — we will not pretend a preview is a finished render.</p>
+    </section>
+
+    <section>
+      <h2 class="section-title">SAMPLE GALLERY</h2>
+      <div class="tools-grid">
+        <div class="tool-card">
+          <div class="tool-header"><span class="tool-emoji">☕</span><span class="tool-badge">SAMPLE</span></div>
+          <h3 class="tool-title">Sunrise Coffee — Farmington (Sample Ad)</h3>
+          <p class="tool-description">
+            Fictional demo client. 27-second vertical ad (720×1280, 9:16), 5 scenes,
+            Kokoro voiceover, burned-in captions, AI-disclosure end card.
+            Produced end-to-end by the CPU lane — no stock footage, no GPU.
+          </p>
+          <div class="tool-features"><span class="feature-tag">9:16</span><span class="feature-tag">27s</span><span class="feature-tag">Voiceover</span><span class="feature-tag">Captions</span></div>
+        </div>
+        <div class="tool-card">
+          <div class="tool-header"><span class="tool-emoji">🎞️</span><span class="tool-badge">COMING</span></div>
+          <h3 class="tool-title">More samples in production</h3>
+          <p class="tool-description">Product-video and short-scene samples are next in the studio queue. Every sample will be labelled AI-generated and made only from licensed or owned assets.</p>
+          <div class="tool-features"><span class="feature-tag">Product</span><span class="feature-tag">Short Scene</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="section-title">PRICING</h2>
+      <p class="hint center">Quoted and confirmed with you before any work starts. Orders of $100 or more start with a 50% deposit, balance on delivery; orders under $100 are paid in full up front. Add-ons: extra revision $25 · extra format $25 · hook A/B variant $35 · rush 24-hour delivery $49. We never promise sales, views, or results — we deliver a finished video; what it earns depends on your offer and audience.</p>
+      <div class="tools-grid">
+        {PRICING.map((p) => (
+          <div class="tool-card">
+            <div class="tool-header"><span class="price">{p.price}</span></div>
+            <h3 class="tool-title">{p.tier}</h3>
+            <div class="tool-features">{p.features.map((f) => (<span class="feature-tag">{f}</span>))}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <div class="footer-card">
+      <h2>🤖 AI Disclosure</h2>
+      <p>Videos from Matrix Hub Video Studio are generated with AI tools and human review. Every delivered video carries an “AI-generated video — Matrix Hub Video Studio” end card. We only use licensed, owned, or client-supplied assets, and we never clone a voice without written consent.</p>
+    </div>
+  </div>
+</Layout>
+
+<script is:inline>
+  (function () {
+    var form = document.getElementById('brief-form');
+    if (!form) return;
+    var TEMPLATES = {
+      warm: ['{biz} — {offer}', 'Made with care, right here for you', 'Quality you can taste in every detail', '{biz} — your neighbors, your choice', '{cta}'],
+      bold: ['{offer} — only at {biz}', 'No fluff. Just {offer}', 'See it. Want it. Get it.', '{biz} does it better', '{cta} — do not wait'],
+      calm: ['Introducing {biz}', '{offer}, crafted quietly well', 'Take a moment for something better', 'Simple. Honest. {biz}', '{cta}'],
+      fun: ['Hey! {biz} here', '{offer} — yes, really!', 'Your day just got better', 'Tell a friend: {biz}', '{cta} — come join the fun']
+    };
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var biz = document.getElementById('f-business').value.trim();
+      var offer = document.getElementById('f-offer').value.trim();
+      var cta = document.getElementById('f-cta').value.trim() || ('Visit ' + biz + ' today');
+      var style = document.getElementById('f-style').value;
+      var length = parseInt(document.getElementById('f-length').value, 10);
+      var aspect = document.getElementById('f-aspect').value;
+      var tpl = TEMPLATES[style] || TEMPLATES.warm;
+      var n = length <= 15 ? 3 : 5;
+      var per = Math.max(3, Math.round(length / n));
+      var shotsEl = document.getElementById('shots');
+      shotsEl.innerHTML = '';
+      for (var i = 0; i < n; i++) {
+        var line = tpl[i].replace('{biz}', biz).replace('{offer}', offer).replace('{cta}', cta);
+        var div = document.createElement('div');
+        div.className = 'shot';
+        div.innerHTML = '<strong>Shot ' + (i + 1) + '</strong> · ' + per + 's · ' +
+          '<span></span>';
+        div.querySelector('span').textContent = line;
+        shotsEl.appendChild(div);
+      }
+      document.getElementById('sb-meta').textContent =
+        'Format ' + aspect + ' · approx. ' + (per * n + 2) + 's incl. 2s end card with your call to action and AI disclosure.';
+      document.getElementById('storyboard').hidden = false;
+    });
+    document.getElementById('request-btn').addEventListener('click', function () {
+      document.getElementById('request-note').hidden = false;
+    });
+  })();
+</script>
+
+<style>
+  .video-page { width: 100%; padding: 2rem 0; }
+  .video-header { text-align: center; margin-bottom: 2.5rem; }
+  .page-title { font-size: 2.8rem; color: var(--theme-primary); text-shadow: 0 0 20px var(--theme-glow); font-family: 'Courier New', monospace; letter-spacing: 4px; margin-bottom: 1rem; }
+  .page-subtitle { font-size: 1.1rem; color: var(--theme-text); max-width: 700px; margin: 0 auto; opacity: 0.9; }
+  .disclosure-note { color: var(--theme-primary); margin-top: 0.75rem; font-size: 0.9rem; }
+  .section-title { font-size: 1.8rem; color: var(--theme-primary); margin: 2.5rem 0 1.5rem; padding-bottom: 0.5rem; border-bottom: 2px solid rgba(0,255,153,0.3); font-family: 'Courier New', monospace; }
+  .studio-card, .footer-card { background: rgba(0,255,153,0.08); border: 1px solid rgba(0,255,153,0.3); border-radius: 8px; padding: 2rem; max-width: 800px; margin: 0 auto 2rem; }
+  .studio-card h2, .footer-card h2 { color: var(--theme-primary); margin-bottom: 1rem; }
+  .footer-card p { color: var(--theme-text); opacity: 0.9; line-height: 1.6; }
+  .hint { color: var(--theme-text); opacity: 0.8; font-size: 0.9rem; line-height: 1.5; }
+  .hint.center { text-align: center; max-width: 760px; margin: 0 auto 1rem; }
+  .brief-form { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
+  .brief-form label { display: flex; flex-direction: column; gap: 0.4rem; color: var(--theme-text); font-size: 0.95rem; }
+  .brief-form input, .brief-form select { background: rgba(0,0,0,0.5); border: 1px solid rgba(0,255,153,0.35); border-radius: 4px; color: var(--theme-text); padding: 0.7rem; font-size: 1rem; }
+  .brief-form .row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  .tool-cta { background: linear-gradient(135deg, rgba(0,255,153,0.3), rgba(0,255,153,0.1)); border: 1px solid rgba(0,255,153,0.4); color: var(--theme-primary); padding: 0.75rem 1rem; border-radius: 4px; text-align: center; font-weight: bold; cursor: pointer; font-size: 1rem; }
+  .tool-cta:hover { background: rgba(0,255,153,0.2); }
+  .storyboard { margin-top: 1.5rem; }
+  .storyboard h3 { color: var(--theme-primary); margin-bottom: 0.75rem; }
+  .shot { background: rgba(0,0,0,0.45); border: 1px solid rgba(0,255,153,0.2); border-radius: 6px; padding: 0.75rem 1rem; margin-bottom: 0.5rem; color: var(--theme-text); }
+  .tools-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+  .tool-card { background: rgba(0,0,0,0.5); border: 1px solid rgba(0,255,153,0.2); border-radius: 8px; padding: 1.5rem; display: flex; flex-direction: column; }
+  .tool-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .tool-emoji { font-size: 2.5rem; }
+  .price { font-size: 2rem; color: var(--theme-primary); font-family: 'Courier New', monospace; }
+  .tool-badge { background: rgba(0,255,153,0.2); color: var(--theme-primary); padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; }
+  .tool-title { font-size: 1.25rem; color: var(--theme-primary); margin-bottom: 0.5rem; font-family: 'Courier New', monospace; }
+  .tool-description { color: var(--theme-text); font-size: 0.95rem; margin-bottom: 1rem; opacity: 0.9; flex-grow: 1; line-height: 1.5; }
+  .tool-features { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+  .feature-tag { background: rgba(0,255,153,0.1); color: var(--theme-primary); padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.75rem; text-transform: uppercase; }
+  @media (max-width: 768px) { .page-title { font-size: 2rem; letter-spacing: 2px; } .tools-grid { grid-template-columns: 1fr; } .brief-form .row { grid-template-columns: 1fr; } }
+</style>
