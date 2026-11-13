@@ -50,6 +50,7 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
             Connect MetaMask (owner wallet)
           </button>
           <div id="wallet-message" class="wallet-message"></div>
+          <div id="wallet-switch-hint" class="wallet-switch-hint" style="display: none;">Switch accounts in MetaMask and this page will re-check automatically.</div>
         </div>
 
         {passwordConfigured && (
@@ -351,6 +352,7 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
   const errorMessage = document.getElementById('error-message');
   const walletButton = document.getElementById('wallet-unlock-btn');
   const walletMessage = document.getElementById('wallet-message');
+  const switchHint = document.getElementById('wallet-switch-hint');
 
   // MTX contract owner / deployer wallet. This address is public
   // on-chain and already appears in the site's contract config.
@@ -359,6 +361,22 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
   function showPortal() {
     if (passwordGate) passwordGate.style.display = 'none';
     if (portalContent) portalContent.style.display = 'block';
+  }
+
+  function hidePortal() {
+    if (portalContent) portalContent.style.display = 'none';
+    if (passwordGate) passwordGate.style.display = '';
+  }
+
+  // Every wallet-gate message goes through here so the "switch accounts"
+  // hint stays in step: it shows only under the not-the-owner-wallet
+  // message, and hides again for any other message (or none).
+  function setWalletMessage(text) {
+    if (walletMessage) walletMessage.textContent = text;
+    if (switchHint) {
+      switchHint.style.display =
+        text === "That wallet isn't the owner wallet." ? 'block' : 'none';
+    }
   }
 
   function isOwnerWallet(address) {
@@ -394,22 +412,51 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
 
   walletButton?.addEventListener('click', async () => {
     if (!window.ethereum) {
-      if (walletMessage) walletMessage.textContent = "No browser wallet found — open this page in MetaMask's browser or connect a wallet first.";
+      setWalletMessage("No browser wallet found — open this page in MetaMask's browser or connect a wallet first.");
       return;
     }
     try {
       const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
       const account = accounts && accounts.length > 0 ? accounts[0] : '';
       if (isOwnerWallet(account)) {
-        if (walletMessage) walletMessage.textContent = '';
+        setWalletMessage('');
         unlockWithWallet();
       } else {
-        if (walletMessage) walletMessage.textContent = "That wallet isn't the owner wallet.";
+        setWalletMessage("That wallet isn't the owner wallet.");
       }
     } catch (walletError) {
-      if (walletMessage) walletMessage.textContent = 'Wallet connection was cancelled.';
+      setWalletMessage('Wallet connection was cancelled.');
     }
   });
+
+  // Re-check automatically when the account changes inside the wallet
+  // while this page is open (or the wallet disconnects): landing on the
+  // owner wallet unlocks; moving AWAY from it re-locks, so the portal
+  // never stays open for a different account. An access-code unlock is
+  // independent of the wallet and is left alone.
+  if (window.ethereum && typeof window.ethereum.on === 'function') {
+    window.ethereum.on('accountsChanged', (accounts) => {
+      const account = accounts && accounts.length > 0 ? accounts[0] : '';
+      if (isOwnerWallet(account)) {
+        setWalletMessage('');
+        unlockWithWallet();
+        return;
+      }
+      if (sessionStorage.getItem('owners_wallet_auth') !== 'owner-wallet') {
+        // This tab was not unlocked by the wallet — nothing to re-lock.
+        return;
+      }
+      sessionStorage.removeItem('owners_wallet_auth');
+      if (sessionStorage.getItem('owners_auth') !== 'authenticated') {
+        hidePortal();
+      }
+      if (account) {
+        setWalletMessage("That wallet isn't the owner wallet.");
+      } else {
+        setWalletMessage('Wallet disconnected.');
+      }
+    });
+  }
 
   // --- Unlock path 2: access code (only when a hash is configured) ---
   if (passwordConfigured) {
@@ -698,6 +745,13 @@ if (!OWNERS_PASSWORD_HASH || OWNERS_PASSWORD_HASH === 'sha256-placeholder' || OW
 
   .wallet-message:empty {
     display: none;
+  }
+
+  .wallet-switch-hint {
+    color: #00cc00;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    margin-top: 0.35rem;
   }
 
   .gate-divider {
