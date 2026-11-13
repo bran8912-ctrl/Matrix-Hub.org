@@ -1,6 +1,7 @@
 ---
 import Layout from "../../../components/Layout.astro";
 import WalletConnect from "../../../components/WalletConnect.tsx";
+import CasinoLegalNotice from "../../../components/CasinoLegalNotice.astro";
 
 export const prerender = true;
 
@@ -14,6 +15,7 @@ export const navCategory = "casino";
     <p class="text-xl text-gray-300 mb-4">
       Dice is live on Polygon — wagers are settled by Chainlink VRF. Slots is built and proven on the Amoy testnet and is not live on mainnet yet. Other games arrive as their outcomes move on-chain.
     </p>
+    <CasinoLegalNotice />
     
     <div class="mb-8">
       <WalletConnect client:only="react" />
