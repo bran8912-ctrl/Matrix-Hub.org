@@ -41,6 +41,9 @@ const matrixPlaylist: Track[] = [
   { title: "Digital Dreams", artist: "Mixkit", url: "https://assets.mixkit.co/music/573/573.mp3", genre: "Electronic / EDM" },
   { title: "Cyber Pulse", artist: "Mixkit", url: "https://assets.mixkit.co/music/574/574.mp3", genre: "Electronic / EDM" },
   { title: "Future Bass", artist: "Mixkit", url: "https://assets.mixkit.co/music/575/575.mp3", genre: "Electronic / EDM" },
+  // Local library (Wave 12)
+  { title: "Carefree", artist: "Kevin MacLeod", url: "/music/carefree.mp3", genre: "Electronic / EDM" },
+  { title: "Wallpaper", artist: "Kevin MacLeod", url: "/music/wallpaper.mp3", genre: "Electronic / EDM" },
   // --- Ambient / Chill ---
   { title: "Hazy After Hours", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/132/132.mp3", genre: "Ambient / Chill" },
   { title: "Minimal Emotion", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/160/160.mp3", genre: "Ambient / Chill" },
@@ -54,8 +57,17 @@ const matrixPlaylist: Track[] = [
   { title: "Silent Descent", artist: "Eugenio Mininni", url: "https://assets.mixkit.co/music/614/614.mp3", genre: "Ambient / Chill" },
   { title: "Echoes", artist: "Andrew Ev", url: "https://assets.mixkit.co/music/188/188.mp3", genre: "Ambient / Chill" },
   { title: "Dream Sequence", artist: "Andrew Ev", url: "https://assets.mixkit.co/music/189/189.mp3", genre: "Ambient / Chill" },
-  { title: "The Ambient", artist: "Matrix Hub", url: "/music/the-ambient.mp3", genre: "Ambient / Chill" },
-  { title: "Night Owl", artist: "Matrix Hub", url: "/music/night-owl.mp3", genre: "Ambient / Chill" },
+  // Local library (Wave 12)
+  { title: "Für Elise", artist: "Ludwig van Beethoven (perf. Gaodifan)", url: "/music/fur-elise-cc0.mp3", genre: "Ambient / Chill" },
+  { title: "Bossa Antigua", artist: "Kevin MacLeod", url: "/music/bossa-antigua.mp3", genre: "Ambient / Chill" },
+  { title: "Bright Wish", artist: "Kevin MacLeod", url: "/music/bright-wish.mp3", genre: "Ambient / Chill" },
+  { title: "Gymnopedie No 1", artist: "Kevin MacLeod", url: "/music/gymnopedie-no-1.mp3", genre: "Ambient / Chill" },
+  { title: "Inspired", artist: "Kevin MacLeod", url: "/music/inspired.mp3", genre: "Ambient / Chill" },
+  { title: "Lobby Time", artist: "Kevin MacLeod", url: "/music/lobby-time.mp3", genre: "Ambient / Chill" },
+  { title: "Local Forecast", artist: "Kevin MacLeod", url: "/music/local-forecast.mp3", genre: "Ambient / Chill" },
+  { title: "Merry Go", artist: "Kevin MacLeod", url: "/music/merry-go.mp3", genre: "Ambient / Chill" },
+  { title: "Quasi Motion", artist: "Kevin MacLeod", url: "/music/quasi-motion.mp3", genre: "Ambient / Chill" },
+  { title: "Spacial Harvest", artist: "Kevin MacLeod", url: "/music/spacial-harvest.mp3", genre: "Ambient / Chill" },
   // New Ambient / Chill tracks
   { title: "Serene", artist: "Mixkit", url: "https://assets.mixkit.co/music/1/1.mp3", genre: "Ambient / Chill" },
   { title: "Calm Waters", artist: "Mixkit", url: "https://assets.mixkit.co/music/2/2.mp3", genre: "Ambient / Chill" },
@@ -70,7 +82,6 @@ const matrixPlaylist: Track[] = [
   { title: "Neon Skyline", artist: "Eugenio Mininni", url: "https://assets.mixkit.co/music/626/626.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "Digital Mirage", artist: "Eugenio Mininni", url: "https://assets.mixkit.co/music/627/627.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "Night Drive", artist: "Arulo", url: "https://assets.mixkit.co/music/396/396.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Retro Future", artist: "Arulo", url: "https://assets.mixkit.co/music/397/397.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "Quantum Lock", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/135/135.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "Data Flux", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/136/136.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "Neon Protocol", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/161/161.mp3", genre: "Sci-Fi / Cyberpunk" },
@@ -78,13 +89,11 @@ const matrixPlaylist: Track[] = [
   { title: "Matrix Signal", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/168/168.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "System Pulse", artist: "Alejandro Magaña", url: "https://assets.mixkit.co/music/119/119.mp3", genre: "Sci-Fi / Cyberpunk" },
   { title: "Synthwave Override", artist: "Eugenio Mininni", url: "https://assets.mixkit.co/music/629/629.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Dreamwalker", artist: "Matrix Hub", url: "/music/dreamwalker.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Cipher", artist: "Matrix Hub", url: "/music/cipher.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Digital Ghost", artist: "Matrix Hub", url: "/music/digital-ghost.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Sci-Fi Ambient 2", artist: "Matrix Hub", url: "/music/sci-fi-ambient-2.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Dark Sci-Fi Synth", artist: "Matrix Hub", url: "/music/dark-sci-fi-synth.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Industrial Cyberpunk", artist: "Matrix Hub", url: "/music/industrial-cyberpunk.mp3", genre: "Sci-Fi / Cyberpunk" },
-  { title: "Sci-Fi Ambient 1", artist: "Matrix Hub", url: "/music/sci-fi-ambient-1.mp3", genre: "Sci-Fi / Cyberpunk" },
+  // Local library (Wave 12)
+  { title: "Cipher", artist: "Kevin MacLeod", url: "/music/cipher.mp3", genre: "Sci-Fi / Cyberpunk" },
+  { title: "Floating Cities", artist: "Kevin MacLeod", url: "/music/floating-cities.mp3", genre: "Sci-Fi / Cyberpunk" },
+  { title: "Rynos Theme", artist: "Kevin MacLeod", url: "/music/rynos-theme.mp3", genre: "Sci-Fi / Cyberpunk" },
+  { title: "The Descent", artist: "Kevin MacLeod", url: "/music/the-descent.mp3", genre: "Sci-Fi / Cyberpunk" },
   // --- Rap / Hip-Hop ---
   { title: "Hip Hop 02", artist: "Mixkit", url: "https://assets.mixkit.co/music/100/100.mp3", genre: "Rap / Hip-Hop" },
   { title: "Hip Hop Beat", artist: "Mixkit", url: "https://assets.mixkit.co/music/120/120.mp3", genre: "Rap / Hip-Hop" },
@@ -145,7 +154,11 @@ export default function PersistentMusicPlayer() {
     if (savedEnabled) setIsEnabled(savedEnabled === 'true');
     if (savedIndex !== null) {
       const parsedIndex = parseInt(savedIndex, 10);
-      if (!isNaN(parsedIndex)) setCurrentTrackIndex(parsedIndex);
+      // Clamp to the current playlist: the list changed size in the
+      // Wave 13 sync, and an out-of-range saved index must not crash.
+      if (!isNaN(parsedIndex) && parsedIndex >= 0 && parsedIndex < matrixPlaylist.length) {
+        setCurrentTrackIndex(parsedIndex);
+      }
     }
     if (savedShuffle) setIsShuffleOn(savedShuffle === 'true');
     if (savedLoop) setIsLoopOn(savedLoop === 'true');
@@ -493,11 +506,11 @@ export default function PersistentMusicPlayer() {
   const currentTrack = matrixPlaylist[currentTrackIndex];
 
   return (
-    <div ref={playerRef} className={`persistent-music-player${isMinimized ? ' minimized' : ''}`}>
+    <div ref={playerRef} data-genre={activeGenre} className={`persistent-music-player${isMinimized ? ' minimized' : ''}`}>
       <audio
         ref={audioRef}
         src={currentTrack.url}
-        preload="auto"
+        preload="metadata"
         crossOrigin="anonymous"
         loop={isLoopOn}
         onEnded={handleEnded}
