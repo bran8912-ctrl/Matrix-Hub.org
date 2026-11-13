@@ -159,4 +159,61 @@ img[src*="favicon"] {
   img[src*="favicon"] {
     filter: none;
   }
+
+  /* Damp the reactive glow itself, not just its transitions */
+  .panel,
+  .now-playing,
+  #matrix-player,
+  .section-card,
+  .persistent-music-player,
+  button,
+  .btn,
+  .tab-nav,
+  nav,
+  .genre-tabs-row,
+  .player-tabs,
+  .matrix-char-column {
+    box-shadow: none;
+  }
+
+  .matrix-char-column {
+    opacity: 0.18;
+  }
+}
+
+/* ===== PER-GENRE ACCENT (Wave 13 sync, additive) ===== */
+/* Players expose the active genre via data-genre; the reactive CSS can
+   key off --matrix-genre-accent. Defaults to the theme primary. */
+.persistent-music-player[data-genre="Electronic / EDM"],
+#matrix-player[data-genre="Electronic / EDM"] {
+  --matrix-genre-accent: #00ffff;
+}
+
+.persistent-music-player[data-genre="Ambient / Chill"],
+#matrix-player[data-genre="Ambient / Chill"] {
+  --matrix-genre-accent: #66ff99;
+}
+
+.persistent-music-player[data-genre="Sci-Fi / Cyberpunk"],
+#matrix-player[data-genre="Sci-Fi / Cyberpunk"] {
+  --matrix-genre-accent: #ff00ff;
+}
+
+.persistent-music-player[data-genre="Rap / Hip-Hop"],
+#matrix-player[data-genre="Rap / Hip-Hop"] {
+  --matrix-genre-accent: #ffcc00;
+}
+
+.persistent-music-player[data-genre="Rock"],
+#matrix-player[data-genre="Rock"] {
+  --matrix-genre-accent: #ff6600;
+}
+
+.persistent-music-player[data-genre="Metal"],
+#matrix-player[data-genre="Metal"] {
+  --matrix-genre-accent: #9999ff;
+}
+
+.persistent-music-player .track-genre-badge {
+  background: var(--matrix-genre-accent, var(--theme-primary, #00ff00));
 }
