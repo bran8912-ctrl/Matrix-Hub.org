@@ -1,5 +1,6 @@
 ---
 import Layout from "../components/Layout.astro";
+import { LEAD_INTAKE_URL } from "../config/intake";
 
 export const prerender = true;
 
@@ -15,9 +16,11 @@ export const title = "Video Studio";
 // PayPal.me handle is set, the Pay button should link to
 // https://www.paypal.com/paypalme/<handle>/<amount> instead.
 const PAYPAL_EMAIL = "bran8908@yahoo.com";
-// Order requests are emailed to the same account via the visitor's
-// own mail app (same browser-assisted intake pattern as /video —
-// no payment is taken automatically on this page).
+// Published contact address — shown to the visitor as the direct
+// fallback if the order-form request fails. Orders themselves are
+// POSTed to the lead-intake endpoint (src/config/intake.ts), which
+// logs them in the CRM and notifies this inbox — no payment is taken
+// automatically on this page.
 const ORDER_EMAIL = "bran8908@yahoo.com";
 const CURRENCY = "USD";
 
@@ -152,7 +155,7 @@ const STEPS = [
   </div>
 </Layout>
 
-<script is:inline define:vars={{ PAYPAL_EMAIL, ORDER_EMAIL, CURRENCY, PACKAGES }}>
+<script is:inline define:vars={{ PAYPAL_EMAIL, ORDER_EMAIL, CURRENCY, PACKAGES, LEAD_INTAKE_URL }}>
   (function () {
     var pkgSelect = document.getElementById('o-package');
     var amountEl = document.getElementById('o-amount');
@@ -198,31 +201,56 @@ const STEPS = [
       note.textContent = 'Google Pay selected. Send the order form below and we will reply with a Google Pay payment request.';
     });
 
-    document.getElementById('order-form').addEventListener('submit', function (e) {
+    var orderForm = document.getElementById('order-form');
+    var submitBtn = orderForm.querySelector('button[type="submit"]');
+    orderForm.addEventListener('submit', function (e) {
       e.preventDefault();
       var p = currentPackage();
       var biz = document.getElementById('o-business').value.trim();
       var email = document.getElementById('o-email').value.trim();
       var details = document.getElementById('o-details').value.trim();
       var method = payMethod.value;
-      var subject = 'Video Studio order — ' + p.tier + ' ($' + p.price + ') — ' + biz;
-      var body = [
-        'New Video Studio order request',
-        '',
-        'Package: ' + p.tier + ' — $' + p.price + ' ' + CURRENCY + '',
-        'Business: ' + biz,
-        'Contact email: ' + email,
-        'Payment method: ' + method,
-        '',
-        'Project details:',
-        details
-      ].join('\n');
       var note = document.getElementById('order-note');
       note.hidden = false;
-      note.textContent = method === 'Google Pay'
-        ? 'Opening your mail app to send this order. We reply to your contact email with a Google Pay payment request after confirming your brief.'
-        : 'Opening your mail app to send this order. Prefer to pay now? Use the Pay with PayPal button above — we still confirm your brief with you before production starts.';
-      window.location.href = 'mailto:' + ORDER_EMAIL + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+      note.textContent = 'Sending your order request…';
+      if (submitBtn) submitBtn.disabled = true;
+
+      // POST the order to the lead-intake endpoint (src/config/intake.ts).
+      // The JSON body goes as text/plain — a CORS "simple request", so the
+      // browser skips the preflight that Apps Script cannot answer; the
+      // script parses the JSON body either way. Apps Script always returns
+      // HTTP 200, so success is read from the body's ok flag, never status.
+      fetch(LEAD_INTAKE_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({
+          businessName: biz,
+          email: email,
+          source: 'video-studio',
+          package: p.tier,
+          amount: p.price,
+          paymentMethod: method,
+          details: details
+        })
+      }).then(function (res) {
+        return res.json();
+      }).then(function (data) {
+        if (data && data.ok) {
+          orderForm.innerHTML =
+            '<p class="hint"><strong>Order received — thank you.</strong> ' +
+            'We reply to ' + email + ' within one business day to confirm your brief before any production starts.' +
+            (method === 'Google Pay'
+              ? ' Our reply will include your Google Pay payment request.'
+              : ' Prefer to pay now? Use the Pay with PayPal button above — we still confirm your brief with you before production starts.') +
+            '</p>';
+        } else {
+          throw new Error((data && data.error) || 'The intake endpoint declined the order.');
+        }
+      }).catch(function () {
+        if (submitBtn) submitBtn.disabled = false;
+        note.hidden = false;
+        note.textContent = 'That didn\'t go through — your order was NOT sent. Please email us directly at ' + ORDER_EMAIL + ' and we\'ll take your order there.';
+      });
     });
   })();
 </script>
