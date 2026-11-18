@@ -1,6 +1,7 @@
 ---
 import Layout from "../components/Layout.astro";
 import WalletIsland from "../components/Wallet.jsx";
+import GuidedTour from "../components/GuidedTour.astro";
 import ReferralInviteCard from "../components/ReferralInviteCard.astro";
 
 export const prerender = true;
@@ -15,7 +16,10 @@ export const navCategory = "mtx-token";
     <p class="page-description">
       Connect your wallet to view your MTX balance and interact with the Matrix Hub ecosystem.
     </p>
-    
+
+    <!-- First-visit guided tour (Card 4) — placement: Maya Chen -->
+    <GuidedTour tour="wallet" />
+
     <!-- Wallet Component - React Island -->
     <div class="wallet-section">
       <WalletIsland client:only="react" />
