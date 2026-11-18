@@ -214,13 +214,26 @@ export const prerender = true;
   .ref-qr {
     width: 196px;
     height: 196px;
+    max-width: 100%;
     padding: 10px;
     background: #f2fff8;
     border: 1px solid rgba(0, 255, 153, 0.35);
     border-radius: 8px;
     box-sizing: border-box;
+    overflow: hidden;
   }
-  .ref-qr svg, .ref-qr canvas, .ref-qr img { width: 100%; height: 100%; display: block; }
+  /* :global() is required on the child rule: qr-code-styling injects the
+     <svg> at runtime, so it never carries this component's Astro style
+     scope and a plain scoped selector cannot match it — unscoped, the QR
+     rendered at its intrinsic size and spilled over the caption, the
+     Download button and the stats below. Clamp it to the box, always. */
+  .ref-qr :global(svg), .ref-qr :global(canvas), .ref-qr :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+  }
   .ref-qr-caption { font-size: 0.85rem; opacity: 0.85; margin: 0.55rem 0; line-height: 1.5; }
   .ref-count-block { margin-bottom: 1.25rem; }
   .ref-count { font-size: 1.05rem; margin: 0 0 0.4rem; }
@@ -494,8 +507,11 @@ export const prerender = true;
           const mod = await import("qr-code-styling");
           const QRCodeStyling = (mod as any).default || mod;
           qrInstance = new QRCodeStyling({
-            width: 352,
-            height: 352,
+            // Rendered at the size the card actually displays (~200px).
+            // The .ref-qr CSS also clamps the injected node, so the QR
+            // can never outgrow its box (see the :global rule below).
+            width: 200,
+            height: 200,
             type: "svg",
             data: link,
             image: "/images/mtx-logo.svg",
