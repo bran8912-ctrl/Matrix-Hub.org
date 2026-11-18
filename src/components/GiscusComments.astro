@@ -1,0 +1,91 @@
+---
+import { giscusConfig } from "../config/giscus";
+---
+
+<section class="giscus-comments" aria-label="Comments">
+  <h2 class="giscus-heading">Join the discussion</h2>
+  <p class="giscus-note">
+    Comments are hosted in this project's GitHub Discussions — sign in with a
+    GitHub account to post.
+  </p>
+  <div class="giscus-container"></div>
+
+  <script is:inline define:vars={{ giscusConfig }}>
+    (function () {
+      var scriptEl = document.currentScript;
+      var section = scriptEl ? scriptEl.closest(".giscus-comments") : null;
+      var container = section
+        ? section.querySelector(".giscus-container")
+        : null;
+      if (!container) return;
+
+      var loaded = false;
+      function loadGiscus() {
+        if (loaded) return;
+        loaded = true;
+        var s = document.createElement("script");
+        s.src = "https://giscus.app/client.js";
+        s.async = true;
+        s.crossOrigin = "anonymous";
+        s.setAttribute("data-repo", giscusConfig.repo);
+        s.setAttribute("data-repo-id", giscusConfig.repoId);
+        s.setAttribute("data-category", giscusConfig.category);
+        s.setAttribute("data-category-id", giscusConfig.categoryId);
+        s.setAttribute("data-mapping", giscusConfig.mapping);
+        s.setAttribute("data-strict", giscusConfig.strict);
+        s.setAttribute("data-reactions-enabled", giscusConfig.reactionsEnabled);
+        s.setAttribute("data-emit-metadata", giscusConfig.emitMetadata);
+        s.setAttribute("data-input-position", giscusConfig.inputPosition);
+        s.setAttribute("data-theme", giscusConfig.theme);
+        s.setAttribute("data-lang", giscusConfig.lang);
+        s.setAttribute("data-loading", "lazy");
+        container.appendChild(s);
+      }
+
+      // Lazy-load: only inject the Giscus embed when the comments section
+      // is near the viewport, so page performance is unaffected for
+      // visitors who never scroll to it.
+      if ("IntersectionObserver" in window) {
+        var io = new IntersectionObserver(
+          function (entries) {
+            for (var i = 0; i < entries.length; i++) {
+              if (entries[i].isIntersecting) {
+                loadGiscus();
+                io.disconnect();
+                break;
+              }
+            }
+          },
+          { rootMargin: "600px" }
+        );
+        io.observe(container);
+      } else {
+        loadGiscus();
+      }
+    })();
+  </script>
+</section>
+
+<style>
+  .giscus-comments {
+    width: 100%;
+    max-width: 52rem;
+    margin: 3.5rem auto 0;
+    padding-top: 2rem;
+    border-top: 1px solid var(--theme-border, rgba(255, 255, 255, 0.15));
+  }
+
+  .giscus-heading {
+    font-family: "Courier New", monospace;
+    letter-spacing: 2px;
+    color: var(--theme-primary);
+    text-shadow: 0 0 12px var(--theme-glow);
+    font-size: 1.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .giscus-note {
+    opacity: 0.8;
+    margin-bottom: 1.5rem;
+  }
+</style>
