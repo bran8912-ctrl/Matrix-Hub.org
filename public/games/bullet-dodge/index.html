@@ -33,7 +33,9 @@
         
         <div id="mh-challenge" class="mh-banner"></div>
         <div id="mh-streak" class="mh-streak"></div>
-        <canvas id="game-canvas"></canvas>
+        <div class="mh-engine-frame">
+            <canvas id="game-canvas"></canvas>
+        </div>
         
         <div id="game-over" class="overlay hidden">
             <h2>CONNECTION LOST</h2>
@@ -61,6 +63,7 @@
         </div>
     </div>
     <script src="../matrix-best.js"></script>
+    <script src="../engine/matrix-engine.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
