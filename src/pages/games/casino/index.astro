@@ -15,11 +15,29 @@ export const navCategory = "casino";
     <p class="text-xl text-gray-300 mb-4">
       Dice is live on Polygon — wagers are settled by Chainlink VRF. Slots is built and proven on the Amoy testnet and is not live on mainnet yet. Other games arrive as their outcomes move on-chain.
     </p>
+
+    <!-- Age / jurisdiction / licence notice (HUB 128) -->
     <CasinoLegalNotice />
-    
+
     <div class="mb-8">
       <WalletConnect client:only="react" />
     </div>
+
+    <!-- Free-Play Floor: practice the card tables free before playing for real -->
+    <a
+      href="/games/casino/free-play"
+      class="block bg-gray-800 hover:bg-gray-700 p-6 rounded-lg border-2 border-dashed border-green-500 transition-colors mb-8"
+    >
+      <div class="text-4xl mb-2 text-center">🃏🎴</div>
+      <h3 class="text-2xl font-bold text-green-400 mb-2 text-center">
+        Free-Play Floor — practice first, free
+      </h3>
+      <p class="text-gray-300 mb-2 text-center">
+        Blackjack and Jacks or Better video poker with play chips. No wallet,
+        no MTX, nothing to win or lose — just learn the games.
+      </p>
+      <p class="text-sm text-green-400 text-center">Free — play now</p>
+    </a>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
       <!-- Slots -->
