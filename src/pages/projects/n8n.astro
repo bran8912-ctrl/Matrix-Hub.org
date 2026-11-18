@@ -1,5 +1,6 @@
 ---
 import Layout from "../../components/Layout.astro";
+import { LEAD_INTAKE_URL } from "../../config/intake";
 
 export const prerender = true;
 export const title = "n8n Automation";
@@ -8,9 +9,11 @@ export const navCategory = "resources";
 const repoUrl = "https://github.com/bran8912-ctrl/n8n";
 const docsUrl = "https://docs.n8n.io";
 const localUiUrl = "http://localhost:5678";
-const webhookUrl = process.env.N8N_WEBHOOK_URL || import.meta.env.PUBLIC_N8N_WEBHOOK_URL || "";
-const webhookConfigured = Boolean(webhookUrl);
-const endpointPath = '/api/n8n-webhook';
+// The intake form POSTs to the shared lead-intake endpoint
+// (src/config/intake.ts): submissions are logged in the Matrix Hub
+// CRM spreadsheet and the team is notified by email; the n8n
+// workflows then work from that CRM.
+const endpointPath = LEAD_INTAKE_URL;
 ---
 
 <Layout title="Automation Services — Matrix Hub">
@@ -56,16 +59,16 @@ const endpointPath = '/api/n8n-webhook';
     </section>
 
     <section class="content-card">
-      <h2>Server-side webhook setup</h2>
+      <h2>How requests are delivered</h2>
       <p>
-        The public page posts to your site’s own API proxy route, and that route forwards a normalized payload into the n8n webhook configured on the server.
-        That lets the page stay usable for real business automation without exposing the upstream endpoint directly in the browser.
+        The form below posts to the Matrix Hub lead-intake endpoint. Each request is logged as a row in the
+        team’s CRM spreadsheet and triggers an email notification, and the n8n workflows — follow-up drafts,
+        invoice reminders, the daily ops cycle — work from that same CRM. No request depends on the visitor’s
+        own mail app, and a failed delivery is shown on the form rather than lost silently.
       </p>
 
-      <pre><code>N8N_WEBHOOK_URL=https://your-n8n.example.com/webhook/your-workflow-id</code></pre>
-
-      <div id="n8n-webhook-state" data-webhook-url={endpointPath} class="status-line">
-        Webhook status: <strong>{webhookConfigured ? 'Server endpoint ready. Set N8N_WEBHOOK_URL on the host to activate delivery.' : 'Not configured yet — add N8N_WEBHOOK_URL to the server environment to enable delivery.'}</strong>
+      <div id="n8n-webhook-state" class="status-line">
+        Intake status: <strong>Live — requests are delivered to the Matrix Hub CRM and answered by email.</strong>
       </div>
     </section>
 
@@ -143,53 +146,54 @@ const endpointPath = '/api/n8n-webhook';
 <script>
   const form = document.getElementById('n8n-cta-form') as HTMLFormElement | null;
   const resultNode = document.getElementById('n8n-demo-result');
-  const webhookState = document.getElementById('n8n-webhook-state');
-  const endpointPath = form?.getAttribute('data-endpoint') || '/api/n8n-webhook';
-  const webhookUrl = webhookState?.dataset.webhookUrl || '';
+  const endpointPath = form?.getAttribute('data-endpoint') || '';
 
   if (form && resultNode) {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
 
-      if (!webhookUrl) {
-        resultNode.textContent = 'Set N8N_WEBHOOK_URL on the server before sending a workflow request.';
-        return;
-      }
-
       const formData = new FormData(form);
       const automationNeeds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="automationNeeds"]:checked'))
         .map((checkbox) => checkbox.value);
 
+      // Field names match the lead-intake contract (src/config/intake.ts):
+      // the endpoint logs these straight into the CRM Leads tab.
       const payload = {
-        event: 'matrix-hub-automation-lead',
-        leadSource: 'website-automation-page',
         businessName: formData.get('businessName'),
         contactName: formData.get('contactName'),
         email: formData.get('email'),
         phone: formData.get('phone'),
+        automationNeeds,
         timeline: formData.get('timeline'),
         budget: formData.get('budget'),
-        automationNeeds,
         workflowGoal: formData.get('workflowGoal'),
+        source: 'automation-page',
       };
 
-      resultNode.textContent = 'Sending your automation request to the Matrix Hub proxy...';
+      resultNode.textContent = 'Sending your automation request…';
 
       try {
+        // JSON body sent as text/plain — a CORS "simple request", so the
+        // browser skips the preflight the Apps Script endpoint cannot
+        // answer; the endpoint parses the JSON body either way. It always
+        // returns HTTP 200, so success is the body's ok flag, never status.
         const response = await fetch(endpointPath, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
+            'Content-Type': 'text/plain;charset=utf-8',
           },
           body: JSON.stringify(payload),
         });
 
         const json = await response.json().catch(() => null);
-        resultNode.textContent = response.ok
-          ? `Automation request delivered successfully: ${json?.message || 'Proxy accepted the request.'}`
-          : `Automation request failed: ${json?.message || 'Unknown error'}`;
-      } catch (error) {
-        resultNode.textContent = `Automation request failed: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        if (json?.ok) {
+          resultNode.textContent = 'Request received — thank you. We reply to your email within one business day.';
+          form.reset();
+        } else {
+          resultNode.textContent = `That didn't go through — your request was NOT sent${json?.error ? `: ${json.error}` : '.'} Please try again, or open an issue in the GitHub repository linked on this page.`;
+        }
+      } catch {
+        resultNode.textContent = "That didn't go through — your request was NOT sent. Please try again, or open an issue in the GitHub repository linked on this page.";
       }
     });
   }
