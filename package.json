@@ -52,7 +52,7 @@
     "dev": "astro dev",
     "start": "node server.mjs",
     "serve": "npm run build && node server.mjs",
-    "build": "astro build",
+    "build": "npm run build:engine && astro build",
     "postbuild": "pagefind --site dist",
     "preview": "astro preview",
     "astro": "astro",
@@ -78,7 +78,8 @@
     "deploy:polygon:mtx": "hardhat run scripts/deploy_mtx.js --network polygon",
     "deploy:amoy:mtx": "hardhat run scripts/deploy_mtx.js --network amoy",
     "deploy:polygon:full": "npm run deploy:polygon:mtx && npm run deploy:polygon:casino",
-    "deploy:amoy:full": "npm run deploy:amoy:mtx && npm run deploy:amoy:casino"
+    "deploy:amoy:full": "npm run deploy:amoy:mtx && npm run deploy:amoy:casino",
+    "build:engine": "node scripts/build-game-engine.mjs"
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
@@ -97,6 +98,7 @@
     "fast-glob": "^3.3.3",
     "gray-matter": "^4.0.3",
     "html5-qrcode": "^2.3.8",
+    "kaplay": "^3001.0.19",
     "qr-code-styling": "^1.9.2",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
@@ -129,6 +131,7 @@
     "@typescript-eslint/parser": "^8.51.0",
     "chai": "^4.5.0",
     "dotenv": "^17.2.3",
+    "esbuild": "^0.25.11",
     "eslint": "^9.39.2",
     "eslint-plugin-astro": "^1.5.0",
     "eslint-plugin-react": "^7.37.5",
