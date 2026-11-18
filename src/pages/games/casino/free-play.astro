@@ -1,0 +1,51 @@
+---
+import Layout from "../../../components/Layout.astro";
+import FreePlayPage from "../../../components/FreePlayPage";
+
+export const prerender = true;
+
+export const title = "Free-Play Floor";
+export const navCategory = "casino";
+---
+
+<Layout title="Free-Play Floor - Matrix-Hub Casino">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-4">
+      <a href="/games/casino" class="text-green-400 hover:underline">
+        ← Back to MTX Casino
+      </a>
+    </p>
+
+    <h1 class="text-4xl font-bold mb-4 text-green-400">🃏 Free-Play Floor</h1>
+    <p class="text-xl text-gray-300 mb-4">
+      Practice the casino's card tables with play chips — free, no wallet, no
+      MTX. Learn blackjack and video poker before anything real is on the
+      table.
+    </p>
+
+    <!-- Honest labelling, up front: this floor is practice only. -->
+    <div
+      class="bg-green-900/40 border-2 border-green-500 rounded-lg p-4 mb-8 text-green-100"
+    >
+      <strong>Free practice, stated plainly:</strong> both tables use play credits
+      that have no value. There is no wallet to connect, no MTX involved, and
+      nothing to win, lose, or cash out. The credits are for learning the games
+      — when they run out, reset them and keep practicing.
+    </div>
+
+    <FreePlayPage client:only="react" />
+
+    <p class="text-sm text-gray-400 mt-8">
+      Practicing for the real tables? The on-chain Blackjack table is still in
+      build — its status lives on the{" "}
+      <a class="text-green-400 hover:underline" href="/games/casino/blackjack">
+        Blackjack page
+      </a>
+      . Dice is live now in the{" "}
+      <a class="text-green-400 hover:underline" href="/games/casino">
+        MTX Casino
+      </a>
+      .
+    </p>
+  </div>
+</Layout>
