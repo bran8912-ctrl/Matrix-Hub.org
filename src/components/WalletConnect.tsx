@@ -333,7 +333,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   // which is expected — not a bug.
   if (!walletConnectEnabled) {
     return (
-      <div style={{ padding: '1rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
+      <div id="mh-wallet-bar" style={{ padding: '1rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
         <h3>Wallet Connect</h3>
         <p>Wallet connection is currently unavailable. WalletConnect is not configured yet, so no wallet can be connected right now.</p>
       </div>
@@ -341,12 +341,12 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
   }
 
   return (
-    <div style={{ padding: '0.5rem 0.75rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
+    <div id="mh-wallet-bar" style={{ padding: '0.5rem 0.75rem', border: '1px solid #333', borderRadius: '8px', background: '#181818', color: '#fff', maxWidth: 320 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'space-between' }}>
         {isConnected && address ? (
           <span style={{ fontSize: '0.875rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{address.slice(0, 6)}...{address.slice(-4)} · {balance !== null ? balance : '…'} MTX</span>
         ) : (
-          <button onClick={handleConnect} disabled={connecting} style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+          <button data-tour="wallet-connect" onClick={handleConnect} disabled={connecting} style={{ padding: '0.4rem 0.8rem', fontSize: '0.9rem', background: '#00ff99', color: '#181818', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
             {connecting ? 'Connecting...' : 'Connect Wallet'}
           </button>
         )}
@@ -391,6 +391,7 @@ const WalletConnect: React.FC<WalletConnectProps> = ({ onWalletChange }) => {
             {/* MTX: Direct Mint link */}
             {MTX.isDeployed && (
               <a
+                data-tour="wallet-buy-link"
                 href="/buy-mtx"
                 style={{
                   padding: '0.25rem 0.75rem',
