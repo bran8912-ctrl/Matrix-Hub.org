@@ -1,0 +1,236 @@
+---
+/**
+ * First-visit guided tour — Card 4 (OSS survey, 2026-11-17).
+ *
+ * Owners: Freya Lindqvist (Experience Lab) — tour flow + copy;
+ * Maya Chen (Site Builder, designer of record) — placement + styling.
+ *
+ * A four-step driver.js walk-through (connect wallet → be on Polygon →
+ * have POL ready → mint) that kills the first-mint drop-off. Steps are
+ * anchored to the real elements on the page via [data-tour] hooks and
+ * the wallet bar's #mh-wallet-bar id, and are built at launch time:
+ * a step whose anchor is not on screen (already connected, wallet bar
+ * minimized, …) is simply left out, so the tour always matches what
+ * the visitor actually sees.
+ *
+ * Rules: skippable at any step (Esc / overlay click / close button),
+ * auto-launches once per visitor per tour (localStorage flag), and the
+ * "Take the tour" button below re-launches it on demand. Copy is plain
+ * and claim-clean: the only number stated is the contract's mint rate.
+ */
+interface Props {
+  tour: "buy" | "wallet";
+}
+
+const { tour } = Astro.props;
+---
+
+<div class="mh-tour-launch">
+  <button type="button" class="mh-tour-btn" data-mh-tour-launch={tour}>
+    🧭 First time? Take the tour
+  </button>
+</div>
+
+<style>
+  /* Placement + look: Maya Chen — a quiet centred outline button under
+     the page description, in the site's button language (Courier New,
+     neon-green border, glow on hover). */
+  .mh-tour-launch {
+    display: flex;
+    justify-content: center;
+    margin: 0 0 1.5rem;
+  }
+  .mh-tour-btn {
+    padding: 0.55rem 1.1rem;
+    background: rgba(0, 255, 153, 0.08);
+    color: var(--theme-primary, #00ff99);
+    border: 1px solid rgba(0, 255, 153, 0.55);
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.92rem;
+    cursor: pointer;
+  }
+  .mh-tour-btn:hover { box-shadow: 0 0 10px rgba(0, 255, 153, 0.3); }
+
+  /* driver.js popover, restyled to the site theme. */
+  .driver-popover.mh-tour-popover {
+    background: #0b120e;
+    border: 1px solid rgba(0, 255, 153, 0.5);
+    border-radius: 8px;
+    box-shadow: 0 0 24px rgba(0, 255, 153, 0.25);
+    color: #e6fff3;
+    font-family: 'Courier New', monospace;
+    max-width: 320px;
+  }
+  .driver-popover.mh-tour-popover .driver-popover-arrow { display: none; }
+  .driver-popover.mh-tour-popover .driver-popover-title {
+    color: var(--theme-primary, #00ff99);
+    font-family: 'Courier New', monospace;
+    font-size: 1.05rem;
+  }
+  .driver-popover.mh-tour-popover .driver-popover-description {
+    color: #e6fff3;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .driver-popover.mh-tour-popover .driver-popover-progress-text {
+    color: #a7f3d0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.78rem;
+  }
+  .driver-popover.mh-tour-popover .driver-popover-close-btn { color: #a7f3d0; }
+  .driver-popover.mh-tour-popover .driver-popover-next-btn {
+    background: var(--theme-primary, #00ff99);
+    color: #181818;
+    border: 1px solid var(--theme-primary, #00ff99);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-weight: bold;
+    text-shadow: none;
+  }
+  .driver-popover.mh-tour-popover .driver-popover-prev-btn {
+    background: transparent;
+    color: var(--theme-primary, #00ff99);
+    border: 1px solid rgba(0, 255, 153, 0.55);
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    text-shadow: none;
+  }
+</style>
+
+<script>
+  import { driver } from "driver.js";
+  import "driver.js/dist/driver.css";
+
+  interface StepDef {
+    selector: string;
+    title: string;
+    description: string;
+  }
+
+  const STEP_DEFS: Record<string, StepDef[]> = {
+    buy: [
+      {
+        selector: '[data-tour="wallet-connect"]',
+        title: "Connect your wallet",
+        description:
+          "Tap Connect Wallet and approve in your wallet app. New to wallets? MetaMask is a free wallet that works in your browser or on your phone.",
+      },
+      {
+        selector: "#mh-wallet-bar",
+        title: "Be on Polygon",
+        description:
+          "Your wallet has to be on the Polygon network (Chain ID 137). If your wallet asks to switch networks, approve it — the mint only works on Polygon.",
+      },
+      {
+        selector: '[data-tour="buy-pol-input"]',
+        title: "Have POL ready",
+        description:
+          "You pay with POL, Polygon's coin, plus a small network fee. Type the amount of POL here — starting with a small amount is a good first run.",
+      },
+      {
+        selector: '[data-tour="buy-submit"]',
+        title: "Mint your MTX",
+        description:
+          "Tap Buy MTX and confirm in your wallet. The contract's rate is 1 POL = 1,000 MTX, and your MTX arrives in the same wallet.",
+      },
+    ],
+    wallet: [
+      {
+        selector: '[data-tour="wallet-page-connect"]',
+        title: "Connect your wallet",
+        description:
+          "Tap Connect Wallet and approve in your wallet app. Once connected, this page shows your MTX balance.",
+      },
+      {
+        selector: "#mh-wallet-bar",
+        title: "Be on Polygon",
+        description:
+          "Your wallet has to be on the Polygon network (Chain ID 137). If your wallet asks to switch networks, approve it — your balance only shows on Polygon.",
+      },
+      {
+        selector: '[data-tour="wallet-panel"]',
+        title: "See your balance",
+        description:
+          "Your MTX balance shows in this panel. “Add MTX to Wallet” makes MTX appear inside your wallet app too.",
+      },
+      {
+        selector: '[data-tour="wallet-buy-link"]',
+        title: "Get MTX",
+        description:
+          "This link in the wallet bar opens the mint page. The contract's rate is 1 POL = 1,000 MTX.",
+      },
+    ],
+  };
+
+  (function () {
+    const launchBtn = document.querySelector<HTMLElement>("[data-mh-tour-launch]");
+    if (!launchBtn) return;
+    const tourName = launchBtn.getAttribute("data-mh-tour-launch") || "buy";
+    const defs = STEP_DEFS[tourName] || STEP_DEFS.buy;
+    const flagKey = `mh-tour-${tourName}-v1`;
+
+    function isVisible(el: Element | null): el is HTMLElement {
+      return !!el && (el as HTMLElement).getClientRects().length > 0;
+    }
+
+    function buildSteps() {
+      return defs
+        .map((def) => ({ def, el: document.querySelector(def.selector) }))
+        .filter(({ el }) => isVisible(el))
+        .map(({ def, el }) => ({
+          element: el as HTMLElement,
+          popover: { title: def.title, description: def.description },
+        }));
+    }
+
+    function launch() {
+      const steps = buildSteps();
+      if (steps.length < 2) return false;
+      try {
+        localStorage.setItem(flagKey, "1");
+      } catch {
+        /* storage unavailable — the tour still runs, it just may
+           auto-launch again on a later visit. */
+      }
+      (window as any).trackMatrixEvent?.("tour_started", { tour: tourName, steps: steps.length });
+      const tourObj = driver({
+        steps,
+        showProgress: true,
+        progressText: "{{current}} of {{total}}",
+        allowClose: true,
+        overlayClickBehavior: "close",
+        popoverClass: "mh-tour-popover",
+        nextBtnText: "Next →",
+        prevBtnText: "← Back",
+        doneBtnText: "Done",
+        onDestroyed: () => {
+          (window as any).trackMatrixEvent?.("tour_finished", { tour: tourName, steps: steps.length });
+        },
+      });
+      tourObj.drive();
+      return true;
+    }
+
+    launchBtn.addEventListener("click", () => {
+      if (!launch()) {
+        // The wallet islands may still be hydrating — one retry, then
+        // give up quietly rather than showing a half-empty tour.
+        window.setTimeout(() => launch(), 700);
+      }
+    });
+
+    // First visit only: auto-launch once the page (and its React
+    // islands) have had a moment to settle.
+    let seen = false;
+    try {
+      seen = localStorage.getItem(flagKey) === "1";
+    } catch {
+      seen = false;
+    }
+    if (!seen) {
+      window.setTimeout(() => launch(), 1400);
+    }
+  })();
+</script>
