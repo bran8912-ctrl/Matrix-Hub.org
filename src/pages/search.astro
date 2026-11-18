@@ -1,0 +1,90 @@
+---
+import Layout from "../components/Layout.astro";
+
+export const prerender = true;
+
+export const title = "Search";
+---
+
+<Layout title="Search - Matrix Hub">
+  <div class="search-page">
+    <div class="search-header">
+      <h1 class="page-title">SEARCH</h1>
+      <p class="page-subtitle">
+        Search every page on Matrix Hub — games, tools, docs, the MTX token pages and more.
+      </p>
+    </div>
+
+    <link href="/pagefind/pagefind-ui.css" rel="stylesheet" />
+    <div id="search" class="search-box"></div>
+    <p id="search-fallback" class="search-fallback" hidden>
+      Search runs on the live site — its index is generated each time the site is built.
+    </p>
+    <script src="/pagefind/pagefind-ui.js" is:inline></script>
+    <script is:inline>
+      window.addEventListener("DOMContentLoaded", function () {
+        if (typeof PagefindUI === "undefined") {
+          var fb = document.getElementById("search-fallback");
+          if (fb) fb.hidden = false;
+          return;
+        }
+        var ui = new PagefindUI({
+          element: "#search",
+          showSubResults: true,
+          showImages: false,
+        });
+        var q = new URLSearchParams(window.location.search).get("q");
+        if (q) ui.triggerSearch(q);
+      });
+    </script>
+  </div>
+</Layout>
+
+<style>
+  .search-page {
+    width: 100%;
+    max-width: 52rem;
+    margin: 0 auto;
+    padding: 2rem 0;
+  }
+
+  .search-header {
+    text-align: center;
+    margin-bottom: 2.5rem;
+  }
+
+  .page-title {
+    font-size: 2.8rem;
+    color: var(--theme-primary);
+    text-shadow: 0 0 20px var(--theme-glow);
+    font-family: "Courier New", monospace;
+    letter-spacing: 4px;
+    margin-bottom: 1rem;
+  }
+
+  .page-subtitle {
+    color: var(--theme-text, #e0e0e0);
+    opacity: 0.85;
+  }
+
+  /* Pagefind default UI, restyled to the site's dark matrix theme.
+     Pagefind UI reads these custom properties (pagefind-ui.css). */
+  .search-box {
+    --pagefind-ui-scale: 1;
+    --pagefind-ui-primary: var(--theme-primary);
+    --pagefind-ui-text: #e8e8e8;
+    --pagefind-ui-background: rgba(0, 0, 0, 0.6);
+    --pagefind-ui-border: var(--theme-border, var(--theme-primary));
+    --pagefind-ui-tag: rgba(255, 255, 255, 0.08);
+    --pagefind-ui-border-width: 1px;
+    --pagefind-ui-border-radius: 8px;
+    --pagefind-ui-image-border-radius: 8px;
+    --pagefind-ui-font: "Courier New", monospace;
+    text-align: left;
+  }
+
+  .search-fallback {
+    text-align: center;
+    opacity: 0.75;
+  }
+</style>
