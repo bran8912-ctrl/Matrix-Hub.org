@@ -62,9 +62,9 @@
 
   function startGame() {
     snake = [
-      { x: 15, y: 15 },
-      { x: 14, y: 15 },
-      { x: 13, y: 15 }
+      { x: 10, y: 15 },
+      { x: 9, y: 15 },
+      { x: 8, y: 15 }
     ];
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
