@@ -35,6 +35,19 @@ export const navCategory = "games";
     <p class="mh-local-note">Your scores, boards and streaks live on this device only.</p>
   </div>
 
+  <!-- Free-Play Floor: casino practice tables (native page, not an
+       iframe title, so it gets a banner here rather than a grid card) -->
+  <div class="freeplay-banner">
+    <div class="freeplay-banner-text">
+      <h2>🃏 Free-Play Floor</h2>
+      <p>
+        Practice Blackjack &amp; Jacks or Better video poker with play
+        chips — no wallet, no MTX, nothing to win or lose.
+      </p>
+    </div>
+    <a class="freeplay-banner-btn" href="/games/casino/free-play">Play free ▶</a>
+  </div>
+
   <!-- Referral Program Phase 1: perk theme picker ("Neon Grid") -->
   <ReferralThemePicker />
 
@@ -258,6 +271,49 @@ export const navCategory = "games";
     color: rgb(107, 114, 128);
     font-size: 0.8rem;
     margin: 0.6rem 0 0;
+  }
+
+  /* Free-Play Floor banner */
+  .freeplay-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin: 0 auto 2rem;
+    max-width: 860px;
+    padding: 1rem 1.25rem;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px dashed rgba(34, 197, 94, 0.55);
+    border-radius: 10px;
+    font-family: 'Courier New', monospace;
+  }
+
+  .freeplay-banner-text h2 {
+    color: rgb(34, 197, 94);
+    font-size: 1.15rem;
+    margin: 0 0 0.25rem;
+  }
+
+  .freeplay-banner-text p {
+    color: rgb(156, 163, 175);
+    font-size: 0.9rem;
+    margin: 0;
+  }
+
+  .freeplay-banner-btn {
+    padding: 0.5rem 1.25rem;
+    background: rgba(34, 197, 94, 0.15);
+    color: rgb(34, 197, 94);
+    border: 1px solid rgba(34, 197, 94, 0.5);
+    border-radius: 6px;
+    font-weight: bold;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .freeplay-banner-btn:hover {
+    background: rgba(34, 197, 94, 0.3);
   }
 
   /* Controls */
