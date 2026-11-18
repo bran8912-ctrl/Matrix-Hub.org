@@ -81,6 +81,12 @@ jobs:
             --site "${{ steps.pages.outputs.origin }}" \
             --base "${{ steps.pages.outputs.base_path }}"
         working-directory: ${{ env.BUILD_PATH }}
+      - name: Index site with Pagefind
+        # Pagefind (devDependency) builds the static search index into
+        # dist/pagefind/ from the built HTML. Must run after `astro build`
+        # and before the Pages artifact upload, or /search has no index.
+        run: ${{ steps.detect-package-manager.outputs.runner }} pagefind --site dist
+        working-directory: ${{ env.BUILD_PATH }}
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
