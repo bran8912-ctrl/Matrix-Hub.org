@@ -1,347 +1,213 @@
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-const scoreDisplay = document.getElementById('score');
-const highScoreDisplay = document.getElementById('highScore');
-const gameOverScreen = document.getElementById('gameOver');
-const finalScoreDisplay = document.getElementById('finalScore');
-const restartBtn = document.getElementById('restartBtn');
+// Cyber Snake — Season 2 build on the MatrixEngine shell (KAPLAY).
+// Faithful port of the hand-rolled original: 30x30 grid, 100 ms steps,
+// +10 per food, cyan head / green body, magenta food, arrows/WASD +
+// swipe + D-pad, Enter or PLAY AGAIN to restart, and the identical DOM
+// + MatrixBest contract (bests, board, daily challenge, streaks) via
+// the shell bridge. The original's responsive-canvas resizing is
+// replaced by the shell's letterbox scaling to the same 600px field.
+(function () {
+  const GRID = 30;          // cells per side (unchanged)
+  const CELL = 20;          // px per cell   (unchanged)
+  const SIZE = GRID * CELL; // 600 logical px
+  const STEP = 0.1;         // seconds per move — the original 100 ms tick
 
-// Responsive canvas
-let gridSize = 20;
+  const canvas = document.getElementById('gameCanvas');
+  const scoreEl = document.getElementById('score');
+  const highScoreEl = document.getElementById('highScore');
+  const gameOverScreen = document.getElementById('gameOver');
+  const finalScoreEl = document.getElementById('finalScore');
+  const restartBtn = document.getElementById('restartBtn');
 
-function resizeCanvas() {
-    const maxWidth = Math.min(600, window.innerWidth - 40);
-    const maxHeight = Math.min(600, window.innerHeight - 300);
-    const size = Math.min(maxWidth, maxHeight);
-    canvas.width = size;
-    canvas.height = size;
-    gridSize = Math.floor(size / 30);
-}
+  const engine = window.MatrixEngine && window.MatrixEngine.boot({
+    slug: 'cyber-snake',
+    canvas,
+    width: SIZE,
+    height: SIZE,
+    background: [0, 0, 0]
+  });
+  if (!engine) return; // shell already painted a fallback message
+  const k = engine.k;
 
-window.addEventListener('resize', resizeCanvas);
-resizeCanvas();
+  let snake = [], food = { x: 10, y: 10 };
+  let direction = { x: 1, y: 0 }, nextDirection = { x: 1, y: 0 };
+  let score = 0, highScore = 0, gameActive = false, stepAcc = 0;
 
-let snake = [];
-let direction = { x: 1, y: 0 };
-let nextDirection = { x: 1, y: 0 };
-let food = {};
-let score = 0;
-let highScore = 0;
-let gameActive = false;
-let gameSpeed = 100;
-
-// Competitive Phase 1 (HUB 155): shared best + local board via MatrixBest.
-// The legacy 'cyberSnakeHighScore' key is migrated once into the shared key.
-let mhRunStart = Date.now();
-let mhRunId = null;
-function mhNewRun() {
-    mhRunStart = Date.now();
-    mhRunId = 'cyber-snake-' + mhRunStart + '-' + Math.random().toString(36).slice(2, 8);
-}
-if (window.MatrixBest) {
-    const stored = MatrixBest.getBest('cyber-snake');
+  // Competitive Phase 1 (HUB 155), same as the original: the stored
+  // MatrixBest best wins; the legacy 'cyberSnakeHighScore' key is
+  // migrated once into the shared store when no best exists yet.
+  let legacyHigh = 0;
+  try { legacyHigh = parseInt(localStorage.getItem('cyberSnakeHighScore'), 10) || 0; } catch { /* ignore */ }
+  if (engine.best) {
+    const stored = engine.best.getBest('cyber-snake');
     if (stored) {
-        highScore = stored.score;
-    } else {
-        let legacy = 0;
-        try { legacy = parseInt(localStorage.getItem('cyberSnakeHighScore'), 10) || 0; } catch (e) { legacy = 0; }
-        if (legacy > 0) {
-            MatrixBest.saveBest('cyber-snake', { score: legacy });
-            highScore = legacy;
-        }
+      highScore = stored.score || 0;
+    } else if (legacyHigh > 0) {
+      engine.best.saveBest('cyber-snake', { score: legacyHigh });
+      highScore = legacyHigh;
     }
-    MatrixBest.renderChallengeInto(document.getElementById('mh-challenge'), 'cyber-snake');
-    MatrixBest.renderStreakInto(document.getElementById('mh-streak'));
-}
+  } else {
+    highScore = legacyHigh;
+  }
+  highScoreEl.textContent = highScore;
 
-highScoreDisplay.textContent = highScore;
+  function spawnFood() {
+    while (true) {
+      const f = {
+        x: Math.floor(Math.random() * GRID),
+        y: Math.floor(Math.random() * GRID)
+      };
+      if (!snake.some(s => s.x === f.x && s.y === f.y)) { food = f; return; }
+    }
+  }
 
-function initGame() {
+  function startGame() {
     snake = [
-        { x: 15, y: 15 },
-        { x: 14, y: 15 },
-        { x: 13, y: 15 }
+      { x: 15, y: 15 },
+      { x: 14, y: 15 },
+      { x: 13, y: 15 }
     ];
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
     score = 0;
-    scoreDisplay.textContent = score;
+    stepAcc = 0;
+    scoreEl.textContent = '0';
     gameActive = true;
-    mhNewRun();
     spawnFood();
     gameOverScreen.classList.add('hidden');
-}
+    engine.setPaused(false);
+    engine.newRun();
+  }
 
-function spawnFood() {
-    const gridCount = Math.floor(canvas.width / gridSize);
-    food = {
-        x: Math.floor(Math.random() * gridCount),
-        y: Math.floor(Math.random() * gridCount)
-    };
-    
-    // Make sure food doesn't spawn on snake
-    for (let segment of snake) {
-        if (segment.x === food.x && segment.y === food.y) {
-            spawnFood();
-            return;
-        }
-    }
-}
-
-function drawGrid() {
-    ctx.strokeStyle = 'rgba(0, 255, 0, 0.1)';
-    ctx.lineWidth = 1;
-    
-    const gridCount = Math.floor(canvas.width / gridSize);
-    for (let i = 0; i <= gridCount; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * gridSize, 0);
-        ctx.lineTo(i * gridSize, canvas.height);
-        ctx.stroke();
-        
-        ctx.beginPath();
-        ctx.moveTo(0, i * gridSize);
-        ctx.lineTo(canvas.width, i * gridSize);
-        ctx.stroke();
-    }
-}
-
-function drawSnake() {
-    snake.forEach((segment, index) => {
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = '#0f0';
-        
-        // Head is brighter
-        if (index === 0) {
-            ctx.fillStyle = '#0ff';
-            ctx.shadowColor = '#0ff';
-        } else {
-            ctx.fillStyle = '#0f0';
-            ctx.shadowColor = '#0f0';
-        }
-        
-        ctx.fillRect(
-            segment.x * gridSize + 1,
-            segment.y * gridSize + 1,
-            gridSize - 2,
-            gridSize - 2
-        );
-    });
-    
-    ctx.shadowBlur = 0;
-}
-
-function drawFood() {
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = '#f0f';
-    ctx.fillStyle = '#f0f';
-    
-    ctx.beginPath();
-    ctx.arc(
-        food.x * gridSize + gridSize / 2,
-        food.y * gridSize + gridSize / 2,
-        gridSize / 2 - 2,
-        0,
-        Math.PI * 2
-    );
-    ctx.fill();
-    
-    ctx.shadowBlur = 0;
-}
-
-function updateSnake() {
-    if (!gameActive) return;
-    
-    direction = { ...nextDirection };
-    
-    const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
-    
-    const gridCount = Math.floor(canvas.width / gridSize);
-    
-    // Check wall collision
-    if (head.x < 0 || head.x >= gridCount || head.y < 0 || head.y >= gridCount) {
-        endGame();
-        return;
-    }
-    
-    // Check self collision
-    for (let segment of snake) {
-        if (segment.x === head.x && segment.y === head.y) {
-            endGame();
-            return;
-        }
-    }
-    
-    snake.unshift(head);
-    
-    // Check food collision
-    if (head.x === food.x && head.y === food.y) {
-        score += 10;
-        scoreDisplay.textContent = score;
-        spawnFood();
-        
-        if (score > highScore) {
-            highScore = score;
-            highScoreDisplay.textContent = highScore;
-        }
-    } else {
-        snake.pop();
-    }
-}
-
-function draw() {
-    ctx.fillStyle = '#000';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
-    drawGrid();
-    drawFood();
-    drawSnake();
-}
-
-function gameLoop() {
-    if (!gameActive) return;
-    
-    updateSnake();
-    draw();
-    
-    setTimeout(() => {
-        requestAnimationFrame(gameLoop);
-    }, gameSpeed);
-}
-
-function endGame() {
+  function endGame() {
     gameActive = false;
-    finalScoreDisplay.textContent = score;
+    engine.sound.die();
+    finalScoreEl.textContent = score;
     gameOverScreen.classList.remove('hidden');
-    mhFinishRun();
-}
-
-// Competitive Phase 1: persist best + local board via the shared
-// finishRun path (best, NEW BEST, rank on this device, board top 5,
-// daily challenge, share card).
-function mhFinishRun() {
-    if (!window.MatrixBest) return;
-    const out = MatrixBest.finishRun('cyber-snake', { score: score }, {
-        durationSec: (Date.now() - mhRunStart) / 1000,
-        runId: mhRunId,
-        scoreText: String(score)
-    });
-    if (out.best.best) {
-        highScore = out.best.best.score;
-        highScoreDisplay.textContent = highScore;
+    // Competitive layer: personal best, board, daily challenge, streaks.
+    const out = engine.finishRun({ score }, { scoreText: String(score) });
+    if (out && out.best && out.best.best) {
+      highScore = out.best.best.score;
+      highScoreEl.textContent = highScore;
     }
-}
+  }
 
-function changeDirection(newDir) {
-    // Prevent 180-degree turns
-    if (newDir.x !== -direction.x && newDir.y !== -direction.y) {
-        nextDirection = newDir;
+  function step() {
+    direction = { ...nextDirection };
+    const head = { x: snake[0].x + direction.x, y: snake[0].y + direction.y };
+
+    if (head.x < 0 || head.x >= GRID || head.y < 0 || head.y >= GRID ||
+        snake.some(s => s.x === head.x && s.y === head.y)) {
+      endGame();
+      return;
     }
-}
 
-// Keyboard controls
-document.addEventListener('keydown', (e) => {
-    if (!gameActive && e.key !== 'Enter') return;
-    
-    switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-            e.preventDefault();
-            changeDirection({ x: 0, y: -1 });
-            break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-            e.preventDefault();
-            changeDirection({ x: 0, y: 1 });
-            break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-            e.preventDefault();
-            changeDirection({ x: -1, y: 0 });
-            break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-            e.preventDefault();
-            changeDirection({ x: 1, y: 0 });
-            break;
-    }
-});
+    snake.unshift(head);
 
-// Mobile touch controls
-let touchStartX = 0;
-let touchStartY = 0;
-
-canvas.addEventListener('touchstart', (e) => {
-    e.preventDefault();
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-});
-
-canvas.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    const touchEndX = e.changedTouches[0].clientX;
-    const touchEndY = e.changedTouches[0].clientY;
-    
-    const deltaX = touchEndX - touchStartX;
-    const deltaY = touchEndY - touchStartY;
-    
-    if (Math.abs(deltaX) > Math.abs(deltaY)) {
-        // Horizontal swipe
-        if (deltaX > 0) {
-            changeDirection({ x: 1, y: 0 });
-        } else {
-            changeDirection({ x: -1, y: 0 });
-        }
+    if (head.x === food.x && head.y === food.y) {
+      score += 10;
+      scoreEl.textContent = score;
+      engine.sound.eat();
+      spawnFood();
+      if (score > highScore) {
+        highScore = score;
+        highScoreEl.textContent = highScore;
+      }
     } else {
-        // Vertical swipe
-        if (deltaY > 0) {
-            changeDirection({ x: 0, y: 1 });
-        } else {
-            changeDirection({ x: 0, y: -1 });
-        }
+      snake.pop();
     }
-});
+  }
 
-// Mobile button controls
-document.querySelectorAll('.arrow-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        const dir = btn.dataset.dir;
-        switch (dir) {
-            case 'up':
-                changeDirection({ x: 0, y: -1 });
-                break;
-            case 'down':
-                changeDirection({ x: 0, y: 1 });
-                break;
-            case 'left':
-                changeDirection({ x: -1, y: 0 });
-                break;
-            case 'right':
-                changeDirection({ x: 1, y: 0 });
-                break;
-        }
+  /* ------------------------------ render ------------------------------ */
+  const GRID_LINE = k.rgb(0, 255, 0);
+  const HEAD = k.rgb(0, 255, 255);
+  const BODY = k.rgb(0, 255, 0);
+  const FOOD = k.rgb(255, 0, 255);
+
+  k.onDraw(() => {
+    k.drawRect({ pos: k.vec2(0, 0), width: SIZE, height: SIZE, color: k.rgb(0, 0, 0) });
+
+    // Grid lines (original strokeStyle rgba(0,255,0,0.1))
+    for (let i = 0; i <= GRID; i++) {
+      k.drawLine({ p1: k.vec2(i * CELL, 0), p2: k.vec2(i * CELL, SIZE), width: 1, color: GRID_LINE, opacity: 0.1 });
+      k.drawLine({ p1: k.vec2(0, i * CELL), p2: k.vec2(SIZE, i * CELL), width: 1, color: GRID_LINE, opacity: 0.1 });
+    }
+
+    // Food: magenta disc with a soft glow halo (original used shadowBlur).
+    k.drawCircle({ pos: k.vec2(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2), radius: CELL / 2 + 3, color: FOOD, opacity: 0.25 });
+    k.drawCircle({ pos: k.vec2(food.x * CELL + CELL / 2, food.y * CELL + CELL / 2), radius: CELL / 2 - 2, color: FOOD });
+
+    // Snake: inset squares, cyan head, green body, glow halo beneath.
+    snake.forEach((seg, i) => {
+      const color = i === 0 ? HEAD : BODY;
+      k.drawRect({ pos: k.vec2(seg.x * CELL - 1, seg.y * CELL - 1), width: CELL + 2, height: CELL + 2, color, opacity: 0.22 });
+      k.drawRect({ pos: k.vec2(seg.x * CELL + 1, seg.y * CELL + 1), width: CELL - 2, height: CELL - 2, color });
     });
-});
+  });
 
-restartBtn.addEventListener('click', () => {
-    initGame();
-    gameLoop();
-});
+  k.onUpdate(() => {
+    if (!gameActive || engine.isPaused()) return;
+    stepAcc += k.dt();
+    while (stepAcc >= STEP && gameActive) {
+      stepAcc -= STEP;
+      step();
+    }
+  });
 
-// Prevent scrolling
-document.body.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-}, { passive: false });
+  /* ------------------------------- input ------------------------------ */
+  const DIRS = {
+    up: { x: 0, y: -1 }, down: { x: 0, y: 1 },
+    left: { x: -1, y: 0 }, right: { x: 1, y: 0 }
+  };
+  function changeDirection(name) {
+    const d = DIRS[name];
+    if (!d) return;
+    // Prevent 180-degree turns (same rule as the original).
+    if (d.x !== -direction.x && d.y !== -direction.y) nextDirection = d;
+  }
 
-// Start immediately — no name prompt (personal bests only, HUB 155).
-function startGame() {
-    initGame();
-    gameLoop();
-}
+  const KEYMAP = {
+    ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right',
+    w: 'up', s: 'down', a: 'left', d: 'right',
+    W: 'up', S: 'down', A: 'left', D: 'right'
+  };
+  window.addEventListener('keydown', (e) => {
+    if (!gameActive) {
+      // Original: after game over, only Enter restarts.
+      if (e.key === 'Enter') startGame();
+      return;
+    }
+    const name = KEYMAP[e.key];
+    if (name) {
+      e.preventDefault();
+      changeDirection(name);
+    }
+  });
 
-startGame();
+  engine.onSwipe(changeDirection);
+  engine.bindPad(changeDirection);
+  restartBtn.addEventListener('click', startGame);
+
+  // Keep the page from scrolling under touch play (as the original did).
+  document.body.addEventListener('touchmove', (e) => { e.preventDefault(); }, { passive: false });
+
+  // Competitive banners (daily challenge + streak) — same as every game.
+  engine.renderMeta();
+
+  // Start immediately — no name prompt (personal bests only, HUB 155).
+  startGame();
+
+  // Test/automation handle: lets the crew play-verify headlessly.
+  window.MatrixGame = {
+    slug: 'cyber-snake',
+    engine: 'kaplay',
+    getState: () => ({
+      gameActive,
+      score,
+      head: snake.length ? { ...snake[0] } : null,
+      length: snake.length,
+      paused: engine.isPaused()
+    }),
+    start: startGame,
+    setPaused: (v) => engine.setPaused(v)
+  };
+})();
