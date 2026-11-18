@@ -1,7 +1,7 @@
 # MTX Tokenomics
 
 ## Contract Information
-- **Status**: 🔄 **Deploying to Polygon** — Contract address will be published on launch
+- **Status**: ✅ **Live on Polygon** — Contract address: 0x53307e1db6c5cb6773c9495ca140372016dfe266 (verified on PolygonScan — see /security)
 - **Network**: Polygon (Chain ID: 137)
 - **Symbol**: MTX
 - **Decimals**: 18
@@ -17,13 +17,13 @@
 - Ecosystem Reserve
 - Development Allocation
 - Community Incentives
-- Direct mint purchases (MATIC → MTX)
+- Direct mint purchases (POL → MTX)
 
 ## Acquisition Methods
 
 ### 1. Direct Mint (Primary Onboarding Method)
-- **Rate**: 1 MATIC = 1,000 MTX (fixed)
-- **Method**: Send MATIC to contract, receive MTX instantly
+- **Rate**: 1 POL = 1,000 MTX (fixed)
+- **Method**: Send POL to contract, receive MTX instantly
 - **Advantages**: 
   - Lower gas costs than DEX swaps
   - Predictable pricing
@@ -34,7 +34,7 @@
 
 ### 2. QuickSwap DEX (Public Market)
 - **Rate**: Market-determined via liquidity pool
-- **Method**: Swap ETH or any ERC-20 for MTX
+- **Method**: Swap WPOL or other ERC-20 tokens for MTX
 - **Advantages**:
   - High liquidity
   - Trusted platform
@@ -54,7 +54,7 @@
 - No [yield farming](https://en.wikipedia.org/wiki/Yield_farming) emissions
 - Circulation driven by usage
 - Direct mint provides controlled token distribution
-- Collected ETH can fund liquidity and operations
+- Collected POL can fund liquidity and operations
 
 ## Token Sinks (Supply Reduction)
 - Lock mechanism for tier access
@@ -86,6 +86,6 @@ MTX value is supported by [utility](https://en.wikipedia.org/wiki/Utility_token)
 
 **Related Documentation:**
 - [MTX Whitepaper](/docs/mtx-whitepaper)
-- [MTX Wallet Integration](/docs/MTX_Wallet_Integration)
+- [Wallet](/wallet)
 - [Casino Game Math](/docs/casino-game-math)
 - [DAO Governance](/docs/dao-governance)
