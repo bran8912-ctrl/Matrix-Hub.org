@@ -32,9 +32,21 @@ const PAIR_ABI = [
 ];
 
 // Chainlink VRF v2.5 coordinator — getSubscription returns 5 values:
-// (balance, nativeBalance, reqCount, owner, consumers).
+// (balance, nativeBalance, reqCount, owner, consumers), and in v2.5 the
+// subscription id argument is a uint256, NOT a bytes32.
+//
+// ROOT CAUSE of the dead VRF tile (found Nov 17, HQ click-through):
+// this ABI originally declared `getSubscription(bytes32 subId)`. That
+// one word changed the function selector (0x1f32768e instead of
+// 0xdc311dd3), so every call hit a function the coordinator does not
+// have and reverted with no data — the tile could never load, in any
+// browser, while HQ's server-side watch (which encodes uint256)
+// read the same subscription fine. Verified live after the fix:
+// balance 320060622871779456 wei (0.3201 LINK), reqCount 0, one
+// consumer (the RNGEngine). The parser below reads balance at index 0
+// and reqCount at index 2 — correct for this tuple.
 const VRF_ABI = [
-  'function getSubscription(bytes32 subId) view returns (uint96 balance, uint96 nativeBalance, uint64 reqCount, address owner, address[] consumers)',
+  'function getSubscription(uint256 subId) view returns (uint96 balance, uint96 nativeBalance, uint64 reqCount, address owner, address[] consumers)',
 ];
 
 export interface TerminalSnapshot {
@@ -71,11 +83,28 @@ function fmtAmount(units: bigint, decimals = 18, maxDp = 4): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: maxDp });
 }
 
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Run one read; on failure, wait briefly and retry it exactly once
+ * before giving up. Belt-and-braces on top of correct calls: a single
+ * eth_call can still fail transiently against a free public RPC, and
+ * one retry recovers the tile in that case. A read that fails twice
+ * still returns null and the tile renders its explicit "read failed"
+ * state: no cached, stale, or invented numbers, ever.
+ */
 async function attempt<T>(fn: () => Promise<T>): Promise<T | null> {
   try {
     return await fn();
   } catch {
-    return null;
+    await delay(700);
+    try {
+      return await fn();
+    } catch {
+      return null;
+    }
   }
 }
 
