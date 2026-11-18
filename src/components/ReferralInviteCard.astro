@@ -36,6 +36,17 @@ export const prerender = true;
     <a id="mh-ref-share-whatsapp" class="ref-btn ref-share-btn" href="#" target="_blank" rel="noopener noreferrer">Share to WhatsApp</a>
   </div>
 
+  <!-- Branded invite QR (Card 4 — Ethan Cole / Tomás Rivera): encodes
+       this visitor's own invite link, regenerated whenever the link
+       changes. Stays hidden until a QR has actually rendered. -->
+  <div class="ref-qr-block" id="mh-ref-qr-block" hidden>
+    <span class="ref-label">Your invite QR code</span>
+    <div id="mh-ref-qr" class="ref-qr"></div>
+    <p class="ref-qr-caption">Friends can scan this with a phone camera to open your invite link.</p>
+    <button type="button" id="mh-ref-qr-download" class="ref-btn">Download QR</button>
+    <p id="mh-ref-qr-status" class="ref-status" role="status" aria-live="polite"></p>
+  </div>
+
   <div class="ref-count-block">
     <p class="ref-count"><span class="ref-label-inline">Friends who played:</span> <strong id="mh-ref-count">0</strong></p>
     <p id="mh-ref-progress-text" class="ref-progress-text">0 / 1 to First Friend</p>
@@ -198,6 +209,19 @@ export const prerender = true;
     text-shadow: 0 0 14px var(--theme-glow);
   }
   .ref-share-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .ref-qr-block { margin-bottom: 1.25rem; }
+  .ref-qr-block[hidden] { display: none; }
+  .ref-qr {
+    width: 196px;
+    height: 196px;
+    padding: 10px;
+    background: #f2fff8;
+    border: 1px solid rgba(0, 255, 153, 0.35);
+    border-radius: 8px;
+    box-sizing: border-box;
+  }
+  .ref-qr svg, .ref-qr canvas, .ref-qr img { width: 100%; height: 100%; display: block; }
+  .ref-qr-caption { font-size: 0.85rem; opacity: 0.85; margin: 0.55rem 0; line-height: 1.5; }
   .ref-count-block { margin-bottom: 1.25rem; }
   .ref-count { font-size: 1.05rem; margin: 0 0 0.4rem; }
   .ref-progress-text { margin: 0 0 0.45rem; font-size: 0.9rem; opacity: 0.9; }
@@ -359,6 +383,10 @@ export const prerender = true;
       if (tg) tg.href = `https://t.me/share/url?url=${encodedLink}&text=${encodeURIComponent(shareText)}`;
       if (wa) wa.href = `https://wa.me/?text=${encodedText}`;
 
+      // Branded QR of this visitor's own invite link (Card 4) —
+      // regenerated whenever the link changes.
+      void ensureInviteQr(state.inviteLink);
+
       // Friend-side status (this browser arrived via an invite).
       const friendBlock = document.getElementById("mh-ref-friend-block");
       const friendText = document.getElementById("mh-ref-friend-text");
@@ -447,6 +475,65 @@ export const prerender = true;
     friendCopy?.addEventListener("click", async () => {
       if (!friendReceiptInput) return;
       await copyText(friendReceiptInput.value);
+    });
+
+    /* ── Branded invite QR (Card 4 — Ethan Cole / Tomás Rivera) ──
+       qr-code-styling (MIT) renders the visitor's own invite link as
+       a themed QR with the site mark in the centre. The block stays
+       hidden until a QR has really rendered; any failure leaves the
+       copy/share controls as the invite surface, unchanged. */
+    let qrInstance: any = null;
+    let qrCurrentLink = "";
+
+    async function ensureInviteQr(link: string) {
+      const block = document.getElementById("mh-ref-qr-block");
+      const container = document.getElementById("mh-ref-qr");
+      if (!block || !container || !link) return;
+      try {
+        if (!qrInstance) {
+          const mod = await import("qr-code-styling");
+          const QRCodeStyling = (mod as any).default || mod;
+          qrInstance = new QRCodeStyling({
+            width: 352,
+            height: 352,
+            type: "svg",
+            data: link,
+            image: "/images/mtx-logo.svg",
+            margin: 6,
+            qrOptions: { errorCorrectionLevel: "Q" },
+            dotsOptions: { color: "#0a3d24", type: "rounded" },
+            backgroundOptions: { color: "#f2fff8" },
+            cornersSquareOptions: { color: "#0a3d24", type: "extra-rounded" },
+            cornersDotOptions: { color: "#0a3d24", type: "dot" },
+            imageOptions: {
+              crossOrigin: "anonymous",
+              hideBackgroundDots: true,
+              imageSize: 0.35,
+              margin: 4,
+            },
+          });
+          qrInstance.append(container);
+          qrCurrentLink = link;
+        } else if (qrCurrentLink !== link) {
+          qrInstance.update({ data: link });
+          qrCurrentLink = link;
+        }
+        block.hidden = false;
+      } catch {
+        block.hidden = true;
+      }
+    }
+
+    const qrDownloadBtn = document.getElementById("mh-ref-qr-download") as HTMLButtonElement | null;
+    const qrStatus = document.getElementById("mh-ref-qr-status");
+    qrDownloadBtn?.addEventListener("click", async () => {
+      if (!qrInstance) return;
+      try {
+        await qrInstance.download({ name: "matrix-hub-invite-qr", extension: "png" });
+        if (qrStatus) qrStatus.textContent = "QR code downloaded — send the picture to a friend.";
+      } catch {
+        if (qrStatus) qrStatus.textContent = "Download did not work here — a screenshot of the QR works too.";
+      }
     });
 
     render();
