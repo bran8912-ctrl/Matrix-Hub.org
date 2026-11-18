@@ -110,16 +110,16 @@ const Wallet = () => {
   // instead of a connect button that cannot work.
   if (!walletConnectEnabled) {
     return (
-      <div className="wallet-panel">
+      <div className="wallet-panel" data-tour="wallet-panel">
         <p>Wallet connection is currently unavailable. WalletConnect is not configured yet, so no wallet can be connected right now.</p>
       </div>
     );
   }
 
   return (
-    <div className="wallet-panel">
+    <div className="wallet-panel" data-tour="wallet-panel">
       {!isConnected ? (
-        <button onClick={async () => { await open(); }} className="btn-connect">Connect Wallet</button>
+        <button onClick={async () => { await open(); }} className="btn-connect" data-tour="wallet-page-connect">Connect Wallet</button>
       ) : (
         <div>
           <div className="address">{address}</div>
