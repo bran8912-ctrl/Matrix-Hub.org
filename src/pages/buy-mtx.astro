@@ -1,6 +1,7 @@
 ---
 import Layout from "../components/Layout.astro";
 import BuyMTX from "../components/BuyMTX.tsx";
+import GuidedTour from "../components/GuidedTour.astro";
 import { MTX } from "../config/mtx";
 
 export const prerender = true;
@@ -20,7 +21,10 @@ const contractAddress = MTX.address;
       Purchase MTX tokens directly with POL using our secure direct mint feature.
       The QuickSwap pool is live too (1 POL + 1,000 MTX) — but the pool is small, so direct mint at the fixed 1 POL = 1,000 MTX rate is the better deal right now.
     </p>
-    
+
+    <!-- First-visit guided tour (Card 4) — placement: Maya Chen -->
+    <GuidedTour tour="buy" />
+
     <!-- Direct Mint Component -->
     <div class="buy-section">
       <BuyMTX client:load />
