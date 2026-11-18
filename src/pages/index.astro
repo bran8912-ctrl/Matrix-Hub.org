@@ -1,6 +1,7 @@
 ---
 import Layout from "../components/Layout.astro";
 import ReferralCodeEntry from "../components/ReferralCodeEntry.astro";
+import MtxLiveTerminal from "../components/MtxLiveTerminal.tsx";
 
 export const prerender = true;
 export const navExclude = true;
@@ -36,6 +37,9 @@ export const navExclude = true;
         <ReferralCodeEntry />
       </div>
     </section>
+
+    <!-- ════ MTX LIVE TERMINAL (under the hero; live on-chain reads) ════ -->
+    <MtxLiveTerminal client:load />
 
     <!-- ════ SECTION 2: RED PILL REALITY ════ -->
     <section id="red-pill-reality">
@@ -97,8 +101,7 @@ export const navExclude = true;
             <span class="ph-icon">🎬</span>
             <span class="ph-title" style="color:var(--green);">Matrix Hub Site Intro Video</span>
             <span class="ph-hint">
-              Replace <code>YOUTUBE_VIDEO_ID_2</code> in the iframe src
-              inside <code>src/pages/index.astro</code> with your YouTube video ID.
+              Our intro video is on its way — everything below is live now.
             </span>
           </div>
           <iframe
