@@ -50,6 +50,21 @@ h1 {
     display: block;
     margin: 0 auto;
     max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Season 2 (KAPLAY shell): the engine sizes its canvas to its parent,
+   so the parent frame holds the square 600px field the original
+   responsive-canvas code produced; the engine letterboxes inside. */
+.mh-engine-frame {
+    width: min(600px, 100%);
+    aspect-ratio: 1 / 1;
+    margin: 0 auto;
+}
+.mh-engine-frame canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block;
 }
 
 .controls {
