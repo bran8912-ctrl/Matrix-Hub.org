@@ -2,14 +2,48 @@
 //
 // Every figure comes from a fresh eth_call against Polygon mainnet at
 // render/refresh time. Nothing is cached, hard-coded, or carried over from
-// a previous load: if a read fails, the corresponding field is null and the
-// panel renders an explicit "read failed" state for that tile instead of a
-// number. Addresses are the verified contracts from the public proof pack
-// (bot-core/security/public-proof-pack-2026-11-12.md) — the same set the
-// /security page publishes.
+// a previous load: if a read fails on every endpoint, the corresponding
+// field is null and the panel renders an explicit "read failed" state for
+// that tile instead of a number. Addresses are the verified contracts from
+// the public proof pack (bot-core/security/public-proof-pack-2026-11-12.md)
+// — the same set the /security page publishes.
+//
+// ENDPOINT FAILOVER (added Nov 17, after the owner's phone report):
+// the panel originally read through a single public RPC endpoint
+// (polygon-bor-rpc.publicnode.com). On the owner's Android phone every
+// read failed — the panel reached its total-failure state — while the
+// same panel worked in desktop browsers and the endpoint answered HQ's
+// server-side checks: from that device/network the one endpoint was
+// unreachable or blocked, and there was no fallback. Reads now fail over
+// across a list of keyless public endpoints (see TERMINAL_RPCS): each
+// read tries the endpoints in order and only reports failure when every
+// endpoint has failed it. No API keys anywhere — keyless endpoints only.
+//
+// Endpoint list verified Nov 17 by direct probe (eth_blockNumber AND the
+// VRF getSubscription eth_call this file performs, both answered
+// correctly): publicnode, dRPC, Tenderly's public gateway, 1RPC.
+// Probed and REJECTED the same day: polygon-rpc.com (403 "tenant
+// disabled"), polygon.llamarpc.com (no response), rpc.ankr.com/polygon
+// (API key now required), Blast API public (service shut down), BlockPI
+// public (API key required), OnFinality public (rate-limited without a
+// key), Omnia (HTTP 521), Nodies (paid plan), MeowRPC + Stackup (no
+// response). If an endpoint dies, replace it with another keyless
+// endpoint that passes the same two-call probe.
 import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 
+/** Primary RPC endpoint (first entry of TERMINAL_RPCS). */
 export const TERMINAL_RPC = 'https://polygon-bor-rpc.publicnode.com';
+
+/**
+ * Keyless public Polygon mainnet RPC endpoints, in failover order.
+ * Every entry passed the two-call probe described in the header comment.
+ */
+export const TERMINAL_RPCS = [
+  'https://polygon-bor-rpc.publicnode.com',
+  'https://polygon.drpc.org',
+  'https://gateway.tenderly.co/public/polygon',
+  'https://1rpc.io/matic',
+] as const;
 
 export const TERMINAL_CONTRACTS = {
   mtx: '0x53307e1db6c5cb6773c9495ca140372016dfe266',
@@ -88,55 +122,114 @@ function delay(ms: number): Promise<void> {
 }
 
 /**
- * Run one read; on failure, wait briefly and retry it exactly once
- * before giving up. Belt-and-braces on top of correct calls: a single
- * eth_call can still fail transiently against a free public RPC, and
- * one retry recovers the tile in that case. A read that fails twice
- * still returns null and the tile renders its explicit "read failed"
- * state: no cached, stale, or invented numbers, ever.
+ * Per-attempt ceiling for one read against one endpoint. A free public
+ * RPC can accept a connection and then hang; without a ceiling, one
+ * hung endpoint would stall the whole panel instead of failing over.
  */
-async function attempt<T>(fn: () => Promise<T>): Promise<T | null> {
-  try {
-    return await fn();
-  } catch {
-    await delay(700);
-    try {
-      return await fn();
-    } catch {
-      return null;
-    }
-  }
+const READ_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`RPC read timed out after ${ms} ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
 }
 
 /**
- * Read every terminal figure fresh from Polygon. Each read is independent:
- * one failing call nulls only its own tile, never the whole panel.
+ * Run one read with endpoint failover: try each endpoint in
+ * TERMINAL_RPCS order, pausing 700 ms between attempts, and return the
+ * first successful result. Exactly one pass over the endpoint list per
+ * read per refresh cycle — no retry storms. The read reports failure
+ * (null) only when EVERY endpoint has failed it, so a tile shows its
+ * explicit "read failed" state only when the figure genuinely could
+ * not be read anywhere: no cached, stale, or invented numbers, ever.
+ *
+ * This supersedes the previous single-endpoint behaviour (try the one
+ * endpoint, wait 700 ms, retry it once) — the pause between attempts
+ * is kept, but a retry now goes to a DIFFERENT endpoint, which is what
+ * recovers the panel when one endpoint is blocked from the visitor's
+ * network (the Nov 17 phone failure).
+ */
+async function attempt<T>(
+  providers: JsonRpcProvider[],
+  read: (provider: JsonRpcProvider) => Promise<T>,
+): Promise<T | null> {
+  for (let i = 0; i < providers.length; i += 1) {
+    if (i > 0) await delay(700);
+    try {
+      return await withTimeout(read(providers[i]), READ_TIMEOUT_MS);
+    } catch {
+      // This endpoint failed or timed out — fall over to the next one.
+    }
+  }
+  return null;
+}
+
+/**
+ * Read every terminal figure fresh from Polygon. Each read is independent
+ * and fails over across endpoints on its own: one failing call nulls only
+ * its own tile (and only after every endpoint failed it), never the
+ * whole panel.
  */
 export async function fetchTerminalSnapshot(): Promise<TerminalSnapshot> {
-  const provider = new JsonRpcProvider(TERMINAL_RPC);
-  const mtx = new Contract(TERMINAL_CONTRACTS.mtx, MTX_ABI, provider);
-  const pair = new Contract(TERMINAL_CONTRACTS.pair, PAIR_ABI, provider);
-  const vrf = new Contract(TERMINAL_CONTRACTS.vrfCoordinator, VRF_ABI, provider);
+  // staticNetwork is load-bearing, not an optimisation: ethers v6
+  // providers otherwise detect the network on first use, and a provider
+  // whose endpoint is unreachable retries that detection FOREVER in the
+  // background (logging "failed to detect network… retry in 1s") — an
+  // unbounded retry loop against exactly the blocked endpoints this
+  // failover exists for, stalling reads and stacking up across refresh
+  // cycles. The chain is known (Polygon mainnet, 137), so pin it: a
+  // dead endpoint then fails its reads fast and failover moves on.
+  const providers = TERMINAL_RPCS.map(
+    (url) => new JsonRpcProvider(url, 137, { staticNetwork: true }),
+  );
+  const read = <T>(fn: (provider: JsonRpcProvider) => Promise<T>) =>
+    attempt(providers, fn);
 
   const [blockNumber, supply, rate, paused, reserves, reserveBal, sub] =
     await Promise.all([
-      attempt(() => provider.getBlockNumber()),
-      attempt(() => mtx.totalSupply() as Promise<bigint>),
-      attempt(() => mtx.maticToMtxRate() as Promise<bigint>),
-      attempt(() => mtx.mintingPaused() as Promise<boolean>),
-      attempt(
-        () =>
-          pair.getReserves() as Promise<[bigint, bigint, number]>,
+      read((p) => p.getBlockNumber()),
+      read(
+        (p) =>
+          new Contract(TERMINAL_CONTRACTS.mtx, MTX_ABI, p).totalSupply() as Promise<bigint>,
       ),
-      attempt(
-        () =>
-          mtx.balanceOf(TERMINAL_CONTRACTS.casinoReserve) as Promise<bigint>,
+      read(
+        (p) =>
+          new Contract(TERMINAL_CONTRACTS.mtx, MTX_ABI, p).maticToMtxRate() as Promise<bigint>,
       ),
-      attempt(
-        () =>
-          vrf.getSubscription(TERMINAL_CONTRACTS.vrfSubscriptionId) as Promise<
-            [bigint, bigint, bigint, string, string[]]
+      read(
+        (p) =>
+          new Contract(TERMINAL_CONTRACTS.mtx, MTX_ABI, p).mintingPaused() as Promise<boolean>,
+      ),
+      read(
+        (p) =>
+          new Contract(TERMINAL_CONTRACTS.pair, PAIR_ABI, p).getReserves() as Promise<
+            [bigint, bigint, number]
           >,
+      ),
+      read(
+        (p) =>
+          new Contract(TERMINAL_CONTRACTS.mtx, MTX_ABI, p).balanceOf(
+            TERMINAL_CONTRACTS.casinoReserve,
+          ) as Promise<bigint>,
+      ),
+      read(
+        (p) =>
+          new Contract(TERMINAL_CONTRACTS.vrfCoordinator, VRF_ABI, p).getSubscription(
+            TERMINAL_CONTRACTS.vrfSubscriptionId,
+          ) as Promise<[bigint, bigint, bigint, string, string[]]>,
       ),
     ]);
 
