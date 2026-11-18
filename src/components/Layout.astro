@@ -82,7 +82,23 @@ const { title } = Astro.props;
       };
     </script>
     <title>{title}</title>
-    <!-- Note: External scripts (Google Analytics, Telegram Widget) are loaded without integrity hashes 
+    <!-- PWA (Arcade Season 2): installable app — manifest, theme, icons.
+         Service worker: /sw.js (network-first HTML, cache-first statics). -->
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#000000" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-title" content="Matrix Hub" />
+    <link rel="apple-touch-icon" href="/pwa/apple-touch-icon.png" />
+    <script is:inline>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', function () {
+          navigator.serviceWorker.register('/sw.js').catch(function () {});
+        });
+      }
+    </script>
+    <!-- Note: External scripts (Google Analytics, Telegram Widget) are loaded without integrity hashes
          as they are dynamically updated by their providers. Consider implementing CSP headers for additional security. -->
   </head>
   <body>
