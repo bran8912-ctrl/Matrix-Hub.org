@@ -1,5 +1,6 @@
 ---
 import Layout from "../components/Layout.astro";
+import GiscusComments from "../components/GiscusComments.astro";
 import { trendPosts } from "../data/trends";
 
 export const prerender = true;
@@ -34,6 +35,8 @@ const posts = [...trendPosts]
         </article>
       ))}
     </div>
+
+    <GiscusComments />
   </div>
 </Layout>
 
