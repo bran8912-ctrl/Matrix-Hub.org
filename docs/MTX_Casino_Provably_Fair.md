@@ -17,10 +17,14 @@ hash-based `RNGEngine`.
    payout can be checked on-chain through the bet state and events.
 5. A winner claims the recorded payout in a separate transaction.
 
-The bet is immutable after the randomness request is submitted. There is no
-cancel or timeout refund path, because it could permit selective rerolls.
-Requests may remain pending if the VRF subscription is underfunded or the
-oracle cannot fulfill them; subscription health must be monitored.
+The bet is immutable after the randomness request is submitted, and a
+player cannot cancel or reroll it. If the VRF callback never arrives, the
+bet becomes refundable after 1 hour (`STUCK_BET_REFUND_TIMEOUT`):
+governance may then refund the player's full stake from the reserve via
+`CasinoCore.refundStuckBet` — the share already routed to liquidity/dev is
+absorbed by the house, not deducted from the player. Requests may remain
+pending if the VRF subscription is underfunded or the oracle cannot
+fulfill them; subscription health must be monitored.
 
 Chainlink VRF proves that a requested random word was produced according to
 the coordinator's key and proof. It does not audit the casino's bet logic,
