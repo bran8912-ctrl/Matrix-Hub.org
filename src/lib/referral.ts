@@ -359,6 +359,32 @@ export function captureInviteFromUrl(
   return captureInvite(store, raw);
 }
 
+/**
+ * Extract an invite code from text decoded off a QR code
+ * (Card 4 — scan-to-join). Accepts the two things a Matrix Hub
+ * invite QR can contain: a full invite link (`…/?ref=XXXXXX`) or a
+ * bare 6-character code. Returns "" for anything else — including
+ * links without a `ref` param and codes of the wrong shape — so the
+ * scanner can keep scanning instead of filing a bad code.
+ */
+export function extractInviteCodeFromScan(text: string): string {
+  const raw = (text || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    const ref = url.searchParams.get("ref");
+    if (ref !== null) {
+      const code = normalizeInviteCode(ref);
+      return isValidInviteCode(code) ? code : "";
+    }
+    return "";
+  } catch {
+    /* not a URL — fall through to the bare-code check */
+  }
+  const bare = normalizeInviteCode(raw);
+  return isValidInviteCode(bare) ? bare : "";
+}
+
 /* ── Invite card state ────────────────────────────────────────────── */
 
 export interface ReferralState {
