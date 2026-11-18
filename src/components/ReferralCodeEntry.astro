@@ -27,6 +27,21 @@ export const prerender = true;
     </div>
     <p id="mh-ref-code-status" class="mh-ref-code-status" role="status" aria-live="polite"></p>
   </form>
+
+  <!-- Scan-to-join (Card 4 — Freya Lindqvist / Ethan Cole): a friend
+       holding a printed or on-screen invite QR can scan it instead of
+       typing the code. Any camera failure degrades to the manual box
+       above; nothing here replaces it. -->
+  <div class="mh-ref-scan-row">
+    <button type="button" id="mh-ref-scan-btn" class="mh-ref-code-btn">📷 Scan QR instead</button>
+  </div>
+  <div id="mh-ref-scan-panel" class="mh-ref-scan-panel" hidden>
+    <div id="mh-ref-scan-region" class="mh-ref-scan-region"></div>
+    <p id="mh-ref-scan-status" class="mh-ref-code-status" role="status" aria-live="polite"></p>
+    <div class="mh-ref-scan-row">
+      <button type="button" id="mh-ref-scan-close" class="mh-ref-code-btn">Close scanner</button>
+    </div>
+  </div>
 </div>
 
 <style>
@@ -85,10 +100,27 @@ export const prerender = true;
     line-height: 1.5;
     text-align: center;
   }
+  .mh-ref-scan-row { display: flex; justify-content: center; margin-top: 0.6rem; }
+  .mh-ref-scan-panel { margin-top: 0.75rem; }
+  .mh-ref-scan-panel[hidden] { display: none; }
+  .mh-ref-scan-region {
+    max-width: 320px;
+    margin: 0 auto;
+    border: 1px solid rgba(0, 255, 153, 0.4);
+    border-radius: 8px;
+    overflow: hidden;
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .mh-ref-scan-region video { width: 100% !important; display: block; }
 </style>
 
 <script>
-  import { browserStorage, captureInvite, normalizeInviteCode } from "../lib/referral";
+  import {
+    browserStorage,
+    captureInvite,
+    extractInviteCodeFromScan,
+    normalizeInviteCode,
+  } from "../lib/referral";
 
   (function () {
     const store = browserStorage();
@@ -110,6 +142,98 @@ export const prerender = true;
       } else {
         status.textContent = "That code does not look right. Invite codes are 6 letters or numbers.";
       }
+    });
+
+    /* ── Scan-to-join (Card 4 — Freya Lindqvist / Ethan Cole) ──────
+       html5-qrcode is in maintenance mode upstream — accepted in the
+       Nov 2026 OSS survey; pinned at 2.3.8. The scanner is isolated
+       behind this one dynamic import so swapping libraries later
+       touches only this block. Camera denial / no camera / insecure
+       context all degrade to the manual box above. */
+    const scanBtn = document.getElementById("mh-ref-scan-btn") as HTMLButtonElement | null;
+    const scanPanel = document.getElementById("mh-ref-scan-panel");
+    const scanStatus = document.getElementById("mh-ref-scan-status");
+    const scanClose = document.getElementById("mh-ref-scan-close") as HTMLButtonElement | null;
+
+    let scanner: any = null;
+    let scanning = false;
+    let lastForeignAt = 0;
+
+    async function stopScanner() {
+      if (scanner && scanning) {
+        try {
+          await scanner.stop();
+        } catch {
+          /* already stopped */
+        }
+        try {
+          scanner.clear();
+        } catch {
+          /* nothing rendered */
+        }
+      }
+      scanning = false;
+    }
+
+    function submitScannedCode(code: string) {
+      input.value = code;
+      if (typeof form.requestSubmit === "function") {
+        form.requestSubmit();
+      } else {
+        form.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+      }
+    }
+
+    function onDecoded(decodedText: string) {
+      const code = extractInviteCodeFromScan(decodedText);
+      if (code) {
+        void stopScanner();
+        if (scanPanel) scanPanel.hidden = true;
+        submitScannedCode(code);
+        return;
+      }
+      const now = Date.now();
+      if (scanStatus && now - lastForeignAt > 2500) {
+        lastForeignAt = now;
+        scanStatus.textContent =
+          "That QR is not a Matrix Hub invite — keep scanning, or type the code above.";
+      }
+    }
+
+    async function openScanner() {
+      if (!scanPanel || !scanStatus) return;
+      scanPanel.hidden = false;
+      scanStatus.textContent = "Starting the camera…";
+      try {
+        const mod = await import("html5-qrcode");
+        if (!scanner) scanner = new mod.Html5Qrcode("mh-ref-scan-region");
+        await scanner.start(
+          { facingMode: "environment" },
+          { fps: 10, qrbox: { width: 220, height: 220 } },
+          onDecoded,
+          () => {
+            /* per-frame decode misses are normal — stay silent */
+          },
+        );
+        scanning = true;
+        scanStatus.textContent = "Point the camera at a Matrix Hub invite QR.";
+      } catch {
+        scanning = false;
+        scanStatus.textContent =
+          "Camera is unavailable or permission was denied — type the 6-letter code in the box above instead.";
+      }
+    }
+
+    scanBtn?.addEventListener("click", () => {
+      if (scanPanel && !scanPanel.hidden) return;
+      void openScanner();
+    });
+    scanClose?.addEventListener("click", () => {
+      void stopScanner();
+      if (scanPanel) scanPanel.hidden = true;
+    });
+    window.addEventListener("pagehide", () => {
+      void stopScanner();
     });
   })();
 </script>
