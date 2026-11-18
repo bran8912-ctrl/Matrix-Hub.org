@@ -31,9 +31,12 @@ game-specific outcomes and payouts are authoritative on-chain.
 5. A winning player claims the payout in a separate transaction. A losing
    result releases its reserved payout capacity.
 
-There is no cancellation or timeout refund for a pending request. Adding one
-could allow players to discard an unfavorable result. The VRF subscription
-must remain funded so requests can be fulfilled.
+A player cannot cancel a pending request or discard its result. If the
+VRF callback never arrives, the bet becomes refundable after 1 hour
+(`STUCK_BET_REFUND_TIMEOUT`) and governance may refund the full stake
+from the reserve via `CasinoCore.refundStuckBet` (see Casino Game Math —
+Stuck bets). The VRF subscription must remain funded so requests can be
+fulfilled.
 
 ## Safety controls
 
