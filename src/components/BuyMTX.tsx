@@ -137,10 +137,10 @@ const BuyMTX: React.FC = () => {
   };
 
   return (
-    <div className="buy-mtx">
+    <div className="buy-mtx" data-tour="buy-panel">
       <div className="input-row">
-        <input value={polAmount} onChange={(e) => setPolAmount(e.target.value)} />
-        <button onClick={handleBuyMTX} disabled={loading || !MTX.isDeployed || contractReadError !== '' || mintingPaused}>Buy MTX</button>
+        <input data-tour="buy-pol-input" value={polAmount} onChange={(e) => setPolAmount(e.target.value)} />
+        <button data-tour="buy-submit" onClick={handleBuyMTX} disabled={loading || !MTX.isDeployed || contractReadError !== '' || mintingPaused}>Buy MTX</button>
       </div>
       {contractReadError && <div className="error">{contractReadError}</div>}
       {mintingPaused && !contractReadError && <div className="error">Direct minting is currently paused. Minting is unavailable right now — please check back later.</div>}
