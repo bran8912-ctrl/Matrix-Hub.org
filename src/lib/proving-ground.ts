@@ -47,11 +47,76 @@ export function scanUrl(address: string): string {
 // Device-local progress (never throws — storage can be unavailable)
 // ---------------------------------------------------------------------------
 
-export interface SpotProgress {
+/** Trainer difficulty. Normal is the original drill; Hard is the
+ *  enhancement-board deck: fewer real cards, only the harder lookalike
+ *  classes, and a 9/10 pass mark. */
+export type SpotDifficulty = 'normal' | 'hard';
+
+export const SPOT_PASS_MARKS: Record<SpotDifficulty, number> = {
+  normal: 8,
+  hard: 9,
+};
+
+export interface SpotDifficultyStats {
   best: number;
   bestStreak: number;
   runs: number;
   completed: boolean;
+  /**
+   * How many of this difficulty's runs were played in timed mode.
+   * Bests and streaks are deliberately NOT split by timed/untimed —
+   * the counter simply records that the clock was on.
+   */
+  timedRuns: number;
+}
+
+export interface SpotProgress {
+  /**
+   * Legacy aggregate fields. For backward compatibility these mirror the
+   * NORMAL difficulty stats (best / bestStreak / runs), except
+   * `completed`, which is true once EITHER difficulty has been passed —
+   * that is what module completion has always meant. Anything written
+   * before the hard-mode schema lands here unchanged.
+   */
+  best: number;
+  bestStreak: number;
+  runs: number;
+  completed: boolean;
+  /** The visitor's chosen difficulty — persisted, defaults to Normal. */
+  difficulty: SpotDifficulty;
+  /**
+   * The visitor's timed-mode preference — persisted, defaults to OFF.
+   * Anything stored before timed mode existed has no such field and
+   * migrates to false: the clock is strictly opt-in.
+   */
+  timed: boolean;
+  /** Per-difficulty records — the authoritative stats. */
+  byDifficulty: Record<SpotDifficulty, SpotDifficultyStats>;
+}
+
+/** Seconds on the clock per card when timed mode is on. */
+export const SPOT_CARD_SECONDS = 15;
+
+function zeroSpotStats(): SpotDifficultyStats {
+  return { best: 0, bestStreak: 0, runs: 0, completed: false, timedRuns: 0 };
+}
+
+function spotStatNum(v: unknown): number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0
+    ? Math.floor(v)
+    : 0;
+}
+
+function sanitizeSpotStats(
+  raw: Partial<SpotDifficultyStats> | undefined,
+): SpotDifficultyStats {
+  return {
+    best: spotStatNum(raw?.best),
+    bestStreak: spotStatNum(raw?.bestStreak),
+    runs: spotStatNum(raw?.runs),
+    completed: Boolean(raw?.completed),
+    timedRuns: spotStatNum(raw?.timedRuns),
+  };
 }
 
 export interface ProvingGroundProgress {
@@ -65,7 +130,15 @@ export const VERIFY_STEP_COUNT = 5;
 
 export function defaultProgress(): ProvingGroundProgress {
   return {
-    spot: { best: 0, bestStreak: 0, runs: 0, completed: false },
+    spot: {
+      best: 0,
+      bestStreak: 0,
+      runs: 0,
+      completed: false,
+      difficulty: 'normal',
+      timed: false,
+      byDifficulty: { normal: zeroSpotStats(), hard: zeroSpotStats() },
+    },
     mint: { runs: 0, completed: false },
     verify: {
       steps: Array(VERIFY_STEP_COUNT).fill(false),
@@ -81,7 +154,7 @@ export function loadProgress(): ProvingGroundProgress {
     if (!raw) return base;
     const parsed = JSON.parse(raw) as Partial<ProvingGroundProgress>;
     return {
-      spot: { ...base.spot, ...(parsed.spot ?? {}) },
+      spot: migrateSpotProgress(parsed.spot),
       mint: { ...base.mint, ...(parsed.mint ?? {}) },
       verify: {
         steps:
@@ -95,6 +168,59 @@ export function loadProgress(): ProvingGroundProgress {
   } catch {
     return base;
   }
+}
+
+/**
+ * Bring any stored spot progress — including the pre-hard-mode shape
+ * ({ best, bestStreak, runs, completed } with no difficulty fields) —
+ * up to the current schema. Old visitors keep every stat they earned:
+ * their legacy numbers become their Normal records verbatim. Never throws.
+ */
+export function migrateSpotProgress(
+  raw: Partial<SpotProgress> | undefined,
+): SpotProgress {
+  const legacy = sanitizeSpotStats(raw);
+  const bd = (raw as SpotProgress | undefined)?.byDifficulty;
+  const normal = bd?.normal ? sanitizeSpotStats(bd.normal) : legacy;
+  const hard = bd?.hard ? sanitizeSpotStats(bd.hard) : zeroSpotStats();
+  return {
+    best: normal.best,
+    bestStreak: normal.bestStreak,
+    runs: normal.runs,
+    completed: normal.completed || hard.completed,
+    difficulty: raw?.difficulty === 'hard' ? 'hard' : 'normal',
+    timed: raw?.timed === true,
+    byDifficulty: { normal, hard },
+  };
+}
+
+/**
+ * Record one finished trainer run against its difficulty and re-sync the
+ * legacy mirror fields. `timed` records that the run was played against
+ * the clock (counted in that difficulty's timedRuns; bests and streaks
+ * stay shared between timed and untimed runs). Returns true when the
+ * run passed that difficulty's pass mark.
+ */
+export function recordSpotRun(
+  p: ProvingGroundProgress,
+  difficulty: SpotDifficulty,
+  score: number,
+  bestStreakRun: number,
+  timed = false,
+): boolean {
+  const stats = p.spot.byDifficulty[difficulty];
+  stats.runs += 1;
+  if (timed) stats.timedRuns += 1;
+  stats.best = Math.max(stats.best, score);
+  stats.bestStreak = Math.max(stats.bestStreak, bestStreakRun);
+  const passed = score >= SPOT_PASS_MARKS[difficulty];
+  if (passed) stats.completed = true;
+  const n = p.spot.byDifficulty.normal;
+  p.spot.best = n.best;
+  p.spot.bestStreak = n.bestStreak;
+  p.spot.runs = n.runs;
+  p.spot.completed = n.completed || p.spot.byDifficulty.hard.completed;
+  return passed;
 }
 
 export function saveProgress(p: ProvingGroundProgress): void {
@@ -270,12 +396,46 @@ function mutate(changes: number, caseOnly: boolean): TrainerCard {
 }
 
 /**
- * One run of the trainer: 10 cards — 3 exact copies of the real address,
- * the known fake (exact, labelled on reveal), and 6 lookalikes of the
- * real address (three 1-change, one case-only flip, two 2-change,
- * one 3-change). Shuffled.
+ * Flip the case of `flips` letter characters of the real address —
+ * nothing else changes. Positions are drawn from letter positions only,
+ * so the card is genuinely case-only (the reveal copy says exactly that).
  */
-export function buildDeck(): TrainerCard[] {
+function mutateCaseFlips(flips: number): TrainerCard {
+  const body = REAL_MTX.slice(2).split('');
+  const letterPositions = body
+    .map((ch, i) => (/[a-f]/i.test(ch) ? i : -1))
+    .filter((i) => i >= 0);
+  const positions = shuffle(letterPositions).slice(0, flips);
+  for (const pos of positions) {
+    const original = body[pos];
+    body[pos] =
+      original === original.toLowerCase()
+        ? original.toUpperCase()
+        : original.toLowerCase();
+  }
+  return {
+    address: `0x${body.join('')}`,
+    kind: 'lookalike',
+    changes: flips,
+    caseOnly: true,
+  };
+}
+
+/**
+ * One run of the trainer, 10 cards, shuffled.
+ *
+ * Normal (the original drill): 3 exact copies of the real address, the
+ * known fake (exact, labelled on reveal), and 6 lookalikes (three
+ * 1-change, one case-only flip, one 2-change, one 3-change). Pass 8/10.
+ *
+ * Hard: only 2 exact copies of the real address against 8 hostile cards
+ * — the known fake plus 7 lookalikes drawn solely from the harder
+ * classes (two 2-change, two 3-change, three case-only flips of 2–3
+ * letters). No 1-change cards. Pass 9/10.
+ */
+export function buildDeck(
+  difficulty: SpotDifficulty = 'normal',
+): TrainerCard[] {
   const real: TrainerCard = {
     address: REAL_MTX,
     kind: 'real',
@@ -288,6 +448,20 @@ export function buildDeck(): TrainerCard[] {
     changes: countDiff(FAKE_MTX, REAL_MTX),
     caseOnly: false,
   };
+  if (difficulty === 'hard') {
+    return shuffle([
+      real,
+      { ...real },
+      knownFake,
+      mutate(2, false),
+      mutate(2, false),
+      mutate(3, false),
+      mutate(3, false),
+      mutateCaseFlips(2),
+      mutateCaseFlips(2),
+      mutateCaseFlips(3),
+    ]);
+  }
   return shuffle([
     real,
     { ...real },
