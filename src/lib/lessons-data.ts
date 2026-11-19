@@ -725,9 +725,75 @@ export const LESSONS: Lesson[] = [
       },
     ],
   },
+  {
+    id: 'lesson-13',
+    topic: 14,
+    title: 'Honest Gaps: Audit, Single-Key Control, Small Pool',
+    subtitle: 'The closing lesson — three open gaps, stated as plainly as the proofs.',
+    minutes: 3,
+    slides: [
+      {
+        heading: 'Gap one: no external audit yet',
+        paragraphs: [
+          'We finish this series the way it started: plainly. This closing lesson covers what is not in place yet — three gaps we disclose openly. The first is the audit.',
+          "Lesson 8 explained what \"verified on PolygonScan\" means: the source code of all 5 project contracts is public, and anyone can read it and check it against what runs on-chain. But verification is not an audit. The contracts passed an internal audit and a full testnet rehearsal — they have not had an independent external audit.",
+          'We have requested audit quotes from two firms. No audit has been commissioned, and none has been completed. Until one is done, we will keep saying it exactly that way: no external audit yet.',
+        ],
+        callout:
+          "Verified means open to read — it is not an outsider's stamp of approval. That stamp does not exist yet, and this lesson won't pretend it does.",
+      },
+      {
+        heading: 'Gap two: one key controls the contracts',
+        paragraphs: [
+          "Today, one wallet controls the MTX token and the casino contracts: the founder's wallet. That single key can change the mint rate, pause minting, and govern the casino contracts. Its address is published — here it is, and it is also on the /security page, so anyone can watch what it does:",
+        ],
+        mono: '0x9fb4bb44d8d962d695fc93b3dc15f1b287391077',
+        callout:
+          'A multisig wallet exists — but no contract has been handed over to it, so it controls nothing today. Until that changes, using these contracts means trusting that one key holder. That is a trust assumption, and we name it rather than dress it up.',
+      },
+      {
+        heading: 'Gap three: the pool is small — and the point of this series',
+        paragraphs: [
+          "The third gap is the swap pool. The QuickSwap pool that swaps MTX and POL is small — the block below is its whole contents today, and no swaps have gone through it yet. A further 99,000 MTX sits in a separate contract, the LiquidityRouter, set aside for liquidity — it is not in the pool, and we don't pretend it is.",
+          'What that means in practice is Lesson 9 applied: in a pool this small, only small amounts swap cleanly. A larger swap moves the pool\'s balance a lot, so it can come out worse than the estimate suggested. If you swap at all, read the /sell-mtx page first and start with a very small test amount. We make no promises about the pool growing — it is what it is today, and we say so.',
+          "All three gaps in this lesson are written down on the /security page, and we will update that page as they close. That was the point of this whole series: not \"trust us\" — check for yourself. You now have every tool the series could give you: the real address, the verified code, the numbers, and the list of what is still missing.",
+        ],
+        mono: '1 POL + 1,000 MTX',
+        callout:
+          'Every gap in this lesson is on matrix-hub.org/security — check there any time, and hold us to updating it as things change.',
+      },
+    ],
+    quiz: [
+      {
+        question: 'Our contracts are verified on PolygonScan. What is still missing?',
+        options: [
+          'Nothing — verification is the final step',
+          'An independent external audit — quotes have been requested from two firms, but no audit has been commissioned or completed yet',
+          'A listing on an exchange',
+        ],
+        answerIndex: 1,
+        why: "Verification means the code is public and readable (Lesson 8). An external audit is a separate step, done by an independent firm: quotes requested from two firms, none commissioned, none completed. We keep saying 'no external audit yet' until that changes.",
+      },
+      {
+        question: 'Who controls the MTX token and the casino contracts today?',
+        options: [
+          'A multisig wallet shared by the team',
+          'Nobody — the contracts run themselves',
+          'One founder wallet — its address is published on /security; a multisig exists, but no contract has been handed over to it, so it controls nothing today',
+        ],
+        answerIndex: 2,
+        why: 'Every owner and governance read returns the single founder wallet (proof pack §6). The multisig exists, but governance has not been transferred to it — so today, control is one key, and the address is public so anyone can watch what it does.',
+      },
+    ],
+  },
 ];
 
-/** Remaining MTX 101 topics, in canonical topic order — decks in production. */
-export const SYLLABUS_UPCOMING: { topic: string; title: string }[] = [
-  { topic: '14', title: 'Honest gaps: audit, single-key control, small pool' },
-];
+/**
+ * Remaining MTX 101 topics — NONE. The series is complete: every topic on
+ * Anya's calendar that carries a lesson is live in LESSONS above (Topic 14
+ * is Lesson 13, the closing lesson), and the classroom index renders its
+ * completion note from this empty list. A new topic joins this list only
+ * when there is verified material to teach — a topic is never announced
+ * ahead of its proof.
+ */
+export const SYLLABUS_UPCOMING: { topic: string; title: string }[] = [];
