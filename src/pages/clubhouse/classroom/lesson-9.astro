@@ -1,0 +1,42 @@
+---
+import Layout from "../../../components/Layout.astro";
+import LessonDeck from "../../../components/clubhouse/LessonDeck";
+import { LESSONS } from "../../../lib/lessons-data";
+
+export const prerender = true;
+
+export const title = "MTX 101 Lesson 9 — Fees and Slippage in Plain Words";
+export const navCategory = "clubhouse";
+
+const lesson = LESSONS[8];
+---
+
+<Layout title="Lesson 9: Fees and Slippage in Plain Words - MTX 101 Classroom - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-2 text-sm text-green-300/80">
+      <a href="/clubhouse/classroom" class="hover:text-green-300">← MTX 101 Classroom</a>
+    </p>
+    <h1 class="text-4xl font-bold mb-3 text-green-400">{lesson.title}</h1>
+    <p class="text-xl text-gray-300 mb-8">{lesson.subtitle}</p>
+
+    <LessonDeck
+      client:load
+      lesson={lesson}
+      lessonNumber={9}
+      totalLessons={LESSONS.length}
+    />
+
+    <div class="mt-10 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-xl font-bold text-green-400 mb-2">About this lesson</h2>
+      <p class="text-gray-300">
+        Drawn from Anya Kowalski's approved MTX 101 education series —
+        the swapping lessons, in the series' plain-words style. Facts
+        checked against the 2026-11-12 public proof pack; the pages this
+        lesson points to are{' '}
+        <a href="/sell-mtx" class="text-green-300 underline">matrix-hub.org/sell-mtx</a>{' '}
+        and the proof page,{' '}
+        <a href="/security" class="text-green-300 underline">matrix-hub.org/security</a>.
+      </p>
+    </div>
+  </div>
+</Layout>
