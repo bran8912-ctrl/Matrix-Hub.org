@@ -172,6 +172,10 @@ export default function DiceGame({
 
       <div className="mb-6 text-center">
         <p className="text-gray-300 mb-2">Minimum bet: {DiceEngine.BET_AMOUNT} MTX</p>
+        <p className="text-gray-300 mb-2">
+          Maximum bet: {DiceEngine.MAX_BET_AMOUNT.toLocaleString('en-US')} MTX · Max payout:{' '}
+          {DiceEngine.MAX_PAYOUT} MTX
+        </p>
         <p className="text-yellow-400 font-semibold">Your balance: {mtxBalance.toFixed(2)} MTX</p>
       </div>
 
@@ -251,9 +255,17 @@ export default function DiceGame({
           <input
             type="number"
             min={DiceEngine.BET_AMOUNT}
+            max={DiceEngine.MAX_BET_AMOUNT}
             step={0.5}
             value={betAmount}
-            onChange={(event) => setBetAmount(Math.max(DiceEngine.BET_AMOUNT, Number(event.target.value)))}
+            onChange={(event) =>
+              setBetAmount(
+                Math.min(
+                  DiceEngine.MAX_BET_AMOUNT,
+                  Math.max(DiceEngine.BET_AMOUNT, Number(event.target.value)),
+                ),
+              )
+            }
             className="w-full bg-gray-700 text-white px-4 py-2 rounded border border-gray-600"
           />
         </div>
@@ -295,7 +307,7 @@ export default function DiceGame({
           <li>Choose your bet and a target from 2 to 98.</li>
           <li>Chainlink VRF supplies the roll after the bet is confirmed.</li>
           <li>Win if the on-chain roll is lower than your target.</li>
-          <li>Winning payouts are 98% RTP before the configured per-bet cap.</li>
+          <li>Winning payouts are 98% RTP, capped at {DiceEngine.MAX_PAYOUT} MTX per bet.</li>
           <li>Winning MTX is claimed after settlement; pending bets cannot be cancelled.</li>
         </ul>
       </div>
