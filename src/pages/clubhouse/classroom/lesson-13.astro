@@ -1,0 +1,49 @@
+---
+import Layout from "../../../components/Layout.astro";
+import LessonDeck from "../../../components/clubhouse/LessonDeck";
+import { LESSONS } from "../../../lib/lessons-data";
+
+export const prerender = true;
+
+export const title = "MTX 101 Lesson 13 — Honest Gaps: Audit, Single-Key Control, Small Pool";
+export const navCategory = "clubhouse";
+
+const lesson = LESSONS[12];
+---
+
+<Layout title="Lesson 13: Honest Gaps: Audit, Single-Key Control, Small Pool - MTX 101 Classroom - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-2 text-sm text-green-300/80">
+      <a href="/clubhouse/classroom" class="hover:text-green-300">← MTX 101 Classroom</a>
+    </p>
+    <h1 class="text-4xl font-bold mb-3 text-green-400">{lesson.title}</h1>
+    <p class="text-xl text-gray-300 mb-8">{lesson.subtitle}</p>
+
+    <LessonDeck
+      client:load
+      lesson={lesson}
+      lessonNumber={13}
+      totalLessons={LESSONS.length}
+    />
+
+    <div class="mt-10 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-xl font-bold text-green-400 mb-2">About this lesson</h2>
+      <p class="text-gray-300">
+        Adapted from Anya Kowalski's approved MTX 101 education series —
+        the closing Topic 14 post, "Our Honest Gaps, in One Post." Every
+        statement is checked against the 2026-11-12 public proof pack:
+        no external audit yet — quotes requested from two firms, none
+        commissioned or completed, and verification is not an audit (§9);
+        one founder wallet controlling the MTX token and the casino
+        contracts, its address published so anyone can watch it (§6),
+        with a multisig that exists but has been handed control of
+        nothing; and the QuickSwap pool holding exactly 1 POL + 1,000
+        MTX, with a further 99,000 MTX in the LiquidityRouter that is
+        not in the pool (§4). All three gaps are disclosed on{' '}
+        <a href="/security" class="text-green-300 underline">matrix-hub.org/security</a> —
+        this lesson closes the series the way it ran: check for
+        yourself, rather than take the site's word for it.
+      </p>
+    </div>
+  </div>
+</Layout>
