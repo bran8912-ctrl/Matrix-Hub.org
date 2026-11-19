@@ -38,6 +38,14 @@ export interface Lesson {
 
 export const REAL_MTX_ADDRESS = '0x53307e1db6c5cb6773c9495ca140372016dfe266';
 
+/**
+ * The known fake "MTX" — WARNING ONLY. PolygonScan flags this address as
+ * Fake_Phishing8012348 / Phish — Hack (proof pack). It appears in Lesson 7
+ * only, and only as a labelled warning example — the same discipline as the
+ * Proving Ground's Spot the Fake trainer. Never present it as MTX.
+ */
+export const FAKE_MTX_ADDRESS = '0xDCb51dE3359C946364F707556aC8e6C6f2e69A8a';
+
 export const LESSONS: Lesson[] = [
   {
     id: 'lesson-1',
@@ -362,12 +370,179 @@ export const LESSONS: Lesson[] = [
       },
     ],
   },
+  {
+    id: 'lesson-7',
+    topic: 7,
+    title: 'Spotting the Fake Token',
+    subtitle: 'The flagged fake, shown only as a warning — and the rules that protect you.',
+    minutes: 3,
+    slides: [
+      {
+        heading: '⚠️ A fake token is out there',
+        paragraphs: [
+          'Safety lesson — please read, even if you never use MTX.',
+          'There is a fake token using a similar name. PolygonScan flags that address as Fake_Phishing8012348 / Phish — Hack.',
+        ],
+        mono: FAKE_MTX_ADDRESS,
+        callout:
+          'WARNING — this is NOT MTX. Do not use it. It is shown here only as a labelled warning, so you can recognise and avoid it.',
+      },
+      {
+        heading: 'Three rules that protect you',
+        bullets: [
+          '1. The team will never ask for your seed phrase. Anyone who does is not us',
+          '2. There is no "send tokens to verify your wallet" step. It does not exist',
+          '3. Always compare any address with the real one on matrix-hub.org/security before you do anything',
+        ],
+      },
+      {
+        heading: 'If someone pressures you',
+        paragraphs: [
+          'If someone messages you offering help that involves your seed phrase or sending tokens first, close the chat and tell an admin in the main group.',
+          'No rush, no pressure — real help never needs either of those things.',
+        ],
+        callout:
+          "This lesson is the short version. Ruth's Safety Bulletin #1 is the long version — ask an admin if you want the link. Hands-on practice: the Proving Ground's Spot the Fake trainer.",
+      },
+    ],
+    quiz: [
+      {
+        question:
+          'PolygonScan flags the look-alike token in this lesson as "Fake_Phishing8012348 / Phish — Hack". What is it?',
+        options: [
+          'A newer, faster version of MTX',
+          'NOT MTX — a flagged fake, shown in this lesson only as a labelled warning so you can avoid it',
+          'A test token the team wants you to try',
+        ],
+        answerIndex: 1,
+        why: 'There is only one real MTX contract (Lesson 2). The flagged address is a fake using a similar name — recognise it, and avoid it.',
+      },
+      {
+        question:
+          'A message says: "Send some tokens first so we can verify your wallet, and type in your seed phrase." What do you do?',
+        options: [
+          'Send a small amount — a verification step sounds official',
+          'Close the chat and tell an admin — there is no "send tokens to verify" step, and the team will never ask for your seed phrase',
+          'Share the seed phrase but send nothing',
+        ],
+        answerIndex: 1,
+        why: 'Both requests are the warning signs from this lesson. Real help never needs your seed phrase or tokens sent first.',
+      },
+    ],
+  },
+  {
+    id: 'lesson-8',
+    topic: 8,
+    title: 'Reading PolygonScan Without Panic',
+    subtitle: 'What "verified" really means — and what it does not.',
+    minutes: 2,
+    slides: [
+      {
+        heading: 'What "verified" actually means',
+        paragraphs: [
+          'We say our contracts are "verified on PolygonScan." What does that actually mean — and what does it not mean?',
+          'It means the source code for the contract is public on PolygonScan, and anyone can read it and check that the published code matches the contract running on Polygon.',
+        ],
+      },
+      {
+        heading: 'Open to read — all 5 contracts',
+        paragraphs: [
+          "All 5 project contracts are verified this way. You don't have to take our word for how a contract behaves — you, or anyone you trust who reads code, can look.",
+        ],
+        callout: 'Start at matrix-hub.org/security and follow the links yourself.',
+      },
+      {
+        heading: 'What verified does NOT mean',
+        paragraphs: [
+          'Verification is not an audit, and it is not a guarantee.',
+          'A separate, external audit is a different step — we have requested quotes for one, it is in progress, and we have not had one yet. We say that plainly on /security, and we say it here too.',
+        ],
+        callout: 'Verified = open to read. That transparency is the point — no panic, and no blind trust either.',
+      },
+    ],
+    quiz: [
+      {
+        question: 'What does "verified on PolygonScan" mean?',
+        options: [
+          'An external firm has audited the contract and guarantees it',
+          'The source code is public, and anyone can check it matches the contract running on Polygon',
+          'PolygonScan recommends the token',
+        ],
+        answerIndex: 1,
+        why: 'Verification means the published source code can be read and checked against the contract on-chain. All 5 project contracts are verified this way.',
+      },
+      {
+        question: 'Has Matrix Hub had a separate, external audit?',
+        options: [
+          "No — quotes have been requested and it is in progress; verification is not an audit, and we say so plainly",
+          'Yes — verification on PolygonScan was the audit',
+          'Yes — before the contracts were deployed',
+        ],
+        answerIndex: 0,
+        why: 'Verification is not an audit. An external audit is a different step — requested, in progress, and not done yet.',
+      },
+    ],
+  },
+  {
+    id: 'lesson-9',
+    topic: 9,
+    title: 'Fees and Slippage in Plain Words',
+    subtitle: 'Two swap words, explained plainly — with the small-pool note.',
+    minutes: 3,
+    slides: [
+      {
+        heading: 'Two words, in plain words',
+        paragraphs: [
+          'Fee: a small cost for doing something. Every action on a blockchain network — a mint, a swap — carries a small network fee. On Polygon, that fee is paid in POL, which is one more reason the earlier lessons tell you to keep POL in your wallet.',
+          'Slippage: the gap between the amount you expected to receive from a swap and the amount you actually receive.',
+        ],
+      },
+      {
+        heading: 'Why slippage grows in a small pool',
+        paragraphs: [
+          'A swap pool is two piles of tokens. When you swap, you take from one pile and add to the other — so every swap changes the balance, and the next swap is worked out from the new balance.',
+          'Our swap pool is small today:',
+        ],
+        mono: '1 POL + 1,000 MTX',
+        callout: 'In a small pool, a larger swap moves the balance a lot — so it may not go through the way you expect.',
+      },
+      {
+        heading: 'Three habits that keep it simple',
+        bullets: [
+          'Read the estimate before you confirm — and confirm only if it matches what you expected',
+          'Start with a very small test amount if you swap',
+          'Read the /sell-mtx page fully before you try a swap',
+        ],
+        callout: 'None of this is hidden: the pool size and every step are on matrix-hub.org/sell-mtx and /security.',
+      },
+    ],
+    quiz: [
+      {
+        question: 'In plain words, what is slippage?',
+        options: [
+          'A penalty the website adds to large swaps',
+          'The gap between the amount you expected to receive from a swap and the amount you actually receive',
+          'A discount for swapping small amounts',
+        ],
+        answerIndex: 1,
+        why: 'Slippage is that gap. It is a property of how swap pools work — and it grows when the pool is small.',
+      },
+      {
+        question: 'Why can a larger swap come out worse than expected here?',
+        options: [
+          'The pool is small today (1 POL + 1,000 MTX), so a larger swap moves its balance a lot',
+          'The site charges extra for a first swap',
+          'Swaps only work at certain times of day',
+        ],
+        answerIndex: 0,
+        why: 'Every swap changes the pool balance, and the next one is worked out from the new balance. That is why Lesson 6 says: start with a very small test amount.',
+      },
+    ],
+  },
 ];
 
 /** Remaining MTX 101 topics, in canonical topic order — decks in production. */
 export const SYLLABUS_UPCOMING: { topic: string; title: string }[] = [
-  { topic: '7', title: 'Spotting the fake token (safety)' },
-  { topic: '8', title: 'What "verified on PolygonScan" actually means' },
   { topic: '9', title: 'Supply + the hard cap, in plain numbers' },
   { topic: '11 + 12', title: 'Dice, Chainlink VRF fairness, and stuck-bet refund protection' },
   { topic: '13', title: 'Referral invites — cosmetic perks only' },
