@@ -147,10 +147,19 @@ const endpointPath = LEAD_INTAKE_URL;
   const form = document.getElementById('n8n-cta-form') as HTMLFormElement | null;
   const resultNode = document.getElementById('n8n-demo-result');
   const endpointPath = form?.getAttribute('data-endpoint') || '';
+  const submitButton = form?.querySelector<HTMLButtonElement>('button[type="submit"]');
+  let sending = false;
 
   if (form && resultNode) {
     form.addEventListener('submit', async (event) => {
       event.preventDefault();
+
+      // In-flight guard: a second submit while one is already sending
+      // (double click, or requestSubmit() re-entry, which a disabled
+      // button alone does not stop) must not create a duplicate lead.
+      if (sending) return;
+      sending = true;
+      if (submitButton) submitButton.disabled = true;
 
       const formData = new FormData(form);
       const automationNeeds = Array.from(form.querySelectorAll<HTMLInputElement>('input[name="automationNeeds"]:checked'))
@@ -194,6 +203,9 @@ const endpointPath = LEAD_INTAKE_URL;
         }
       } catch {
         resultNode.textContent = "That didn't go through — your request was NOT sent. Please try again, or open an issue in the GitHub repository linked on this page.";
+      } finally {
+        sending = false;
+        if (submitButton) submitButton.disabled = false;
       }
     });
   }
