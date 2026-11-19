@@ -14,6 +14,7 @@
 // timeout, and an explicit failure result instead of a stale number.
 import { Contract, JsonRpcProvider } from 'ethers';
 import confetti from './vendor/canvas-confetti.js';
+import htmlToImage from './vendor/html-to-image.js';
 
 /** The one real MTX contract (proof pack §1). */
 export const REAL_MTX = '0x53307e1db6c5cb6773c9495ca140372016dfe266';
@@ -524,6 +525,34 @@ export function burstConfetti(): void {
   } catch {
     burstConfettiFallback();
   }
+}
+
+/**
+ * Render a purpose-built DOM node to a PNG and hand it to the visitor as
+ * a download — the Spot the Fake result card. Everything happens on the
+ * visitor's own device: the vendored html-to-image (MIT — see
+ * src/lib/vendor/html-to-image.js) draws the node locally, and the file
+ * goes straight to the visitor's downloads. Nothing is uploaded, posted,
+ * or sent anywhere; sharing the card afterwards is the visitor's own
+ * choice, with their own tools. skipFonts is safe because the card uses
+ * system font stacks only. Throws on failure — the caller shows an
+ * honest failure note and the run's result still stands.
+ */
+export async function downloadResultCardPng(
+  node: HTMLElement,
+  filename: string,
+): Promise<void> {
+  const dataUrl = await htmlToImage.toPng(node, {
+    cacheBust: true,
+    skipFonts: true,
+    pixelRatio: 2,
+  });
+  const a = document.createElement('a');
+  a.download = filename;
+  a.href = dataUrl;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
 }
 
 /** Hand-rolled fallback burst — used only if the vendored lib fails. */
