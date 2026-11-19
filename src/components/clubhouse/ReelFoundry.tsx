@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
+  BURN_IN_PRESETS,
   cuesToSrt,
   cuesToVtt,
   enableCrossOriginIsolation,
@@ -8,10 +9,12 @@ import {
   exportTrimmedWebM,
   extractPcmSlice,
   formatCaptionTime,
+  getBurnInPreset,
   isolationAlreadyAttempted,
   loadWhisper,
   parseCaptionText,
   transcribePcm,
+  type BurnInPresetId,
   type CaptionCue,
   type WhisperPhase,
 } from '../../lib/foundry';
@@ -46,6 +49,9 @@ export default function ReelFoundry() {
   const [capSize, setCapSize] = useState<CapSize>('standard');
   const [capPos, setCapPos] = useState<CapPos>('bottom');
   const [capBg, setCapBg] = useState(true);
+  // Like the other studio style choices above, the look is kept for this
+  // session only — the studio persists no preferences between visits.
+  const [capPreset, setCapPreset] = useState<BurnInPresetId>('classic');
 
   const [whisperPhase, setWhisperPhase] = useState<WhisperPhase>('idle');
   const [whisperPct, setWhisperPct] = useState(0);
@@ -312,12 +318,12 @@ export default function ReelFoundry() {
         trimStart,
         trimEnd,
         cues,
-        { size: capSize, position: capPos, background: capBg },
+        { size: capSize, position: capPos, background: capBg, preset: capPreset },
         setBurnPct,
       );
       downloadBlob(res.blob, res.filename);
       setExportMsg(
-        `Captioned clip downloaded — engine: ${res.engine}. The captions are part of the picture now, in the style you picked above.`,
+        `Captioned clip downloaded — engine: ${res.engine}. The captions are part of the picture now, in the ${getBurnInPreset(capPreset).name} look you picked above.`,
       );
     } catch (e) {
       setExportMsg(`Captioned export failed: ${e instanceof Error ? e.message : String(e)}`);
@@ -327,7 +333,21 @@ export default function ReelFoundry() {
     }
   }
 
-  const capFontSize = capSize === 'large' ? '1.35rem' : '1rem';
+  // The preview overlay is styled from the same preset definitions the
+  // burn-in draws with (lib/foundry BURN_IN_PRESETS) — what you see here
+  // is what the captioned WebM export burns.
+  const capPresetDef = getBurnInPreset(capPreset);
+  const capFontSize = `${((capSize === 'large' ? 1.35 : 1) * capPresetDef.fontScale).toFixed(3)}rem`;
+  const capPreviewStyle: React.CSSProperties = {
+    fontSize: capFontSize,
+    fontWeight: capPresetDef.fontWeight,
+    backgroundColor:
+      capBg && capPresetDef.backingStyle === 'block' ? capPresetDef.backingColor : 'transparent',
+    textShadow:
+      capBg && capPresetDef.backingStyle === 'outline'
+        ? '0 0 3px rgba(0, 0, 0, 0.9), 0 0 7px rgba(0, 0, 0, 0.9), 0 1px 2px rgba(0, 0, 0, 0.9)'
+        : 'none',
+  };
 
   return (
     <div className="space-y-8">
@@ -426,10 +446,8 @@ export default function ReelFoundry() {
                 >
                   {activeCue && (
                     <span
-                      style={{ fontSize: capFontSize }}
-                      className={`rounded px-3 py-1 text-center font-semibold leading-snug text-white ${
-                        capBg ? 'bg-black/75' : ''
-                      }`}
+                      style={capPreviewStyle}
+                      className="rounded px-3 py-1 text-center leading-snug text-white"
                     >
                       {activeCue.text}
                     </span>
@@ -618,6 +636,21 @@ export default function ReelFoundry() {
         <div className="mt-5 flex flex-wrap items-center gap-4 text-sm text-gray-300">
           <span className="font-semibold text-gray-100">Preview style:</span>
           <label>
+            Look{' '}
+            <select
+              value={capPreset}
+              onChange={(e) => setCapPreset(e.target.value as BurnInPresetId)}
+              className="rounded bg-gray-900 px-2 py-1 text-gray-100"
+            >
+              {BURN_IN_PRESETS.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="text-gray-500">{capPresetDef.blurb}</span>
+          <label>
             Size{' '}
             <select
               value={capSize}
@@ -648,7 +681,7 @@ export default function ReelFoundry() {
             />
             Dark backing behind text
           </label>
-          <span className="text-gray-500">Style applies to the preview and to the captioned WebM export; the .SRT/.VTT files keep plain text + timing.</span>
+          <span className="text-gray-500">Style applies to the preview and to the captioned WebM export. Each look has its own backing — a dark block for Classic and Bold, a dark outline for Minimal — and the backing toggle turns it on or off. The .SRT/.VTT files keep plain text + timing.</span>
         </div>
 
         {/* Cue editor */}
