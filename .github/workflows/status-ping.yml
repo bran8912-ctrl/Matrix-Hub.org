@@ -1,0 +1,124 @@
+# Status ping — the Glass Wall's status monitor (Clubhouse Phase 2).
+#
+# DESTINATION: .github/workflows/status-ping.yml in this repo.
+# The ping script it runs lives at .github/scripts/ping-status.mjs.
+#
+# WHAT IT DOES: about every 30 minutes it pings the site's key public
+# URLs (the list lives in the script), and publishes the result as
+# status.json on the dedicated `status` branch. The Glass Wall's
+# status panel reads that file over raw.githubusercontent.com:
+#   https://raw.githubusercontent.com/bran8912-ctrl/Matrix-Hub.org/status/status.json
+#
+# WHY IT EXISTS: the status feed used to wait on a separate Upptime
+# repo and a personal access token. Brandon's call (2026-11-18):
+# "figure out a work around." This is the workaround — everything
+# inside infrastructure this repo already has. NO new repo, NO PAT:
+# the only credential is the workflow's built-in GITHUB_TOKEN, scoped
+# to this repo by GitHub itself.
+#
+# DESIGN FACTS (verified 2026-11-18, see
+# bot-core/clubhouse/status-feed/README.md for the evidence):
+#   - raw.githubusercontent.com serves Access-Control-Allow-Origin: *,
+#     so the browser panel can fetch the file cross-origin.
+#   - This repo is public and its default branch is Hub10, so the
+#     schedule below (schedules only fire from the default branch)
+#     works from here.
+#   - The Pages deploy workflow (astro.yml) triggers ONLY on pushes
+#     to Hub10 — and pushes made with GITHUB_TOKEN do not trigger
+#     push workflows at all — so status-branch commits can never
+#     cause a site deploy.
+#   - The script reports changed=true ONLY when a check actually
+#     flipped state (a heartbeat is not a change), and the publish
+#     step below is gated on it: status-branch commits stay rare and
+#     each one means something went up or down.
+#   - The status branch is created by this workflow on its first
+#     publish (orphan branch holding just status.json + a README) —
+#     no manual branch setup.
+#
+# ONE SETTING TO KNOW: the publish step needs the repo's Actions
+# workflow permissions to allow writes (Settings → Actions → General
+# → Workflow permissions → "Read and write permissions"). The
+# `permissions:` block below asks for exactly contents:write; if the
+# repo setting caps it at read-only, the first publish fails with a
+# 403 and that toggle is the fix. No token is involved either way.
+
+name: Status ping
+
+on:
+  schedule:
+    # Every 30 minutes. GitHub may delay scheduled runs under load;
+    # the panel's per-check "since" times stay truthful regardless.
+    - cron: "*/30 * * * *"
+  # Lets HQ fire the first publish immediately after this lands,
+  # instead of waiting for the next cron tick.
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Never let two runs race the same branch.
+concurrency:
+  group: status-ping
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    name: Ping key URLs and publish on change
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (for the ping script)
+        uses: actions/checkout@v4
+
+      - name: Fetch the status branch (or note the first run)
+        id: prev
+        run: |
+          set -euo pipefail
+          WORK="$RUNNER_TEMP/status-work"
+          mkdir -p "$WORK"
+          git init -q "$WORK"
+          cd "$WORK"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add origin "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git"
+          if git fetch -q origin status; then
+            git checkout -q -b status FETCH_HEAD
+            echo "Status branch exists — publishing on top of it."
+          else
+            git checkout -q --orphan status
+            echo "First run: the status branch is created by the publish step."
+          fi
+          if [ -f status.json ]; then
+            cp status.json "$RUNNER_TEMP/prev.json"
+          fi
+          echo "workdir=$WORK" >> "$GITHUB_OUTPUT"
+
+      - name: Ping the checks
+        id: ping
+        run: |
+          node .github/scripts/ping-status.mjs \
+            --prev "$RUNNER_TEMP/prev.json" \
+            --out "$RUNNER_TEMP/next.json"
+
+      - name: Publish — commit only when a status changed
+        if: steps.ping.outputs.changed == 'true'
+        run: |
+          set -euo pipefail
+          cd "${{ steps.prev.outputs.workdir }}"
+          cp "$RUNNER_TEMP/next.json" status.json
+          if [ ! -f README.md ]; then
+            printf '%s\n' \
+              '# status branch' \
+              '' \
+              'Machine-published by the "Status ping" workflow on Hub10' \
+              '(.github/workflows/status-ping.yml). Holds one file:' \
+              'status.json — the current up/down state of the sites key' \
+              'public URLs, consumed by the Glass Wall status panel' \
+              '(/clubhouse/glass-wall/). A commit here means a check' \
+              'changed state; the workflow commits nothing when nothing' \
+              'changed. Do not edit by hand.' \
+              > README.md
+          fi
+          git add status.json README.md
+          git commit -q -m "status: ${{ steps.ping.outputs.changed_names }}"
+          git push -q origin status
+          echo "Published to the status branch."
