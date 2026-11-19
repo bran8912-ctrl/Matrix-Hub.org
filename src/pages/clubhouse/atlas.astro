@@ -24,7 +24,13 @@ export const navCategory = "clubhouse";
       pad on a phone. The twin fountains and the gold MTX coin mark the
       plaza at the centre of town. To see what a building is before you
       walk over: hover it with a pointer, tab to its door marker, or press
-      and hold it on a touch screen — a preview card names it first.
+      and hold it on a touch screen — a preview card names it first. The
+      stone plinth beside the coin is yours: it carries your own Proving
+      Ground completions from this device as medallions — earned ones lit
+      gold, the rest empty sockets. The plinth previews the same way as
+      the buildings — hover it, tab to its marker, or press and hold it,
+      and a card reads your three medallions back to you, earned or not,
+      from the same record the stone itself shows.
     </p>
 
     <div
@@ -41,6 +47,41 @@ export const navCategory = "clubhouse";
     <h2 class="text-2xl font-bold mt-12 mb-4 text-green-400">
       Every door, as a link
     </h2>
+    <div
+      class="mb-4 rounded-lg border border-green-700/60 bg-gray-900/60 p-4"
+      data-testid="pg-summary"
+    >
+      <p class="text-gray-200">
+        <strong class="text-amber-300">Your Proving Ground progress:</strong>
+        <span id="pg-summary-text">
+          No Proving Ground record on this device yet — all three modules
+          are waiting in
+          <a class="font-semibold text-green-400 underline" href="/proving-ground/">the Proving Ground</a>.
+          Finish one and its medallion lights up on the plaza plinth,
+          right here on this device.
+        </span>
+      </p>
+    </div>
+    <script>
+      import {
+        PROVING_GROUND_MODULES,
+        readProvingGroundSummary,
+      } from "../../lib/atlas";
+      // Same defensive reader the plinth uses: a record replaces the
+      // no-record line above with the exact count this device holds;
+      // anything unreadable simply leaves the honest default in place.
+      const el = document.getElementById("pg-summary-text");
+      const summary = readProvingGroundSummary();
+      if (el && summary) {
+        const done = PROVING_GROUND_MODULES.filter(
+          (_, i) => summary.completed[i],
+        ).map((m) => m.title);
+        el.textContent =
+          `Your Proving Ground completions on this device: ${summary.count} of ${summary.total}` +
+          (done.length ? ` — ${done.join(" · ")}.` : " — none yet.") +
+          " The stone plinth by the plaza coin shows them as medallions.";
+      }
+    </script>
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {
         BUILDINGS.map((b) => (
