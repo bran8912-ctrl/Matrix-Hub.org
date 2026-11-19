@@ -203,8 +203,14 @@ const STEPS = [
 
     var orderForm = document.getElementById('order-form');
     var submitBtn = orderForm.querySelector('button[type="submit"]');
+    var sending = false;
     orderForm.addEventListener('submit', function (e) {
       e.preventDefault();
+      // In-flight guard: a second submit while one is already sending
+      // (double click, or requestSubmit() re-entry, which the disabled
+      // button alone does not stop) must not create a duplicate order.
+      if (sending) return;
+      sending = true;
       var p = currentPackage();
       var biz = document.getElementById('o-business').value.trim();
       var email = document.getElementById('o-email').value.trim();
@@ -247,6 +253,7 @@ const STEPS = [
           throw new Error((data && data.error) || 'The intake endpoint declined the order.');
         }
       }).catch(function () {
+        sending = false;
         if (submitBtn) submitBtn.disabled = false;
         note.hidden = false;
         note.textContent = 'That didn\'t go through — your order was NOT sent. Please email us directly at ' + ORDER_EMAIL + ' and we\'ll take your order there.';
