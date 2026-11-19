@@ -1,0 +1,182 @@
+/* MTX 101 Classroom — deck styling (scopes reveal.js overrides to our decks). */
+
+.mh-deck {
+  --mh-green: #4ade80;
+  --mh-green-dim: #22c55e;
+  --mh-panel: rgba(6, 24, 12, 0.85);
+  --mh-border: rgba(74, 222, 128, 0.25);
+}
+
+.mh-deck .reveal {
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #e7f6ec;
+}
+
+.mh-deck .reveal .slides {
+  text-align: left;
+}
+
+.mh-deck .reveal section {
+  padding: 1.25rem 1.5rem;
+  box-sizing: border-box;
+}
+
+.mh-deck .reveal h3 {
+  color: var(--mh-green);
+  font-size: 1.55em;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 0 0 0.6em;
+  line-height: 1.2;
+}
+
+.mh-deck .reveal p,
+.mh-deck-fallback p {
+  font-size: 1.02em;
+  line-height: 1.55;
+  margin: 0 0 0.8em;
+  color: #d9efe0;
+}
+
+.mh-deck .reveal ul {
+  margin: 0 0 0.8em 1.1em;
+}
+
+.mh-deck .reveal li,
+.mh-deck-fallback li {
+  font-size: 1em;
+  line-height: 1.5;
+  margin-bottom: 0.45em;
+  color: #d9efe0;
+}
+
+.mh-deck-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  word-break: break-all;
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid var(--mh-border);
+  border-radius: 0.6rem;
+  padding: 0.9rem 1rem;
+  font-size: 1.05em;
+  line-height: 1.5;
+  color: #bbf7d0;
+  margin: 0.6em 0 1em;
+}
+
+.mh-deck-callout {
+  border-left: 3px solid var(--mh-green);
+  background: rgba(34, 197, 94, 0.08);
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.92em;
+  line-height: 1.5;
+  color: #c9f2d6;
+  margin-top: 0.8em;
+}
+
+.mh-deck .reveal .controls {
+  color: var(--mh-green);
+}
+
+.mh-deck .reveal .progress {
+  color: var(--mh-green);
+  height: 4px;
+}
+
+/* Quiz */
+.mh-quiz-q {
+  font-size: 1.12em;
+  font-weight: 600;
+  line-height: 1.45;
+  margin-bottom: 0.9em;
+  color: #e7f6ec;
+}
+
+.mh-quiz-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.mh-quiz-option {
+  text-align: left;
+  border: 1px solid var(--mh-border);
+  background: rgba(0, 0, 0, 0.35);
+  color: #d9efe0;
+  border-radius: 0.6rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.95em;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.mh-quiz-option:hover:not(:disabled) {
+  border-color: var(--mh-green);
+}
+
+.mh-quiz-option.is-correct {
+  border-color: var(--mh-green);
+  background: rgba(34, 197, 94, 0.16);
+}
+
+.mh-quiz-option.is-wrong {
+  border-color: #f87171;
+  background: rgba(248, 113, 113, 0.12);
+}
+
+.mh-quiz-why {
+  margin-top: 0.9rem;
+  font-size: 0.92em;
+  line-height: 1.5;
+  color: #c9f2d6;
+  border-left: 3px solid var(--mh-green);
+  background: rgba(34, 197, 94, 0.08);
+  padding: 0.7rem 0.9rem;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+
+/* Fallback (non-reveal) deck */
+.mh-deck-fallback {
+  border: 1px solid var(--mh-border);
+  background: var(--mh-panel);
+  border-radius: 0.9rem;
+  padding: 1.25rem 1.5rem;
+  min-height: 380px;
+  color: #e7f6ec;
+}
+
+.mh-deck-fallback h3 {
+  color: var(--mh-green);
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin: 0 0 0.6em;
+}
+
+.mh-deck-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.9rem;
+  gap: 1rem;
+}
+
+.mh-deck-btn {
+  border: 1px solid var(--mh-border);
+  background: rgba(0, 0, 0, 0.4);
+  color: #bbf7d0;
+  border-radius: 0.55rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.mh-deck-btn:hover:not(:disabled) {
+  border-color: var(--mh-green);
+}
+
+.mh-deck-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
