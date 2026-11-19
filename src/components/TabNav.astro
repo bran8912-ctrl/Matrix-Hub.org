@@ -152,8 +152,24 @@ const currentPath = Astro.url.pathname;
     margin: 0;
     padding: 0;
     gap: 0.5rem;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  /* Compaction below full-HD widths so all 14 tabs stay reachable */
+  @media (max-width: 1600px) and (min-width: 769px) {
+    .tab-list {
+      gap: 0.2rem;
+    }
+
+    .tab-link,
+    .tab-button {
+      padding: 1rem 0.8rem;
+      font-size: 0.85rem;
+      letter-spacing: 0.5px;
+    }
   }
 
   .tab-item {
@@ -288,7 +304,7 @@ const currentPath = Astro.url.pathname;
     }
 
     .tab-list {
-      --mobile-padding-top: 5rem;
+      --mobile-padding-top: 8.5rem;
       --mobile-padding-bottom: 1rem;
       flex-direction: column;
       position: fixed;
