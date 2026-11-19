@@ -4,6 +4,8 @@ import {
   COLS,
   FOUNTAINS,
   FLOWERS,
+  PLINTH,
+  PROVING_GROUND_MODULES,
   ROWS,
   SPAWN_TILE,
   TILE,
@@ -15,8 +17,12 @@ import {
   doorPoint,
   groundAt,
   isSolidTile,
+  plinthPoint,
+  plinthStandPoint,
+  readProvingGroundSummary,
   tileCenter,
   type Building,
+  type ProvingGroundSummary,
 } from "../../lib/atlas";
 
 // Quest Atlas island. The engine is hand-rolled on purpose (see
@@ -35,6 +41,24 @@ import {
 // to a door still opens the door card exactly as before. Touch uses
 // long-press rather than first-tap on purpose: a quick tap keeps its
 // existing meaning (walk there), so the two never fight.
+//
+// Standing enhancement 3: the plaza plinth. A stone slab by the MTX coin
+// carries one medallion per Proving Ground module, read from the
+// visitor's OWN device-local progress (atlas.ts readProvingGroundSummary
+// — defensive, lights only on a stored boolean true). Earned modules
+// render as lit gold medallions; everything else is an empty socket,
+// and a visitor with no record sees all three sockets empty. The page's
+// door-list section carries the same summary in words.
+//
+// Standing enhancement 4: plinth preview parity. The plinth joins the
+// door previews as a ninth target in the SAME system — hover, keyboard
+// focus on its own projected marker, or a touch long-press raises a
+// preview card that names each Proving Ground module and its state
+// (earned / not yet), read from the very same single summary read the
+// medallions render from, so card and stone can never disagree. A
+// no-record visitor gets the same card with all three modules honestly
+// not yet earned. Esc dismisses and suppresses it under the same
+// re-arm rule as the doors.
 
 const SPEED = 152; // px per second
 const HALF = 11; // player half-extent (AABB)
@@ -55,6 +79,23 @@ const FOCUS_ORDER: Building[] = [...BUILDINGS].sort(
 );
 const ZONE = 44; // door-marker size px (touch-target friendly)
 const LONG_PRESS_MS = 450;
+
+// Enhancement 4: the plinth is a preview target in the same system as
+// the buildings, under this sentinel id (it is not a Building — it has
+// no door and no route; its card reads the Proving Ground summary).
+const PLINTH_ID = "plinth";
+
+// The keyboard focus order over ALL preview zones: the buildings in
+// reading order, with the plinth spliced in by its map position (plaza
+// row, just south of the Proving Ground / Casino row) so tab order
+// stays geographic.
+type FocusZone = { id: string; building: Building | null };
+const FOCUS_ZONES: FocusZone[] = (() => {
+  const zones: FocusZone[] = FOCUS_ORDER.map((b) => ({ id: b.id, building: b }));
+  const at = zones.findIndex((z) => z.building && z.building.rect.y > PLINTH.y);
+  zones.splice(at === -1 ? zones.length : at, 0, { id: PLINTH_ID, building: null });
+  return zones;
+})();
 
 interface Pad {
   x: number;
@@ -83,6 +124,10 @@ export default function QuestAtlas() {
   const viewRef = useRef({ w: 960, h: 576 });
   const snowRef = useRef(false);
   const miniOpenRef = useRef(true);
+  // The visitor's own Proving Ground completions (enhancement 3), read
+  // once when the island mounts — progress only ever changes on the
+  // Proving Ground's own pages, so a single read is the truth here.
+  const plinthRef = useRef<ProvingGroundSummary | null>(null);
 
   // --- door previews (enhancement 2) -------------------------------------
   // Three sources, one effective preview: keyboard focus wins over a
@@ -94,6 +139,7 @@ export default function QuestAtlas() {
   const dismissedIdRef = useRef<string | null>(null);
   const previewIdRef = useRef<string | null>(null);
   const zoneRefs = useRef(new Map<string, HTMLButtonElement>());
+  const plinthZoneRef = useRef<HTMLButtonElement | null>(null);
   const pressInfoRef = useRef<{
     pointerId: number;
     target: { x: number; y: number };
@@ -103,6 +149,11 @@ export default function QuestAtlas() {
   } | null>(null);
 
   const [preview, setPreview] = useState<Building | null>(null);
+  // Enhancement 4: the plinth preview card, plus the summary it renders
+  // from — the SAME single read the medallions use (kept in state so
+  // the card can render; plinthRef stays the render loop's copy).
+  const [plinthPreview, setPlinthPreview] = useState(false);
+  const [plinthSummary, setPlinthSummary] = useState<ProvingGroundSummary | null>(null);
   const [door, setDoor] = useState<Building | null>(null);
   const [engaged, setEngaged] = useState(false);
   const [snow, setSnow] = useState(false);
@@ -111,12 +162,17 @@ export default function QuestAtlas() {
     () => typeof window === "undefined" || window.innerWidth >= 768,
   );
 
-  // Recompute the effective preview from the three sources.
+  // Recompute the effective preview from the three sources. The
+  // plinth rides the same slots under its sentinel id; it resolves to
+  // its own card state instead of a Building.
   const syncPreview = () => {
     const candidate = focusIdRef.current ?? pressIdRef.current ?? hoverIdRef.current;
     const id = candidate && candidate !== dismissedIdRef.current ? candidate : null;
     previewIdRef.current = id;
-    setPreview(id ? (BUILDINGS.find((b) => b.id === id) ?? null) : null);
+    setPlinthPreview(id === PLINTH_ID);
+    setPreview(
+      id && id !== PLINTH_ID ? (BUILDINGS.find((b) => b.id === id) ?? null) : null,
+    );
   };
   const noteSource = (id: string | null) => {
     // A source moving to a different building (or away) re-arms previews
@@ -147,6 +203,7 @@ export default function QuestAtlas() {
       pressIdRef.current = null;
       previewIdRef.current = null;
       setPreview(null);
+      setPlinthPreview(false);
     };
     window.addEventListener("keydown", onEsc);
     return () => window.removeEventListener("keydown", onEsc);
@@ -173,6 +230,11 @@ export default function QuestAtlas() {
     setSnow(initialSnow);
     miniOpenRef.current = window.innerWidth >= 768;
     setMiniOpen(miniOpenRef.current);
+    // One read, one truth: the medallions (render loop, via the ref)
+    // and the plinth preview card (React state) both render from this
+    // single summary, so they can never disagree.
+    plinthRef.current = readProvingGroundSummary();
+    setPlinthSummary(plinthRef.current);
 
     // Falling snow: ~90 in-code flakes, positions normalised to the
     // viewport so a resize never needs a rebuild. They only advance while
@@ -221,6 +283,10 @@ export default function QuestAtlas() {
         g.fillStyle = "#2563eb";
         g.fillRect(f.x * s, f.y * s, f.w * s, f.h * s);
       }
+      // the plinth: a stone mark west of the coin (medallions are a
+      // main-canvas detail; the minimap just shows the slab exists)
+      g.fillStyle = snowMode ? "#a39c94" : "#78716c";
+      g.fillRect(PLINTH.x * s, PLINTH.y * s, PLINTH.w * s, PLINTH.h * s);
       for (const b of BUILDINGS) {
         g.fillStyle = b.body;
         g.fillRect(b.rect.x * s, b.rect.y * s, b.rect.w * s, b.rect.h * s);
@@ -462,6 +528,70 @@ export default function QuestAtlas() {
       ctx.textBaseline = "middle";
       ctx.fillText("MTX", coin.x - camX, coin.y - camY + 0.5);
 
+      // plaza plinth (enhancement 3) — a stone slab west of the coin
+      // carrying the visitor's own Proving Ground medallions. Earned
+      // modules are lit gold discs with their module number; unearned
+      // ones are empty sockets. No record at all = all sockets empty.
+      {
+        const sx = PLINTH.x * TILE - camX;
+        const sy = PLINTH.y * TILE - camY;
+        const sw = PLINTH.w * TILE;
+        const sh = PLINTH.h * TILE;
+        const summary = plinthRef.current;
+        ctx.fillStyle = "rgba(0,0,0,0.35)";
+        ctx.fillRect(sx + 3, sy + 5, sw, sh);
+        ctx.fillStyle = "#57534e"; // stone front
+        ctx.fillRect(sx, sy, sw, sh);
+        ctx.fillStyle = snowOn ? "#a8a29e" : "#78716c"; // stone top face
+        ctx.fillRect(sx, sy, sw, 9);
+        if (snowOn) {
+          ctx.fillStyle = "#f8fafc";
+          ctx.fillRect(sx, sy, sw, 4);
+        }
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        PROVING_GROUND_MODULES.forEach((m, i) => {
+          const cx = sx + (i + 0.5) * TILE;
+          const cy = sy + 17;
+          const earned = summary?.completed[i] === true;
+          // socket: a dark recess, always drawn
+          ctx.fillStyle = "#292524";
+          ctx.beginPath();
+          ctx.arc(cx, cy, 8.5, 0, Math.PI * 2);
+          ctx.fill();
+          if (earned) {
+            ctx.fillStyle = "#f59e0b";
+            ctx.beginPath();
+            ctx.arc(cx, cy, 7, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.strokeStyle = "#b45309";
+            ctx.lineWidth = 1.4;
+            ctx.beginPath();
+            ctx.arc(cx, cy, 7.6, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.fillStyle = "#451a03";
+            ctx.font = "800 8px system-ui, sans-serif";
+            ctx.fillText(String(m.n), cx, cy + 0.5);
+          } else {
+            // empty socket: hollow stone centre, no invented earn
+            ctx.fillStyle = "#44403c";
+            ctx.beginPath();
+            ctx.arc(cx, cy, 5, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        });
+        ctx.fillStyle = "#d6d3d1";
+        ctx.font = "700 6px system-ui, sans-serif";
+        ctx.fillText("PROVING GROUND", sx + sw / 2, sy + sh - 3.5);
+        if (previewIdRef.current === PLINTH_ID) {
+          // preview highlight (enhancement 4): the same sky outline
+          // the buildings get, so the previewed plinth reads in-world
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 2.5;
+          ctx.strokeRect(sx + 1.5, sy + 1.5, sw - 3, sh - 3);
+        }
+      }
+
       // fountains (twin basins flanking Main Street)
       for (const f of FOUNTAINS) {
         const fx = f.x * TILE - camX;
@@ -527,6 +657,21 @@ export default function QuestAtlas() {
           zx > -ZONE && zy > -ZONE && zx < vw && zy < vh ? "visible" : "hidden";
       }
 
+      // --- plinth marker: the same projection over the plinth's
+      // centre, so it tracks the camera and drops out of the tab
+      // order off-camera exactly like a door marker -------------------
+      {
+        const el = plinthZoneRef.current;
+        if (el) {
+          const pp = plinthPoint();
+          const zx = pp.x - camX - ZONE / 2;
+          const zy = pp.y - camY - ZONE / 2;
+          el.style.transform = `translate(${zx}px, ${zy}px)`;
+          el.style.visibility =
+            zx > -ZONE && zy > -ZONE && zx < vw && zy < vh ? "visible" : "hidden";
+        }
+      }
+
       // player — a small gold-cloaked figure
       const px = posRef.current.x - camX;
       const py = posRef.current.y - camY;
@@ -568,6 +713,19 @@ export default function QuestAtlas() {
             miniCtx.arc(dp.x * MM_SCALE, dp.y * MM_SCALE, 4.5, 0, Math.PI * 2);
             miniCtx.stroke();
           }
+        }
+        if (previewIdRef.current === PLINTH_ID) {
+          // the previewed plinth's minimap mark rings in sync, like
+          // the previewed building's door dot (PLINTH is in tiles, so
+          // this scales by MM_TILE, not the world-px MM_SCALE)
+          miniCtx.strokeStyle = "#38bdf8";
+          miniCtx.lineWidth = 1.4;
+          miniCtx.strokeRect(
+            PLINTH.x * MM_TILE - 1.5,
+            PLINTH.y * MM_TILE - 1.5,
+            PLINTH.w * MM_TILE + 3,
+            PLINTH.h * MM_TILE + 3,
+          );
         }
         miniCtx.fillStyle = "#f59e0b";
         miniCtx.strokeStyle = "#ffffff";
@@ -612,6 +770,13 @@ export default function QuestAtlas() {
             : null,
           snow: snowRef.current,
           flakeCount: flakes.length,
+          plinth: {
+            exists: plinthRef.current !== null,
+            count: plinthRef.current?.count ?? 0,
+            completed: plinthRef.current
+              ? [...plinthRef.current.completed]
+              : [false, false, false],
+          },
           minimap: {
             collapsed: !miniOpenRef.current,
             avatar: {
@@ -687,11 +852,28 @@ export default function QuestAtlas() {
   const buildingFromWorld = (x: number, y: number): Building | undefined =>
     buildingAt(Math.floor(x / TILE), Math.floor(y / TILE)) ?? doorNear(x, y);
 
+  // The plinth's hover/press footprint: its slab plus a small margin,
+  // the same generosity the doors get from their near radius.
+  const plinthFromWorld = (x: number, y: number): boolean => {
+    const M = 12;
+    return (
+      x >= PLINTH.x * TILE - M &&
+      x < (PLINTH.x + PLINTH.w) * TILE + M &&
+      y >= PLINTH.y * TILE - M &&
+      y < (PLINTH.y + PLINTH.h) * TILE + M
+    );
+  };
+
+  // One resolver for every preview source: a building wins first (its
+  // footprint and the plinth never overlap), then the plinth.
+  const previewIdFromWorld = (x: number, y: number): string | null =>
+    buildingFromWorld(x, y)?.id ?? (plinthFromWorld(x, y) ? PLINTH_ID : null);
+
   const onCanvasHover = (e: React.PointerEvent<HTMLCanvasElement>) => {
     if (e.pointerType === "touch") return; // touch has no hover; it long-presses
     pressIdRef.current = null; // live pointer work supersedes a held preview
     const w = worldFromClient(e.clientX, e.clientY);
-    applyHover(w ? (buildingFromWorld(w.x, w.y)?.id ?? null) : null);
+    applyHover(w ? previewIdFromWorld(w.x, w.y) : null);
   };
 
   // Press handling shared by the canvas and the door markers. Mouse/pen
@@ -739,7 +921,7 @@ export default function QuestAtlas() {
   const onCanvasPointer = (e: React.PointerEvent<HTMLCanvasElement>) => {
     const w = worldFromClient(e.clientX, e.clientY);
     if (!w) return;
-    beginPress(e, w, buildingFromWorld(w.x, w.y)?.id ?? null);
+    beginPress(e, w, previewIdFromWorld(w.x, w.y));
   };
 
   const padProps = (x: number, y: number) => ({
@@ -822,36 +1004,68 @@ export default function QuestAtlas() {
             />
           </div>
 
-          {/* door markers — one keyboard-focusable zone per building,
-              projected over its door point each frame by the render loop.
-              Transparent until focused; focusing (or hovering) raises the
-              building's preview, and pressing one walks you to its door. */}
+          {/* preview markers — one keyboard-focusable zone per building
+              plus one for the plinth (enhancement 4), in geographic
+              focus order, projected over their points each frame by the
+              render loop. Transparent until focused; focusing (or
+              hovering) raises the zone's preview, and pressing one
+              walks you to its door — or, for the plinth, to the plaza
+              point just south of the slab. */}
           <div className="pointer-events-none absolute inset-0 overflow-hidden">
-            {FOCUS_ORDER.map((b) => (
-              <button
-                key={b.id}
-                ref={(el) => {
-                  if (el) zoneRefs.current.set(b.id, el);
-                  else zoneRefs.current.delete(b.id);
-                }}
-                type="button"
-                data-testid={`zone-${b.id}`}
-                aria-label={`Preview ${b.name}`}
-                className="pointer-events-auto absolute left-0 top-0 h-11 w-11 touch-none rounded-full bg-transparent focus-visible:bg-sky-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
-                style={{ transform: "translate(-100px, -100px)", visibility: "hidden" }}
-                onFocus={() => applyFocus(b.id)}
-                onBlur={() => applyFocus(null)}
-                onPointerEnter={(e) => {
-                  if (e.pointerType !== "touch") applyHover(b.id);
-                }}
-                onPointerLeave={(e) => {
-                  if (e.pointerType !== "touch") applyHover(null);
-                }}
-                onPointerDown={(e) => beginPress(e, doorPoint(b), b.id)}
-                onPointerUp={endPress}
-                onPointerCancel={cancelPress}
-              />
-            ))}
+            {FOCUS_ZONES.map((z) => {
+              const b = z.building;
+              if (!b) {
+                return (
+                  <button
+                    key={PLINTH_ID}
+                    ref={(el) => {
+                      plinthZoneRef.current = el;
+                    }}
+                    type="button"
+                    data-testid="zone-plinth"
+                    aria-label="Preview the plaza plinth and your Proving Ground medallions"
+                    className="pointer-events-auto absolute left-0 top-0 h-11 w-11 touch-none rounded-full bg-transparent focus-visible:bg-sky-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                    style={{ transform: "translate(-100px, -100px)", visibility: "hidden" }}
+                    onFocus={() => applyFocus(PLINTH_ID)}
+                    onBlur={() => applyFocus(null)}
+                    onPointerEnter={(e) => {
+                      if (e.pointerType !== "touch") applyHover(PLINTH_ID);
+                    }}
+                    onPointerLeave={(e) => {
+                      if (e.pointerType !== "touch") applyHover(null);
+                    }}
+                    onPointerDown={(e) => beginPress(e, plinthStandPoint(), PLINTH_ID)}
+                    onPointerUp={endPress}
+                    onPointerCancel={cancelPress}
+                  />
+                );
+              }
+              return (
+                <button
+                  key={b.id}
+                  ref={(el) => {
+                    if (el) zoneRefs.current.set(b.id, el);
+                    else zoneRefs.current.delete(b.id);
+                  }}
+                  type="button"
+                  data-testid={`zone-${b.id}`}
+                  aria-label={`Preview ${b.name}`}
+                  className="pointer-events-auto absolute left-0 top-0 h-11 w-11 touch-none rounded-full bg-transparent focus-visible:bg-sky-400/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                  style={{ transform: "translate(-100px, -100px)", visibility: "hidden" }}
+                  onFocus={() => applyFocus(b.id)}
+                  onBlur={() => applyFocus(null)}
+                  onPointerEnter={(e) => {
+                    if (e.pointerType !== "touch") applyHover(b.id);
+                  }}
+                  onPointerLeave={(e) => {
+                    if (e.pointerType !== "touch") applyHover(null);
+                  }}
+                  onPointerDown={(e) => beginPress(e, doorPoint(b), b.id)}
+                  onPointerUp={endPress}
+                  onPointerCancel={cancelPress}
+                />
+              );
+            })}
           </div>
         </div>
 
@@ -865,6 +1079,48 @@ export default function QuestAtlas() {
           </p>
           <h3 className="text-base font-bold text-sky-200">{preview.name}</h3>
           <p className="mt-1 text-sm text-gray-300">{preview.blurb}</p>
+        </div>
+      )}
+
+      {plinthPreview && (
+        <div
+          data-testid="plinth-preview-card"
+          className="pointer-events-none absolute left-3 top-14 z-[6] max-w-[16rem] rounded-lg border-2 border-sky-400 bg-gray-900/95 p-3 shadow-xl"
+        >
+          <p className="text-[11px] font-bold uppercase tracking-wider text-sky-300">
+            Preview
+          </p>
+          <h3 className="text-base font-bold text-sky-200">The Plaza Plinth</h3>
+          <ul className="mt-1 space-y-1 text-sm">
+            {PROVING_GROUND_MODULES.map((m, i) => {
+              const earned = plinthSummary?.completed[i] === true;
+              return (
+                <li key={m.id} className="flex items-baseline gap-2">
+                  <span
+                    aria-hidden="true"
+                    className={earned ? "text-amber-400" : "text-stone-500"}
+                  >
+                    {earned ? "●" : "○"}
+                  </span>
+                  <span className="text-gray-200">
+                    {m.n} · {m.title}
+                  </span>
+                  <span
+                    className={
+                      earned ? "font-semibold text-amber-300" : "text-gray-400"
+                    }
+                  >
+                    {earned ? "earned" : "not yet"}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+          <p className="mt-2 text-sm text-gray-300">
+            {plinthSummary
+              ? `${plinthSummary.count} of ${plinthSummary.total} earned on this device. Finish a module in the Proving Ground and its medallion lights up here.`
+              : "No Proving Ground record on this device yet — all three modules are earned in the Proving Ground, and each finished one lights its medallion here."}
+          </p>
         </div>
       )}
 
@@ -901,7 +1157,7 @@ export default function QuestAtlas() {
 
       <p className="mt-2 text-sm text-gray-400" aria-live="polite">
         {engaged
-          ? "Controls live — walk with WASD or the arrow keys, tap the map to walk somewhere, or use the pad. Step up to a door to open it. Hover a building, tab to a door marker, or press and hold on touch to preview it first."
+          ? "Controls live — walk with WASD or the arrow keys, tap the map to walk somewhere, or use the pad. Step up to a door to open it. Hover a building or the plinth, tab to a marker, or press and hold on touch to preview it first."
           : "Click or tap the map to take control, then walk with WASD or the arrow keys — or tap anywhere to walk there. Hover a building to preview it before you walk over."}
       </p>
 
