@@ -43,6 +43,10 @@ const EXCLUDED_PATHS = [
   '**/api/**',                    // API endpoints (handled separately from navigation)
   '**/api.{astro,ts,js,tsx,jsx}', // API files in pages root
   
+  // Moved-notice stubs - direct URL access only, never in nav (both titled "MTX Casino")
+  '**/mtx-casino.astro',          // Moved stub for the old MTX Casino URL
+  '**/games/casino/mtx-casino.astro', // Moved stub for the old in-casino URL
+
   // Private & Admin Portals
   '**/owners.astro',              // Owners portal - direct URL access only
   '**/owners/**',                 // Owner tools (e.g. deploy console) - direct URL access only, never in nav
