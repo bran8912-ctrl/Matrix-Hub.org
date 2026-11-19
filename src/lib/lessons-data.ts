@@ -27,8 +27,17 @@ export interface LessonSlide {
 
 export interface Lesson {
   id: string;
-  /** Canonical MTX 101 topic number. */
-  topic: number;
+  /**
+   * Canonical MTX 101 topic number — or null for a lesson adapted from
+   * series material that carries no standalone topic number (Lesson 9,
+   * drawn from the swap lessons). Null renders with no topic tag; a
+   * number is never invented for a lesson the calendar does not number.
+   * The one paired lesson (Lesson 12, built from the calendar's paired
+   * Topics 11 + 12 post) carries the string '11 + 12' — the same
+   * representation SYLLABUS_UPCOMING used for it — naming both topics
+   * rather than inventing a merged number.
+   */
+  topic: number | string | null;
   title: string;
   subtitle: string;
   minutes: number;
@@ -485,7 +494,7 @@ export const LESSONS: Lesson[] = [
   },
   {
     id: 'lesson-9',
-    topic: 9,
+    topic: null,
     title: 'Fees and Slippage in Plain Words',
     subtitle: 'Two swap words, explained plainly — with the small-pool note.',
     minutes: 3,
@@ -539,12 +548,186 @@ export const LESSONS: Lesson[] = [
       },
     ],
   },
+  {
+    id: 'lesson-10',
+    topic: 9,
+    title: 'Supply + the hard cap, in plain numbers',
+    subtitle: 'Two public numbers: what exists today, and the limit in the code.',
+    minutes: 2,
+    slides: [
+      {
+        heading: 'How much MTX exists today',
+        paragraphs: [
+          'Two numbers explain MTX supply, and both are public. The first is how much exists right now:',
+        ],
+        mono: '105,100 MTX',
+        callout:
+          'That is the total supply today — every MTX in existence, counted by the contract itself.',
+      },
+      {
+        heading: 'The hard cap',
+        paragraphs: [
+          'The second number is the limit. The contract has a hard cap — the most MTX that can ever be created — and it was written into the contract code when the contract was deployed:',
+        ],
+        mono: '100,000,000 MTX',
+        callout:
+          '"Written into the contract" matters: it is not a promise in a post — it is a limit in the verified code, and the contract refuses any mint that would go past it.',
+      },
+      {
+        heading: 'New MTX only appear when someone mints',
+        paragraphs: [
+          "Supply does not grow on its own, and nobody mints in bulk ahead of time. New MTX are created only when a person uses the direct mint (Lesson 3), at the contract's mint rate of 1,000 MTX per POL — created in that moment, straight into that person's own wallet.",
+          'So the supply number moves only when someone mints — and it can never move past the cap. This lesson states what exists now and what the limit is; it makes no forecast about what the numbers will look like later.',
+        ],
+        callout:
+          'Check both numbers yourself, any time: the supply and the cap are readable on the contract on PolygonScan, linked from matrix-hub.org/security.',
+      },
+    ],
+    quiz: [
+      {
+        question: 'How much MTX exists today — and where can you check that number yourself?',
+        options: [
+          'Nobody knows — the supply is private',
+          '105,100 MTX — on the contract itself, via PolygonScan, linked from /security',
+          'Whatever the most recent social post says',
+        ],
+        answerIndex: 1,
+        why: 'The total supply is public: 105,100 MTX today. You do not have to take a post\'s word for it — the number is readable on the contract on PolygonScan, and /security links there.',
+      },
+      {
+        question: 'What does the hard cap of 100,000,000 MTX mean, mechanically?',
+        options: [
+          'A target the team hopes to stay under',
+          'A limit written into the contract code — the contract refuses any mint that would create more than the cap',
+          'The amount of MTX scheduled to exist next year',
+        ],
+        answerIndex: 1,
+        why: 'The cap is in the verified code, fixed when the contract was deployed — not a promise. And new MTX appear only when someone mints, so supply moves only through minting, never past the cap.',
+      },
+    ],
+  },
+  {
+    id: 'lesson-11',
+    topic: 13,
+    title: 'Referral Invites — Cosmetic Perks Only',
+    subtitle: 'What invites are, what the perks are — and what they are not.',
+    minutes: 2,
+    slides: [
+      {
+        heading: 'Bringing a friend along',
+        paragraphs: [
+          'Matrix Hub has referral invites. You get a personal invite code and link — and a QR code on the /wallet page — to share with a friend.',
+          'Invites are a way to bring a friend along to try the arcade games and read the education posts with you. A referral counts when your friend joins through your link and completes a game round — not on a click or a visit. Your friend then gets a short receipt code to share back with you, and entering it records the referral.',
+        ],
+      },
+      {
+        heading: 'What the perks actually are',
+        paragraphs: [
+          'When a referral counts, the perks are badges and a game theme — things that change how the site looks and feels:',
+        ],
+        bullets: [
+          'For you: the "First Friend" badge on your invite card',
+          'For your friend: a "Welcome to the Hub" badge and the "Neon Grid" game theme',
+        ],
+        callout: 'That is the whole list. The perks are site features — a badge on a card, colours in a game.',
+      },
+      {
+        heading: 'What the perks are not',
+        paragraphs: [
+          "Please don't share your invite link with promises attached — there is nothing attached beyond the cosmetic feature itself. A perk cannot be cashed out, transferred for value, or spent, and referral perks never include MTX, POL, or any token.",
+        ],
+        callout:
+          'Referral perks are cosmetic site features only. No cash, no crypto, no monetary value.',
+      },
+    ],
+    quiz: [
+      {
+        question:
+          'Your friend joins through your invite and completes a game round. What do you receive?',
+        options: [
+          'An MTX bonus in your wallet',
+          'The "First Friend" badge — a cosmetic site feature',
+          'A cash payment for recruiting them',
+        ],
+        answerIndex: 1,
+        why: 'Referral perks are badges and game themes only — cosmetic site features. They never include MTX, POL, cash, or anything with monetary value.',
+      },
+      {
+        question:
+          'Someone posts: "Use my invite link — we\'ll both earn money from it." Is that true?',
+        options: [
+          'Yes — invites pay both sides',
+          'No — referral perks are cosmetic site features only, with no cash, no crypto, and no monetary value; never share an invite with promises attached',
+          'Yes, but only for the inviter',
+        ],
+        answerIndex: 1,
+        why: 'There is nothing attached to an invite beyond the cosmetic feature itself. Promising earnings from an invite link is exactly what this lesson warns against.',
+      },
+    ],
+  },
+  {
+    id: 'lesson-12',
+    topic: '11 + 12',
+    title: 'Dice, Chainlink VRF fairness, and stuck-bet refund protection',
+    subtitle: 'How a Dice roll is decided, and the refund rule if a result never arrives.',
+    minutes: 3,
+    slides: [
+      {
+        heading: 'Dice, as it actually runs',
+        paragraphs: [
+          'Dice is the one casino game live on Matrix Hub today. The other casino games are still in testnet development, and they are labelled that way on the site. A Dice bet is placed on-chain, in MTX, and the contract\'s published limits are:',
+        ],
+        mono: 'Bets 1–1,000 MTX · max payout per bet 100 MTX',
+        callout:
+          'Dice is a gambling game, and you can lose the MTX you wager. 18+ only — and only take part if online wagering is legal where you live; the casino is not licensed or regulated by any gambling authority.',
+      },
+      {
+        heading: 'How a bet is routed — and where the roll comes from',
+        paragraphs: [
+          'When a bet is placed, the contract itself routes it on-chain: 88% to the payout side, 6% to liquidity, 4% to the reserve, 2% to development. No MTX is burned by the casino. Those are the rules in the verified code — not settings the website can quietly change per bet.',
+          'The contract does not pick the result — and neither does the website or our server. The contract requests randomness from Chainlink VRF (version 2.5), a service run by the Chainlink network on Polygon, through Chainlink\'s coordinator. The request is an on-chain record, and the random result comes back on-chain, where the contract uses it to settle the bet — so both halves, the asking and the answer, are public records anyone can look up. The randomness engine is a separate contract, registered with Chainlink\'s coordinator, and that registration is itself readable on-chain.',
+          'And honestly: the casino is brand new, and no bets have been placed on it yet. This lesson describes how Dice works as it is coded — not a busy game in full swing, and not results anyone has had.',
+        ],
+        callout:
+          'Nothing here asks you to trust a promise. The checkable part is the mechanism: the request, the result, and the code are all on-chain — and the casino contracts are verified on PolygonScan (Lesson 8), so you can read exactly how a bet asks for its result and uses it.',
+      },
+      {
+        heading: 'If a result never arrives: the refund rule',
+        paragraphs: [
+          'Very rarely, a requested result might never come back, and a bet would sit unsettled. The contract has a rule for exactly that, written into its code: the player gets back their full stake — the whole amount bet, paid from the reserve. The share of the bet already routed to liquidity and development is not deducted from the player; the house absorbs it.',
+          'One honest detail: the refund is run by the operator — a person on the team invokes it once the wait has passed. It is not automatic, and a player cannot trigger it themselves. What anyone can do at any time is check: the contract itself will say when any bet becomes refundable (the refundableAt check on CasinoCore). A bet becomes refundable once it has been waiting:',
+        ],
+        mono: '3,600 seconds (1 hour)',
+        callout:
+          'Full stake back, after 1 hour, operator-run — and when any bet becomes refundable is readable on the contract itself, linked from matrix-hub.org/security.',
+      },
+    ],
+    quiz: [
+      {
+        question: 'Where does a Dice result come from?',
+        options: [
+          'The website\'s server picks a number when you bet',
+          'Chainlink VRF — the contract requests randomness on-chain from the Chainlink network, and the request and the result are both on-chain records',
+          'The site owner chooses the results at the end of the day',
+        ],
+        answerIndex: 1,
+        why: 'The contract requests randomness from Chainlink\'s coordinator — the site does not pick the number. The request and the arriving result are on-chain records anyone can check, in contracts verified on PolygonScan.',
+      },
+      {
+        question: "A bet's random result never arrives. What does the contract's rule say?",
+        options: [
+          'The bet is simply lost — a stuck bet is gone',
+          'After 1 hour (3,600 seconds), the operator can refund the full stake from the reserve — it is operator-run, not automatic, and the share already routed away is not deducted from the player',
+          'The player can refund themselves instantly, at any time, with one click',
+        ],
+        answerIndex: 1,
+        why: 'The refund function is governance-run: once a bet has been waiting past the 3,600-second timeout, the full stake is paid back from the reserve — the house absorbs the routed-away share. It is not instant and not self-service, but anyone can check when a bet becomes refundable on the contract itself.',
+      },
+    ],
+  },
 ];
 
 /** Remaining MTX 101 topics, in canonical topic order — decks in production. */
 export const SYLLABUS_UPCOMING: { topic: string; title: string }[] = [
-  { topic: '9', title: 'Supply + the hard cap, in plain numbers' },
-  { topic: '11 + 12', title: 'Dice, Chainlink VRF fairness, and stuck-bet refund protection' },
-  { topic: '13', title: 'Referral invites — cosmetic perks only' },
   { topic: '14', title: 'Honest gaps: audit, single-key control, small pool' },
 ];
