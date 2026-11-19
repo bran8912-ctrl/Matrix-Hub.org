@@ -1,0 +1,101 @@
+---
+import Layout from "../../components/Layout.astro";
+import ReelFoundry from "../../components/clubhouse/ReelFoundry";
+
+export const prerender = true;
+
+export const title = "The Reel Foundry (Trial Studio)";
+export const navCategory = "clubhouse";
+---
+
+<Layout title="The Reel Foundry - Trial Studio - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-2 text-sm text-green-300/80">
+      <a href="/clubhouse" class="hover:text-green-300">← The Clubhouse</a>
+    </p>
+    <h1 class="text-4xl font-bold mb-4 text-green-400">
+      🎬 The Reel Foundry — Trial Studio
+    </h1>
+    <p class="text-xl text-gray-300 mb-4">
+      A free mini-studio for short clips: load or record, trim, auto-caption,
+      style the captions, and export — a working taste of the Matrix Hub
+      Video Studio, right here in the Clubhouse.
+    </p>
+
+    <div
+      class="bg-green-900/40 border-2 border-green-500 rounded-lg p-4 mb-8 text-green-100"
+    >
+      <strong>Your media never leaves your device.</strong> Everything on
+      this page runs inside your browser — the transcription engine, the
+      trimmer, the exporter. There is no upload, no account, and no server
+      copy of your clip, because the page never sends it anywhere. The only
+      download is a one-time ~31 MB speech model, cached in your browser.
+      Close the tab and everything is gone.
+    </div>
+
+    <ReelFoundry client:only="react" />
+
+    <div class="mt-12 rounded-lg border border-green-500/40 bg-green-900/30 p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">
+        Want it done for you?
+      </h2>
+      <p class="text-gray-200 mb-4">
+        This trial is deliberately small — short clips, a tiny speech model,
+        caption files beside the video or burned into a WebM in real time.
+        The full Video Studio does the whole job for you: editing, burned-in
+        captions in your format, hooks, versions for every platform, and a
+        human-checked finish.
+      </p>
+      <p class="text-gray-200 mb-5">
+        <strong class="text-gray-100">$49 Short Ad/Reel</strong> — the
+        door-opener. Product videos and short movie scenes are on the studio
+        page too.
+      </p>
+      <a
+        href="/video-studio/"
+        class="inline-block rounded bg-green-600 px-5 py-2.5 font-semibold text-white hover:bg-green-500"
+      >
+        See the Video Studio — $49 Short Ad/Reel →
+      </a>
+    </div>
+
+    <div class="mt-8 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">Built from the commons</h2>
+      <p class="text-gray-300 mb-3">
+        This room is assembled from open-source parts, each used under its
+        licence:
+      </p>
+      <ul class="list-disc pl-6 text-gray-300 space-y-1">
+        <li>
+          <strong class="text-gray-100">whisper.cpp</strong> (MIT Licence) —
+          the on-device transcription engine, running as WebAssembly; the
+          tiny.en speech model is fetched once and cached in your browser.
+        </li>
+        <li>
+          <strong class="text-gray-100">WebAV / @webav/av-cliper</strong> (MIT
+          Licence) — trimmed MP4 export via WebCodecs, with a built-in
+          MediaRecorder WebM fallback.
+        </li>
+        <li>
+          <strong class="text-gray-100">RecordRTC</strong> (MIT Licence) —
+          camera recording, with a MediaRecorder fallback.
+        </li>
+        <li>
+          <strong class="text-gray-100">media-captions</strong> (MIT Licence,
+          by Vidstack) — SRT/VTT caption-file parsing; the styled preview
+          and the caption burn-in renderer are ours (browser canvas +
+          MediaRecorder, no library).
+        </li>
+        <li>
+          <strong class="text-gray-100">coi-serviceworker</strong> (MIT
+          Licence, by Guido Zuidhof) — enables the transcription engine's
+          multi-threading on static hosting, scoped to this page only.
+        </li>
+      </ul>
+      <p class="text-gray-400 mt-3 text-sm">
+        No MPL- or GPL-licensed code is used in this room. Server cost of
+        this studio: $0 — by design, there is nothing to run.
+      </p>
+    </div>
+  </div>
+</Layout>
