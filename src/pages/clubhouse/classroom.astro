@@ -1,0 +1,80 @@
+---
+import Layout from "../../components/Layout.astro";
+import ClassroomHome from "../../components/clubhouse/ClassroomHome";
+import { SYLLABUS_UPCOMING } from "../../lib/lessons-data";
+
+export const prerender = true;
+
+export const title = "MTX 101 Classroom";
+export const navCategory = "clubhouse";
+---
+
+<Layout title="MTX 101 Classroom - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-2 text-sm text-green-300/80">
+      <a href="/clubhouse" class="hover:text-green-300">← The Clubhouse</a>
+    </p>
+    <h1 class="text-4xl font-bold mb-4 text-green-400">
+      🎓 The MTX 101 Classroom
+    </h1>
+    <p class="text-xl text-gray-300 mb-4">
+      The MTX 101 series, as slide decks you move through at your own pace —
+      arrow keys, on-screen arrows, or swipe. Each lesson ends with two
+      check-yourself questions.
+    </p>
+    <p class="text-gray-300 mb-6">
+      The lessons teach what MTX is, how to check everything yourself, and
+      how to stay safe. They are adapted from the approved MTX 101 education
+      series, and every fact in them is checked against the public proof
+      pack and the <a href="/security" class="text-green-300 underline">/security</a> page.
+    </p>
+
+    <div
+      class="bg-green-900/40 border-2 border-green-500 rounded-lg p-4 mb-8 text-green-100"
+    >
+      <strong>Plainly stated:</strong> this is education, not financial
+      advice. MTX is a utility token for this website; nothing here talks
+      about value going up or down, because that is not what the token is
+      for. Your lesson progress is stored only in this browser, on this
+      device — no account, nothing sent anywhere — and it will feed your
+      Clubhouse Passport.
+    </div>
+
+    <ClassroomHome client:only="react" />
+
+    <div class="mt-12 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">
+        The rest of the syllabus — in production
+      </h2>
+      <p class="text-gray-300 mb-4">
+        The first six lessons are live above. The remaining MTX 101 topics
+        are being built as decks in this order:
+      </p>
+      <ul class="list-disc pl-6 text-gray-300 space-y-1">
+        {SYLLABUS_UPCOMING.map((s) => (
+          <li>
+            <strong class="text-gray-100">Topic {s.topic}:</strong> {s.title}
+          </li>
+        ))}
+      </ul>
+      <p class="text-gray-400 mt-4 text-sm">
+        In the meantime, the hands-on companion to these lessons is{' '}
+        <a href="/proving-ground" class="text-green-300 underline">the Proving Ground</a> —
+        practice the address check, the mint, and contract verification by doing them.
+      </p>
+    </div>
+
+    <div class="mt-8 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">Built from the commons</h2>
+      <p class="text-gray-300">
+        The decks run on <strong class="text-gray-100">reveal.js</strong> (MIT
+        Licence), with a built-in fallback slider if it cannot start.
+        Lesson-completion celebrations use the vendored{' '}
+        <strong class="text-gray-100">canvas-confetti</strong> (ISC Licence).
+        Lesson copy is adapted from Anya Kowalski's MTX 101 education series;
+        facts are claim-checked against the 2026-11-12 public proof pack.
+        Nothing in this room phones home.
+      </p>
+    </div>
+  </div>
+</Layout>
