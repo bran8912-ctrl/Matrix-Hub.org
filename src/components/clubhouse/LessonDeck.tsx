@@ -288,7 +288,8 @@ export default function LessonDeck({ lesson, lessonNumber, totalLessons, nextHre
     <div className="mh-deck">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2 text-sm text-green-200/80">
         <span>
-          Lesson {lessonNumber} of {totalLessons} · MTX 101 Topic {lesson.topic} · about{' '}
+          Lesson {lessonNumber} of {totalLessons}
+          {lesson.topic !== null ? <> · MTX 101 Topic {lesson.topic}</> : null} · about{' '}
           {lesson.minutes} min
         </span>
         <span aria-live="polite">{statusLine}</span>
