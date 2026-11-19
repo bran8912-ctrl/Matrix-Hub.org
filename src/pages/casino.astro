@@ -17,6 +17,11 @@ export const navCategory = "casino";
 
     <!-- LIVE CHAT FEED -->
     <div class="live-chat-section">
+      <p class="tips-education-note">
+        About the tips: CasinoBot's blackjack, slots and roulette strategy
+        tips are general education only. Dice is the only game playable for
+        MTX today — the other games are still in testnet development.
+      </p>
       <LiveChat
         client:only="react"
         roomId="casino"
@@ -116,6 +121,20 @@ export const navCategory = "casino";
 
   .live-chat-section {
     margin: 0 0 2rem;
+  }
+
+  .tips-education-note {
+    max-width: 760px;
+    margin: 0 auto 1rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid rgba(0, 255, 153, 0.25);
+    border-radius: 8px;
+    background: rgba(0, 255, 153, 0.05);
+    color: var(--theme-text);
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    text-align: center;
   }
 
   .wallet-section {
