@@ -5,6 +5,7 @@ import {
   SPOT_PASS_MARKS,
   buildDeck,
   burstConfetti,
+  downloadResultCardPng,
   loadProgress,
   recordSpotRun,
   saveProgress,
@@ -95,6 +96,16 @@ export default function SpotTheFake() {
   const [timeLeft, setTimeLeft] = useState(SPOT_CARD_SECONDS);
   const [spot, setSpot] = useState<SpotProgress>(() => loadProgress().spot);
   const passedRef = useRef(false);
+
+  // Result share-card: the finished run's date (stamped when the run
+  // ends, so the card shows the day the run was played) and the card
+  // generation state. The card itself is a purpose-built node rendered
+  // off-screen in the done phase — see the bottom of this component.
+  const [runDate, setRunDate] = useState<Date | null>(null);
+  const [cardState, setCardState] = useState<
+    'idle' | 'working' | 'saved' | 'failed'
+  >('idle');
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   // Timed-mode clock. The run's timed-ness is captured at startRun, so
   // flipping the preference between runs never changes a live run. The
@@ -219,6 +230,8 @@ export default function SpotTheFake() {
     setLastCorrect(null);
     setTimedOut(false);
     setRunTimed(spot.timed);
+    setRunDate(null);
+    setCardState('idle');
     passedRef.current = false;
     setPhase('asking');
   };
@@ -251,6 +264,7 @@ export default function SpotTheFake() {
       }
       saveProgress(p);
       setSpot(p.spot);
+      setRunDate(new Date());
       setPhase('done');
       return;
     }
@@ -261,6 +275,41 @@ export default function SpotTheFake() {
   };
 
   const passed = score >= passMark;
+
+  // The share-card's facts — all read straight from the finished run's
+  // own state, so the card can only ever say what the run actually was.
+  const deckLabel = difficulty === 'hard' ? 'Hard deck' : 'Normal deck';
+  const modeLabel = runTimed
+    ? `Timed — ${SPOT_CARD_SECONDS} seconds per card`
+    : 'Untimed';
+  const verdictLabel = passed
+    ? `✓ PASSED — pass mark ${passMark}/10`
+    : `NOT YET — the ${difficulty === 'hard' ? 'Hard' : 'Normal'} pass mark is ${passMark}/10`;
+  const runDateLabel = runDate
+    ? runDate.toLocaleDateString('en-GB', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : '';
+  const cardFilename = runDate
+    ? `spot-the-fake-${difficulty}-${score}-of-10-${runDate
+        .toISOString()
+        .slice(0, 10)}.png`
+    : `spot-the-fake-${difficulty}-${score}-of-10.png`;
+
+  const saveResultCard = async () => {
+    if (!cardRef.current || cardState === 'working') return;
+    setCardState('working');
+    try {
+      await downloadResultCardPng(cardRef.current, cardFilename);
+      setCardState('saved');
+    } catch {
+      // The card is a keepsake, not the record — the run's result and
+      // its saved stats stand either way. Say so plainly.
+      setCardState('failed');
+    }
+  };
 
   return (
     <div>
@@ -570,6 +619,154 @@ export default function SpotTheFake() {
             >
               Back to the Proving Ground
             </a>
+          </div>
+
+          <div className="mt-6 border-t border-green-500/30 pt-5">
+            <button
+              onClick={saveResultCard}
+              disabled={cardState === 'working'}
+              className="bg-gray-100 hover:bg-white disabled:opacity-60 text-black font-bold px-6 py-3 rounded-lg"
+            >
+              {cardState === 'working'
+                ? 'Building your card…'
+                : 'Download result card (PNG)'}
+            </button>
+            {cardState === 'idle' && (
+              <p className="text-gray-400 text-sm mt-3">
+                A picture of this run — score, deck and date — made on your
+                device as a PNG. Nothing is uploaded or posted.
+              </p>
+            )}
+            {cardState === 'saved' && (
+              <p className="text-gray-300 text-sm mt-3">
+                Card saved to your downloads — share it wherever you like.
+                It was made here on your device; nothing was uploaded.
+              </p>
+            )}
+            {cardState === 'failed' && (
+              <p className="text-yellow-200 text-sm mt-3">
+                Sorry — the card image could not be made in this browser.
+                Your run still counts: the score above is your record.
+              </p>
+            )}
+          </div>
+
+          {/* The share-card node: purpose-built for the image (never a
+              screenshot of the results panel), parked far off-screen.
+              It carries only the run's own facts — no claims, no copy
+              beyond the site and section names. */}
+          <div
+            aria-hidden="true"
+            style={{ position: 'fixed', left: '-10000px', top: 0 }}
+          >
+            <div
+              ref={cardRef}
+              data-share-card="true"
+              style={{
+                width: 1200,
+                height: 630,
+                boxSizing: 'border-box',
+                padding: 56,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                textAlign: 'left',
+                background:
+                  'linear-gradient(135deg, #04150b 0%, #052e16 55%, #064e3b 100%)',
+                border: '6px solid #22c55e',
+                borderRadius: 28,
+                color: '#f0fdf4',
+                fontFamily:
+                  "-apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif",
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 32,
+                    fontWeight: 800,
+                    letterSpacing: 3,
+                    color: '#4ade80',
+                  }}
+                >
+                  MATRIX HUB
+                </span>
+                <span
+                  style={{
+                    fontSize: 24,
+                    letterSpacing: 4,
+                    color: '#bbf7d0',
+                  }}
+                >
+                  THE PROVING GROUND
+                </span>
+              </div>
+
+              <div>
+                <div
+                  style={{
+                    fontSize: 24,
+                    letterSpacing: 3,
+                    color: '#86efac',
+                    marginBottom: 8,
+                  }}
+                >
+                  SPOT THE FAKE · RESULT
+                </div>
+                <div
+                  style={{
+                    fontSize: 170,
+                    fontWeight: 800,
+                    lineHeight: 1,
+                    color: '#4ade80',
+                  }}
+                >
+                  {score}/10
+                </div>
+                <div
+                  style={{ fontSize: 32, color: '#d1fae5', marginTop: 18 }}
+                >
+                  {deckLabel} · {modeLabel}
+                </div>
+                <div
+                  style={{
+                    fontSize: 38,
+                    fontWeight: 700,
+                    marginTop: 10,
+                    color: passed ? '#4ade80' : '#facc15',
+                  }}
+                >
+                  {verdictLabel}
+                </div>
+              </div>
+
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'baseline',
+                }}
+              >
+                <span style={{ fontSize: 24, color: '#86efac' }}>
+                  Played {runDateLabel}
+                </span>
+                <span
+                  style={{
+                    fontSize: 24,
+                    fontWeight: 700,
+                    color: '#4ade80',
+                  }}
+                >
+                  matrix-hub.org/proving-ground
+                </span>
+              </div>
+            </div>
           </div>
         </div>
       )}
