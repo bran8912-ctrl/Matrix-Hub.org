@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BURN_IN_PRESETS,
+  captionDownloadName,
   clearStudioDraft,
   cuesToSrt,
   cuesToVtt,
@@ -158,6 +159,11 @@ export default function ReelFoundry() {
       setDraftSavedAt(new Date().toISOString());
     }, 600);
   }, [file, mediaKind, duration, trimStart, trimEnd, cues, capSize, capPos, capBg, capPreset]);
+
+  // The name caption downloads are filed under: the loaded clip's name,
+  // or — after a draft restore, before the clip is re-selected — the
+  // restored draft's clip name. Null → the studio default filename.
+  const captionClipName = file?.name ?? draftClipRef.current?.name ?? null;
 
   const trimLen = Math.max(0, trimEnd - trimStart);
   const relNow = now - trimStart;
@@ -939,7 +945,7 @@ export default function ReelFoundry() {
           <button
             type="button"
             disabled={cues.length === 0}
-            onClick={() => downloadBlob(new Blob([cuesToSrt(cues)], { type: 'text/plain' }), 'foundry-captions.srt')}
+            onClick={() => downloadBlob(new Blob([cuesToSrt(cues)], { type: 'text/plain' }), captionDownloadName(captionClipName, 'srt'))}
             className="rounded bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-500 disabled:opacity-40"
           >
             Download captions (.SRT)
@@ -947,7 +953,7 @@ export default function ReelFoundry() {
           <button
             type="button"
             disabled={cues.length === 0}
-            onClick={() => downloadBlob(new Blob([cuesToVtt(cues)], { type: 'text/vtt' }), 'foundry-captions.vtt')}
+            onClick={() => downloadBlob(new Blob([cuesToVtt(cues)], { type: 'text/vtt' }), captionDownloadName(captionClipName, 'vtt'))}
             className="rounded bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-500 disabled:opacity-40"
           >
             Download captions (.VTT)
@@ -981,6 +987,13 @@ export default function ReelFoundry() {
             </>
           )}
         </div>
+        {cues.length === 0 && (
+          <p className="mt-3 text-sm text-gray-400">
+            The caption files (.SRT/.VTT) are ready once you have captions — transcribe, import, or
+            type them in Step 2 above. They carry the caption text and timing on their own (nothing
+            is baked into the picture), and they download under your clip's name.
+          </p>
+        )}
         {mediaKind === 'audio' && file && (
           <p className="mt-3 text-sm text-gray-400">
             Trimmed-clip export works with video files. For this audio clip, the caption files above
