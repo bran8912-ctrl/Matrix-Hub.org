@@ -18,11 +18,15 @@ export const navCategory = "clubhouse";
       says plainly when it can't.
     </p>
     <p class="text-gray-300 mb-6">
-      Four panels: the receipts (claims that trace to a proof or to a read
+      Six panels: the receipts (claims that trace to a proof or to a read
       this page just made), the chain panel (MTX supply, the direct mint
       rate, minting status, and the casino reserve, read fresh from
-      Polygon), the service status, and the crew log — what our automation
-      runners actually did, published as summaries.
+      Polygon), the casino panel (the bet limits written into the live
+      CasinoCore contract, read from the chain the same way), the VRF
+      panel (the LINK balance and fulfilled-request count of the
+      Chainlink subscription that fuels Dice randomness, read live from
+      the same snapshot), the service status, and the crew log — what
+      our automation runners actually did, published as summaries.
     </p>
 
     <!-- The room's one rule, stated up front. -->
@@ -46,10 +50,11 @@ export const navCategory = "clubhouse";
         <a href="/security" class="text-green-400 hover:underline">
           /security
         </a>{' '}
-        page publishes — the real MTX contract and the CasinoReserve —
-        through the MTX Live Terminal's read path: keyless public Polygon
-        endpoints with failover, an explicit failure state per figure, and
-        nothing cached. The status panel is fed by Upptime monitors (open
+        page publishes — the real MTX contract, the CasinoReserve,
+        CasinoCore's own bet limits, and the Chainlink VRF coordinator's
+        subscription — through the MTX Live Terminal's read
+        path: keyless public Polygon endpoints with failover, an explicit
+        failure state per figure, and nothing cached. The status panel is fed by Upptime monitors (open
         source, MIT) once HQ finishes wiring that feed; the crew log is
         published by our own runner tooling as summaries only. MTX is the
         utility token of the Matrix Hub ecosystem; nothing here is
@@ -97,7 +102,7 @@ export const navCategory = "clubhouse";
             React
           </a>{' '}
           <span class="text-gray-400">(MIT)</span> — the interactive island
-          the four panels run as.
+          the six panels run as.
         </li>
         <li>
           <a
