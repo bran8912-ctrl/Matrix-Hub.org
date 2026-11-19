@@ -8,6 +8,8 @@ export interface DiceResult {
 
 export class DiceEngine {
   static readonly BET_AMOUNT = 1; // 1 MTX per roll
+  static readonly MAX_BET_AMOUNT = 1000; // CasinoCore on-chain maximum bet (MTX)
+  static readonly MAX_PAYOUT = 100; // CasinoCore on-chain per-bet payout cap (MTX)
   static readonly MIN_TARGET = 2;
   static readonly MAX_TARGET = 98;
 
@@ -41,6 +43,9 @@ export class DiceEngine {
   static validateBet(amount: number, target: number): string | null {
     if (amount < this.BET_AMOUNT) {
       return `Minimum bet is ${this.BET_AMOUNT} MTX`;
+    }
+    if (amount > this.MAX_BET_AMOUNT) {
+      return `Maximum bet is ${this.MAX_BET_AMOUNT} MTX`;
     }
     if (target < this.MIN_TARGET || target > this.MAX_TARGET) {
       return `Target must be between ${this.MIN_TARGET} and ${this.MAX_TARGET}`;
