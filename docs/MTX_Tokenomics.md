@@ -36,17 +36,13 @@
 - **Rate**: Market-determined via liquidity pool
 - **Method**: Swap WPOL or other ERC-20 tokens for MTX
 - **Advantages**:
-  - High liquidity
+  - Live pool — small today (1 POL + 1,000 MTX at last check; see /security)
   - Trusted platform
   - Flexible amounts
   - Any token swap
 - **Considerations**: Subject to slippage on large trades
 
-### 3. Earn Through Platform (Free)
-- Usage milestones
-- Bug reports and testing
-- GitHub contributions (merged PRs)
-- Community participation
+### 3. Earn Through Platform
 - Casino winnings
 
 ## Emissions
@@ -57,12 +53,10 @@
 - Collected POL can fund liquidity and operations
 
 ## Token Sinks (Supply Reduction)
-- Lock mechanism for tier access
 - Casino gameplay (balanced by casino payouts)
 
 No burn is currently wired into any live flow: `MatrixHubCoin.burn()`
-exists but nothing calls it, so do not present burning as an active sink
-until a burn is actually implemented and verified.
+exists in the contract, but nothing calls it.
 
 ## Casino fee routing (verified against CasinoCore.sol)
 
