@@ -3,10 +3,9 @@ import Layout from "../components/Layout.astro";
 import MatrixProfitBot from "../components/MatrixProfitBot.astro";
 import MTXEcosystem from "../components/MTXEcosystem.astro";
 import CasinoGamesPanel from "../components/CasinoGamesPanel.astro";
-// MTXOwnershipPanel is HIDDEN (2026-11-10, legal gating G-02): its
-// ownership/equity/governance claims and fee split are false against the
-// deployed code. The component file stays in the repo for a future rewrite;
-// do not re-enable it until it is rewritten and legal re-checks it.
+// MTXOwnershipPanel was DELETED 2026-11-18 (site cleaning wave 2,
+// Brandon's call): its ownership/equity/governance claims and fee split
+// were false against the deployed code, and it was rendered nowhere.
 import DonateBanner from "../components/DonateBanner.astro";
 import TelegramWidget from "../components/TelegramWidget.astro";
 import MTXStatsWidget from "../components/MTXStatsWidget.tsx";
@@ -78,8 +77,8 @@ export const navCategory = "home";
     <MatrixProfitBot />
   </section>
 
-  <!-- MTX Ownership & Casino Economics — HIDDEN 2026-11-10 (legal gating G-02).
-       See the commented import above; do not re-enable until rewritten. -->
+  <!-- MTX Ownership & Casino Economics panel: component deleted 2026-11-18
+       (false claims; never rendered). -->
 
   <!-- Donation Banner -->
   <DonateBanner />
