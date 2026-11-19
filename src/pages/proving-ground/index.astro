@@ -1,0 +1,164 @@
+---
+import Layout from "../../components/Layout.astro";
+import ProvingGroundHome from "../../components/proving-ground/ProvingGroundHome";
+
+export const prerender = true;
+
+export const title = "The Proving Ground";
+export const navCategory = "proving-ground";
+---
+
+<Layout title="The Proving Ground - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-4 text-green-400">
+      🏟️ The Proving Ground
+    </h1>
+    <p class="text-xl text-gray-300 mb-4">
+      MTX 101 teaches the skills in words. The Proving Ground is where you{' '}
+      <strong class="text-gray-100">do them</strong> — hands-on training for
+      checking a token contract yourself, built from Matrix Hub's own real
+      contracts and its own real fake.
+    </p>
+    <p class="text-gray-300 mb-6">
+      Three short modules: run the 30-second address check against
+      lookalikes until it is reflex, watch a direct mint happen step by step,
+      and read a verified contract on PolygonScan like a pro. No lectures —
+      you learn by doing, and the ground keeps your score.
+    </p>
+
+    <!-- Honest labelling, up front: training only. -->
+    <div
+      class="bg-green-900/40 border-2 border-green-500 rounded-lg p-4 mb-8 text-green-100"
+    >
+      <strong>Training, stated plainly:</strong> nothing here connects a
+      wallet, moves money, or asks you to sign anything. The mint module is a
+      labelled simulation; the only live data on these pages is read-only
+      (the mint rate, read fresh from the contract). Your progress is stored
+      only in this browser, on this device.
+    </div>
+
+    <ProvingGroundHome client:only="react" />
+
+    <div class="mt-12 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">
+        Where the facts come from
+      </h2>
+      <p class="text-gray-300 mb-3">
+        Every address, figure, and warning in these modules comes from the
+        same public proof the{' '}
+        <a href="/security" class="text-green-400 hover:underline">
+          /security
+        </a>{' '}
+        page publishes — the real MTX contract, the flagged fake, the supply
+        and cap, and who controls the contracts, all checkable on PolygonScan.
+        MTX is the utility token of the Matrix Hub ecosystem; nothing here is
+        financial advice, and nothing here promises anything about price.
+      </p>
+      <p class="text-gray-300">
+        New to the series? The MTX 101 posts run daily on our{' '}
+        <a
+          href="https://t.me/matrixhuborg"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-green-400 hover:underline"
+        >
+          Telegram channel
+        </a>{' '}
+        — the Proving Ground is their practice field.
+      </p>
+    </div>
+
+    <!-- Built from the commons: the open-source projects this section is
+         actually built from — named, licensed, linked. -->
+    <div class="mt-8 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">
+        Built from the commons
+      </h2>
+      <p class="text-gray-300 mb-4">
+        This section stands on open-source software, the way the whole site
+        does. These are the projects it is actually built from — thank you to
+        everyone who ships their work for others to build on:
+      </p>
+      <ul class="space-y-3 text-gray-300">
+        <li>
+          <a
+            href="https://github.com/withastro/astro"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            Astro
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the static site framework
+          these pages are built and shipped with.
+        </li>
+        <li>
+          <a
+            href="https://github.com/facebook/react"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            React
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the interactive islands
+          the three training modules run as.
+        </li>
+        <li>
+          <a
+            href="https://github.com/ethers-io/ethers.js"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            ethers
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the read-only contract
+          calls behind the mint module's live rate.
+        </li>
+        <li>
+          <a
+            href="https://github.com/tailwindlabs/tailwindcss"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            Tailwind CSS
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the styling, in the
+          site's own theme.
+        </li>
+        <li>
+          <a
+            href="https://github.com/CloudCannon/pagefind"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            Pagefind
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — indexes these pages into
+          the site search at build time, no server involved.
+        </li>
+        <li>
+          <a
+            href="https://github.com/catdad/canvas-confetti"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            canvas-confetti
+          </a>{' '}
+          <span class="text-gray-400">(ISC)</span> — the confetti bursts when
+          you complete a module, vendored into the site so nothing loads from
+          a CDN.
+        </li>
+      </ul>
+      <p class="text-gray-400 text-sm mt-4">
+        The trainer, the mint simulation, and the verification walk
+        themselves are hand-built for this section — no game engine, no
+        trackers, nothing loaded from a CDN.
+      </p>
+    </div>
+  </div>
+</Layout>
