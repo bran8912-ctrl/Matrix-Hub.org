@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   BURN_IN_PRESETS,
+  clearStudioDraft,
   cuesToSrt,
   cuesToVtt,
   enableCrossOriginIsolation,
@@ -11,11 +12,14 @@ import {
   formatCaptionTime,
   getBurnInPreset,
   isolationAlreadyAttempted,
+  loadStudioDraft,
   loadWhisper,
   parseCaptionText,
+  saveStudioDraft,
   transcribePcm,
   type BurnInPresetId,
   type CaptionCue,
+  type StudioDraft,
   type WhisperPhase,
 } from '../../lib/foundry';
 
@@ -84,12 +88,76 @@ export default function ReelFoundry() {
   const mrRef = useRef<MediaRecorder | null>(null);
   const mrChunksRef = useRef<Blob[]>([]);
 
+  // ------------------------------------------------------------- drafts
+  // A saved work-in-progress edit (decisions only — never media bytes),
+  // found in this browser on arrival and offered back, never applied
+  // silently. See the STUDIO DRAFT CONTRACT in lib/foundry.
+  const [pendingDraft, setPendingDraft] = useState<StudioDraft | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const draftActiveRef = useRef(false);
+  const draftClipRef = useRef<StudioDraft['clip']>(null);
+  const lastSavedDraftRef = useRef<string | null>(null);
+  const draftTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const d = loadStudioDraft();
+    if (d) setPendingDraft(d);
+  }, []);
+
   useEffect(() => {
     return () => {
       if (mediaUrl) URL.revokeObjectURL(mediaUrl);
       streamRef.current?.getTracks().forEach((t) => t.stop());
     };
   }, [mediaUrl]);
+
+  // Autosave the edit decisions (never the media) whenever they change —
+  // debounced, and only when they actually differ from the last write.
+  // A page that was merely opened writes nothing: a stored draft that is
+  // still awaiting the visitor's decision is left exactly as it was.
+  useEffect(() => {
+    const hasEdits =
+      cues.length > 0 ||
+      trimStart > 0.001 ||
+      (duration > 0 && trimEnd > 0 && trimEnd < duration - 0.001) ||
+      capSize !== 'standard' ||
+      capPos !== 'bottom' ||
+      capBg !== true ||
+      capPreset !== 'classic';
+    if (!hasEdits) {
+      // Nothing worth keeping. If this session had a draft in play (a
+      // clip loaded, or a draft restored) and the edit was emptied out,
+      // the stored draft goes too — but a fresh page load must never
+      // clear a draft the visitor hasn't decided about yet.
+      if (file || draftActiveRef.current) {
+        if (draftTimerRef.current) window.clearTimeout(draftTimerRef.current);
+        draftTimerRef.current = window.setTimeout(() => {
+          clearStudioDraft();
+          lastSavedDraftRef.current = null;
+          setDraftSavedAt(null);
+        }, 600);
+      }
+      return;
+    }
+    if (draftTimerRef.current) window.clearTimeout(draftTimerRef.current);
+    draftTimerRef.current = window.setTimeout(() => {
+      const clip = file
+        ? { name: file.name, type: file.type, size: file.size, kind: mediaKind, duration }
+        : draftClipRef.current;
+      const decisions = {
+        clip,
+        trimStart,
+        trimEnd,
+        cues,
+        style: { size: capSize, position: capPos, background: capBg, preset: capPreset },
+      };
+      const serialized = JSON.stringify(decisions);
+      if (serialized === lastSavedDraftRef.current) return;
+      saveStudioDraft(decisions);
+      lastSavedDraftRef.current = serialized;
+      setDraftSavedAt(new Date().toISOString());
+    }, 600);
+  }, [file, mediaKind, duration, trimStart, trimEnd, cues, capSize, capPos, capBg, capPreset]);
 
   const trimLen = Math.max(0, trimEnd - trimStart);
   const relNow = now - trimStart;
@@ -98,18 +166,63 @@ export default function ReelFoundry() {
       ? cues.find((c) => relNow >= c.start && relNow < c.end)
       : undefined;
 
+  function restoreDraft() {
+    const d = pendingDraft;
+    if (!d) return;
+    setCues(d.cues);
+    setCapSize(d.style.size);
+    setCapPos(d.style.position);
+    setCapBg(d.style.background);
+    setCapPreset(d.style.preset);
+    setTrimStart(d.trimStart);
+    setTrimEnd(d.trimEnd);
+    if (d.clip) setDuration(d.clip.duration);
+    draftClipRef.current = d.clip;
+    draftActiveRef.current = true;
+    setDraftSavedAt(d.savedAt);
+    setPendingDraft(null);
+    setStatus(
+      d.clip
+        ? `Your saved edit is restored — the trim, ${d.cues.length} caption${d.cues.length === 1 ? '' : 's'} and your caption style are in place. The clip itself was never stored (nothing leaves this device), so re-select "${d.clip.name}" and the edit lands on it.`
+        : 'Your saved edit is restored — captions and caption style are in place. Load the clip you were editing and the trim lands on it.',
+    );
+  }
+
+  function discardDraft() {
+    clearStudioDraft();
+    lastSavedDraftRef.current = null;
+    draftClipRef.current = null;
+    setPendingDraft(null);
+    setDraftSavedAt(null);
+    setStatus(
+      'Draft discarded. It only ever lived in this browser on this device, and now it is gone from here too.',
+    );
+  }
+
   function adoptFile(f: File) {
     if (mediaUrl) URL.revokeObjectURL(mediaUrl);
     const kind: MediaKind = f.type.startsWith('audio/') ? 'audio' : 'video';
     setFile(f);
     setMediaKind(kind);
     setMediaUrl(URL.createObjectURL(f));
-    setCues([]);
     setNow(0);
+    setExportMsg('');
+    if (draftActiveRef.current) {
+      // A restored draft is waiting: keep its decisions (cues, trim,
+      // style) and land them on this clip instead of wiping them.
+      const dc = draftClipRef.current;
+      const matches = !!dc && dc.name === f.name && dc.size === f.size;
+      setStatus(
+        matches
+          ? `Loaded ${f.name} — the clip from your saved draft, with your restored trim and captions on it.`
+          : `Loaded ${f.name} — your restored trim and captions are applied to it. Heads-up: the draft was made on ${dc ? `"${dc.name}"` : 'a clip you have not re-selected'}, so check the timings line up.`,
+      );
+      return;
+    }
+    setCues([]);
     setTrimStart(0);
     setTrimEnd(0);
     setDuration(0);
-    setExportMsg('');
     setStatus(`Loaded ${f.name} (${(f.size / 1024 / 1024).toFixed(2)} MB) — entirely on this device.`);
   }
 
@@ -118,6 +231,14 @@ export default function ReelFoundry() {
     if (!el) return;
     const d = Number.isFinite(el.duration) ? el.duration : 0;
     setDuration(d);
+    if (draftActiveRef.current) {
+      // Keep the restored trim, clamped into the real duration.
+      const end = Math.min(trimEnd > 0 ? trimEnd : d, d);
+      const start = Math.min(trimStart, Math.max(0, end - 0.2));
+      setTrimEnd(end);
+      setTrimStart(start);
+      return;
+    }
     setTrimStart(0);
     setTrimEnd(d);
   }
@@ -355,6 +476,57 @@ export default function ReelFoundry() {
         {status}
       </p>
 
+      {/* ------------------------------------------ Saved draft offer */}
+      {pendingDraft && (
+        <section className="rounded-lg border border-yellow-500/50 bg-yellow-900/20 p-5">
+          <h2 className="mb-2 text-xl font-bold text-yellow-200">Pick up an unfinished edit?</h2>
+          <p className="text-sm leading-relaxed text-yellow-100/90">
+            This browser holds a draft of an edit you left unfinished
+            {pendingDraft.savedAt
+              ? ` — saved ${new Date(pendingDraft.savedAt).toLocaleString()}`
+              : ''}
+            , on <strong className="text-yellow-100">this device only</strong>. It holds the edit
+            decisions — a trim of {pendingDraft.trimStart.toFixed(1)}s →{' '}
+            {pendingDraft.trimEnd.toFixed(1)}s, {pendingDraft.cues.length} caption
+            {pendingDraft.cues.length === 1 ? '' : 's'} and your caption style
+            {pendingDraft.clip ? (
+              <>
+                {' '}
+                for <strong className="text-yellow-100">{pendingDraft.clip.name}</strong>
+              </>
+            ) : (
+              ''
+            )}
+            . Nothing was ever uploaded, and the clip file itself is{' '}
+            <strong className="text-yellow-100">not</strong> stored — restoring brings back the
+            trim, captions and style, and you re-select the clip to land them on.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={restoreDraft}
+              className="rounded bg-green-600 px-4 py-2 font-semibold text-white hover:bg-green-500"
+            >
+              Restore my edit
+            </button>
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="rounded border border-gray-500 px-4 py-2 font-semibold text-gray-200 hover:border-red-400 hover:text-red-300"
+            >
+              Discard draft
+            </button>
+            <button
+              type="button"
+              onClick={() => setPendingDraft(null)}
+              className="rounded px-3 py-2 text-sm text-gray-400 underline hover:text-gray-200"
+            >
+              Not now — keep it saved for next time
+            </button>
+          </div>
+        </section>
+      )}
+
       {/* ------------------------------------------------ Step 1: source */}
       <section className="rounded-lg border border-green-500/30 bg-gray-800 p-5">
         <h2 className="mb-3 text-2xl font-bold text-green-400">1 · Load or record a clip</h2>
@@ -396,6 +568,11 @@ export default function ReelFoundry() {
                 setFile(null);
                 setMediaUrl(null);
                 setCues([]);
+                draftActiveRef.current = false;
+                draftClipRef.current = null;
+                lastSavedDraftRef.current = null;
+                clearStudioDraft();
+                setDraftSavedAt(null);
                 setStatus('Cleared. Nothing was uploaded, so there is nothing to delete anywhere.');
               }}
               className="rounded border border-gray-600 px-3 py-2 text-sm text-gray-300 hover:border-red-400 hover:text-red-300"
@@ -411,6 +588,20 @@ export default function ReelFoundry() {
           Trial scope: short clips work best — transcription covers up to 3 minutes per run. Your
           file is read by your browser only; it is never uploaded.
         </p>
+        {draftSavedAt && !pendingDraft && (
+          <p className="mt-2 text-xs text-gray-500">
+            A draft of this edit is saved on this device (
+            {new Date(draftSavedAt).toLocaleTimeString()}) — trim, captions and style only, never
+            the clip itself.{' '}
+            <button
+              type="button"
+              onClick={discardDraft}
+              className="underline hover:text-red-300"
+            >
+              Discard draft
+            </button>
+          </p>
+        )}
 
         {mediaUrl && (
           <div className="mt-5">
