@@ -29,12 +29,16 @@ const MODULES: ModuleInfo[] = [
     title: 'Spot the Fake',
     href: '/proving-ground/spot-the-fake',
     blurb:
-      'The address-check trainer. Ten contract addresses, one at a time — rule each REAL or FAKE against the one true MTX contract, and see the changed characters lit up after every answer.',
+      'The address-check trainer. Ten contract addresses, one at a time — rule each REAL or FAKE against the one true MTX contract, and see the changed characters lit up after every answer. A Hard mode waits on the trainer: fewer real cards, only the nastiest lookalikes, pass mark 9/10. An optional timed mode puts 15 seconds on each card — run out and the card counts as a miss, like an address you never finished checking.',
     minutes: 'About 3 minutes',
-    detail: (p) =>
-      p.spot.runs > 0
-        ? `Best score ${p.spot.best}/10 · best streak ${p.spot.bestStreak} · ${p.spot.runs} run${p.spot.runs === 1 ? '' : 's'}`
-        : null,
+    detail: (p) => {
+      const n = p.spot.byDifficulty.normal;
+      const h = p.spot.byDifficulty.hard;
+      const total = n.runs + h.runs;
+      return total > 0
+        ? `Best — Normal ${n.best}/10 · Hard ${h.best}/10 · best streak ${Math.max(n.bestStreak, h.bestStreak)} · ${total} run${total === 1 ? '' : 's'}`
+        : null;
+    },
   },
   {
     key: 'mint',
@@ -65,7 +69,7 @@ function statusOf(p: ProvingGroundProgress, key: ModuleInfo['key']) {
   if (p[key].completed) return { label: 'Completed ✓', cls: 'bg-green-500 text-black' };
   const started =
     key === 'spot'
-      ? p.spot.runs > 0
+      ? p.spot.byDifficulty.normal.runs + p.spot.byDifficulty.hard.runs > 0
       : key === 'mint'
         ? p.mint.runs > 0
         : p.verify.steps.some(Boolean);
