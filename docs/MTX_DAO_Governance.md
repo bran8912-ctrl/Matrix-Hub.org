@@ -1,5 +1,7 @@
 # MTX Governance
 
+> **Status: not implemented. Today a single founder wallet governs the contracts (see [/security](/security)). This page describes the intended model.**
+
 ## Scope
 - Adjust casino percentages
 - Enable new [games](/docs/casino-games)
