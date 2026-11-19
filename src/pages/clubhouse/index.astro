@@ -1,0 +1,72 @@
+---
+import Layout from "../../components/Layout.astro";
+
+export const prerender = true;
+
+export const title = "The Clubhouse";
+export const navCategory = "clubhouse";
+
+const rooms = [
+  {
+    href: "/clubhouse/glass-wall",
+    icon: "🧊",
+    name: "The Glass Wall",
+    blurb:
+      "The transparency room: MTX supply, the mint rate, the casino reserve and the VRF fuel gauge, read live from Polygon — or shown as failed, never filled in with prose.",
+  },
+  {
+    href: "/proving-ground",
+    icon: "🎯",
+    name: "The Proving Ground",
+    blurb:
+      "The trainer: spot the fake MTX token against the real one, walk a mint step by step, and verify a contract the way a pro would.",
+  },
+  {
+    href: "/clubhouse/atlas",
+    icon: "🗺️",
+    name: "Quest Atlas",
+    blurb:
+      "A walkable map of the whole project — every building is a door to a real page, and the plaza plinth lights up as you finish the Proving Ground exercises.",
+  },
+  {
+    href: "/clubhouse/studio",
+    icon: "🎬",
+    name: "The Reel Foundry — Studio",
+    blurb:
+      "The Video Studio's trial room: trim a clip, add captions, burn them in and export — the reel tools run entirely on your own device.",
+  },
+  {
+    href: "/clubhouse/classroom",
+    icon: "📚",
+    name: "MTX 101 Classroom",
+    blurb:
+      "The MTX 101 lesson series as decks you flip through in order — thirteen lessons, from what MTX is to the honest gaps, all live.",
+  },
+];
+---
+
+<Layout title="The Clubhouse - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-4 text-green-400">🏠 The Clubhouse</h1>
+    <p class="text-xl text-gray-300 mb-8">
+      The hands-on wing of Matrix Hub. Every room below is live and does
+      what its card says — no sign-up, nothing to install.
+    </p>
+
+    <div class="grid gap-6 md:grid-cols-2">
+      {
+        rooms.map((room) => (
+          <a
+            href={room.href}
+            class="block bg-gray-900/60 border-2 border-green-500/50 rounded-lg p-6 hover:border-green-400 transition-colors"
+          >
+            <h2 class="text-2xl font-bold text-green-300 mb-2">
+              {room.icon} {room.name}
+            </h2>
+            <p class="text-gray-300">{room.blurb}</p>
+          </a>
+        ))
+      }
+    </div>
+  </div>
+</Layout>
