@@ -1,7 +1,6 @@
 ---
 import Layout from "../../components/Layout.astro";
 import ClassroomHome from "../../components/clubhouse/ClassroomHome";
-import { SYLLABUS_UPCOMING } from "../../lib/lessons-data";
 
 export const prerender = true;
 
@@ -44,21 +43,17 @@ export const navCategory = "clubhouse";
 
     <div class="mt-12 bg-gray-800 border border-gray-600 rounded-lg p-6">
       <h2 class="text-2xl font-bold text-green-400 mb-3">
-        The rest of the syllabus — in production
+        The syllabus — complete
       </h2>
       <p class="text-gray-300 mb-4">
-        The first twelve lessons are live above. The remaining MTX 101 topics
-        are being built as decks in this order:
+        All thirteen lessons are live above — the full MTX 101 series, from
+        what MTX is to the honest gaps in the final lesson. There is no
+        "coming soon" list: a new topic joins this classroom only when
+        there is verified material to teach, and it will be announced here
+        when there is.
       </p>
-      <ul class="list-disc pl-6 text-gray-300 space-y-1">
-        {SYLLABUS_UPCOMING.map((s) => (
-          <li>
-            <strong class="text-gray-100">Topic {s.topic}:</strong> {s.title}
-          </li>
-        ))}
-      </ul>
       <p class="text-gray-400 mt-4 text-sm">
-        In the meantime, the hands-on companion to these lessons is{' '}
+        The hands-on companion to these lessons is{' '}
         <a href="/proving-ground" class="text-green-300 underline">the Proving Ground</a> —
         practice the address check, the mint, and contract verification by doing them.
       </p>
