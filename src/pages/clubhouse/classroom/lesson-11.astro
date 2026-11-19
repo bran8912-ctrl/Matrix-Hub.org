@@ -1,0 +1,45 @@
+---
+import Layout from "../../../components/Layout.astro";
+import LessonDeck from "../../../components/clubhouse/LessonDeck";
+import { LESSONS } from "../../../lib/lessons-data";
+
+export const prerender = true;
+
+export const title = "MTX 101 Lesson 11 — Referral Invites — Cosmetic Perks Only";
+export const navCategory = "clubhouse";
+
+const lesson = LESSONS[10];
+---
+
+<Layout title="Lesson 11: Referral Invites — Cosmetic Perks Only - MTX 101 Classroom - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-2 text-sm text-green-300/80">
+      <a href="/clubhouse/classroom" class="hover:text-green-300">← MTX 101 Classroom</a>
+    </p>
+    <h1 class="text-4xl font-bold mb-3 text-green-400">{lesson.title}</h1>
+    <p class="text-xl text-gray-300 mb-8">{lesson.subtitle}</p>
+
+    <LessonDeck
+      client:load
+      lesson={lesson}
+      lessonNumber={11}
+      totalLessons={LESSONS.length}
+      nextHref="/clubhouse/classroom/lesson-12"
+    />
+
+    <div class="mt-10 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-xl font-bold text-green-400 mb-2">About this lesson</h2>
+      <p class="text-gray-300">
+        Adapted from Anya Kowalski's approved MTX 101 education series —
+        Topic 13, the referral-invites post. Facts checked against the
+        2026-11-12 public proof pack and the referral system as the site
+        actually implements it today: an invite code and link (plus a QR
+        code on the <a href="/wallet" class="text-green-300 underline">/wallet</a> page),
+        a referral that counts when your friend completes a game round,
+        and perks that are badges and a game theme. Stated plainly, as
+        the post states it: referral perks are cosmetic site features
+        only. No cash, no crypto, no monetary value.
+      </p>
+    </div>
+  </div>
+</Layout>
