@@ -31,7 +31,7 @@
 //   "updatedAt": "2026-11-18T…Z"
 // }
 //
-// Lesson ids are "lesson-1" … "lesson-6" (see lessons-data.ts).
+// Lesson ids are "lesson-1" … "lesson-9" (see lessons-data.ts).
 // A lesson is "completed" when every slide has been viewed AND every quiz
 // question answered (right or wrong — the quiz is a self-check, not a gate).
 // Phase 1's Passport should read this via getClassroomSummary() below or
@@ -644,14 +644,84 @@ export interface BurnInStyle {
   size: 'standard' | 'large';
   position: 'bottom' | 'top';
   background: boolean;
+  /** Which named look to draw with — see BURN_IN_PRESETS. */
+  preset: BurnInPresetId;
+}
+
+export type BurnInPresetId = 'classic' | 'bold' | 'minimal';
+
+/**
+ * A named caption look for the burn-in. The studio's preview overlay is
+ * styled from these same definitions, so the look picked on the page is
+ * the look that burns. Each look has its own backing treatment, used when
+ * the style's `background` toggle is on: Classic and Bold draw a dark
+ * block behind the text; Minimal draws no block and gives the text a
+ * dark outline instead.
+ */
+export interface BurnInPreset {
+  id: BurnInPresetId;
+  name: string;
+  /** Plain one-liner shown beside the picker. */
+  blurb: string;
+  fontWeight: number;
+  /** Multiplier on the size-derived font size. */
+  fontScale: number;
+  /** Multiplier on the backing block's padding ('block' looks only). */
+  padScale: number;
+  backingStyle: 'block' | 'outline';
+  /** Fill for the backing block ('block' looks only). */
+  backingColor: string;
+  /** Stroke colour drawn around the glyphs ('outline' look only). */
+  outlineColor: string;
+}
+
+export const BURN_IN_PRESETS: BurnInPreset[] = [
+  {
+    id: 'classic',
+    name: 'Classic',
+    blurb: 'White text on a dark block — the standard caption look.',
+    fontWeight: 600,
+    fontScale: 1,
+    padScale: 1,
+    backingStyle: 'block',
+    backingColor: 'rgba(0, 0, 0, 0.75)',
+    outlineColor: 'rgba(0, 0, 0, 0.85)',
+  },
+  {
+    id: 'bold',
+    name: 'Bold',
+    blurb: 'Bigger, heavier text on a stronger block — made to read on busy footage.',
+    fontWeight: 800,
+    fontScale: 1.12,
+    padScale: 1.15,
+    backingStyle: 'block',
+    backingColor: 'rgba(0, 0, 0, 0.88)',
+    outlineColor: 'rgba(0, 0, 0, 0.9)',
+  },
+  {
+    id: 'minimal',
+    name: 'Minimal',
+    blurb: 'No block — lighter text with a dark outline, for quiet footage.',
+    fontWeight: 500,
+    fontScale: 0.94,
+    padScale: 1,
+    backingStyle: 'outline',
+    backingColor: 'rgba(0, 0, 0, 0.75)',
+    outlineColor: 'rgba(0, 0, 0, 0.9)',
+  },
+];
+
+export function getBurnInPreset(id: BurnInPresetId | undefined): BurnInPreset {
+  return BURN_IN_PRESETS.find((p) => p.id === id) ?? BURN_IN_PRESETS[0];
 }
 
 /**
  * Draw one caption onto a recorded frame, styled to match the on-page
- * preview: bold white text, centred, word-wrapped, with an optional dark
- * backing block. Font size scales with the frame height the same way the
- * preview scales with the player height (standard ≈ 4.6% of height,
- * large ≈ 6.2%).
+ * preview: white text in the chosen look, centred, word-wrapped, with
+ * the look's backing treatment when the background toggle is on. Font
+ * size scales with the frame height the same way the preview scales
+ * with the player height (standard ≈ 4.6% of height, large ≈ 6.2%,
+ * then the look's own scale).
  */
 export function drawBurnedCaption(
   ctx2d: CanvasRenderingContext2D,
@@ -662,8 +732,12 @@ export function drawBurnedCaption(
 ): void {
   const clean = text.replace(/\s+/g, ' ').trim();
   if (!clean) return;
-  const fontPx = Math.max(13, Math.round(height * (style.size === 'large' ? 0.062 : 0.046)));
-  ctx2d.font = `600 ${fontPx}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
+  const preset = getBurnInPreset(style.preset);
+  const fontPx = Math.max(
+    13,
+    Math.round(height * (style.size === 'large' ? 0.062 : 0.046) * preset.fontScale),
+  );
+  ctx2d.font = `${preset.fontWeight} ${fontPx}px system-ui, -apple-system, "Segoe UI", Roboto, sans-serif`;
   const maxTextWidth = width * 0.86;
   const words = clean.split(' ');
   const lines: string[] = [];
@@ -680,8 +754,8 @@ export function drawBurnedCaption(
   if (line) lines.push(line);
 
   const lineHeight = fontPx * 1.28;
-  const padX = fontPx * 0.6;
-  const padY = fontPx * 0.32;
+  const padX = fontPx * 0.6 * preset.padScale;
+  const padY = fontPx * 0.32 * preset.padScale;
   const textWidth = Math.max(...lines.map((l) => ctx2d.measureText(l).width));
   const blockW = Math.min(width * 0.94, textWidth + padX * 2);
   const blockH = lines.length * lineHeight + padY * 2;
@@ -689,8 +763,8 @@ export function drawBurnedCaption(
   const blockY =
     style.position === 'bottom' ? height - height * 0.055 - blockH : height * 0.04;
 
-  if (style.background) {
-    ctx2d.fillStyle = 'rgba(0, 0, 0, 0.75)';
+  if (style.background && preset.backingStyle === 'block') {
+    ctx2d.fillStyle = preset.backingColor;
     const radius = fontPx * 0.3;
     ctx2d.beginPath();
     if (typeof ctx2d.roundRect === 'function') {
@@ -700,11 +774,20 @@ export function drawBurnedCaption(
     }
     ctx2d.fill();
   }
+  const outlined = style.background && preset.backingStyle === 'outline';
+  if (outlined) {
+    ctx2d.strokeStyle = preset.outlineColor;
+    ctx2d.lineWidth = Math.max(2, fontPx / 9);
+    ctx2d.lineJoin = 'round';
+    ctx2d.miterLimit = 2;
+  }
   ctx2d.fillStyle = '#ffffff';
   ctx2d.textAlign = 'center';
   ctx2d.textBaseline = 'top';
   lines.forEach((l, i) => {
-    ctx2d.fillText(l, width / 2, blockY + padY + i * lineHeight, maxTextWidth + padX);
+    const y = blockY + padY + i * lineHeight;
+    if (outlined) ctx2d.strokeText(l, width / 2, y, maxTextWidth + padX);
+    ctx2d.fillText(l, width / 2, y, maxTextWidth + padX);
   });
 }
 
