@@ -56,17 +56,35 @@ function pad(n: number, w = 2): string {
 
 /** "HH:MM:SS,mmm" (SRT) or "HH:MM:SS.mmm" (VTT). */
 export function formatCaptionTime(seconds: number, decimalSep: ',' | '.'): string {
-  const s = Math.max(0, seconds);
-  const h = Math.floor(s / 3600);
-  const m = Math.floor((s % 3600) / 60);
-  const sec = Math.floor(s % 60);
-  const ms = Math.round((s - Math.floor(s)) * 1000);
+  // Round ONCE to whole milliseconds, then split. Rounding the fractional
+  // part separately (the old code) let the milliseconds reach 1000 for
+  // times like 59.9996s and printed "00:00:59,1000" — four digits, wrong
+  // second, rejected by strict parsers.
+  const totalMs = Math.round(Math.max(0, seconds) * 1000);
+  const h = Math.floor(totalMs / 3600000);
+  const m = Math.floor((totalMs % 3600000) / 60000);
+  const sec = Math.floor((totalMs % 60000) / 1000);
+  const ms = totalMs % 1000;
   return `${pad(h)}:${pad(m)}:${pad(sec)}${decimalSep}${pad(ms, 3)}`;
 }
 
+/**
+ * The cue list in chronological order. The editor can leave the list
+ * unsorted (timing fields are freely editable), but caption files and
+ * the burn-in both consume cues chronologically — so every serialiser
+ * below sorts a copy first, exactly as the burn-in does.
+ */
+function sortedCues(cues: CaptionCue[]): CaptionCue[] {
+  return [...cues].sort((a, b) => a.start - b.start);
+}
+
 export function cuesToSrt(cues: CaptionCue[]): string {
+  const sorted = sortedCues(cues);
+  // No cues, no file: an SRT has no header to stand on its own, so the
+  // honest output is empty (the studio disables the download anyway).
+  if (sorted.length === 0) return '';
   return (
-    cues
+    sorted
       .map(
         (c, i) =>
           `${i + 1}\n${formatCaptionTime(c.start, ',')} --> ${formatCaptionTime(c.end, ',')}\n${c.text.trim()}\n`,
@@ -76,9 +94,12 @@ export function cuesToSrt(cues: CaptionCue[]): string {
 }
 
 export function cuesToVtt(cues: CaptionCue[]): string {
+  const sorted = sortedCues(cues);
+  // A header-only VTT is spec-valid; with no cues that is all we emit.
+  if (sorted.length === 0) return 'WEBVTT\n\n';
   return (
     'WEBVTT\n\n' +
-    cues
+    sorted
       .map(
         (c) =>
           `${formatCaptionTime(c.start, '.')} --> ${formatCaptionTime(c.end, '.')}\n${c.text.trim()}\n`,
@@ -86,6 +107,26 @@ export function cuesToVtt(cues: CaptionCue[]): string {
       .join('\n') +
     '\n'
   );
+}
+
+/**
+ * Download filename for a caption file: derived from the clip's name
+ * where one exists ("My Clip (Final).webm" → "my-clip-final-captions.srt")
+ * and the studio default otherwise. Sanitised to plain lowercase
+ * letters/digits/dashes so it is safe on every filesystem.
+ */
+export function captionDownloadName(
+  clipName: string | null | undefined,
+  ext: 'srt' | 'vtt',
+): string {
+  const base = (clipName ?? '')
+    .replace(/\.[^.]*$/, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60)
+    .replace(/-+$/, '');
+  return base ? `${base}-captions.${ext}` : `foundry-captions.${ext}`;
 }
 
 function parseTimecode(tc: string): number {
