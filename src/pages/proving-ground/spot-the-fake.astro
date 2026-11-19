@@ -1,0 +1,48 @@
+---
+import Layout from "../../components/Layout.astro";
+import SpotTheFake from "../../components/proving-ground/SpotTheFake";
+
+export const prerender = true;
+
+export const title = "Spot the Fake";
+export const navCategory = "proving-ground";
+---
+
+<Layout title="Spot the Fake - The Proving Ground - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-4">
+      <a href="/proving-ground" class="text-green-400 hover:underline">
+        ← Back to the Proving Ground
+      </a>
+    </p>
+
+    <h1 class="text-4xl font-bold mb-4 text-green-400">🎯 Spot the Fake</h1>
+    <p class="text-xl text-gray-300 mb-4">
+      The 30-second check, turned into a drill. There is exactly one real MTX
+      contract — and fakes that differ by a single character.
+    </p>
+    <p class="text-gray-300 mb-8">
+      This is Module 1 of MTX 101's practice field. The habit it builds is
+      the one the{' '}
+      <a href="/security" class="text-green-400 hover:underline">
+        /security
+      </a>{' '}
+      page teaches: before you trust anything called "MTX", compare its
+      address — character by character — with the real one. One character
+      different means a different contract. Stop.
+    </p>
+
+    <SpotTheFake client:only="react" />
+
+    <p class="text-sm text-gray-400 mt-8">
+      Scores and streaks are kept only in this browser, on this device —
+      there is no leaderboard and nothing is sent anywhere. Next module:{' '}
+      <a
+        class="text-green-400 hover:underline"
+        href="/proving-ground/how-a-mint-works"
+      >
+        How a Mint Works →
+      </a>
+    </p>
+  </div>
+</Layout>
