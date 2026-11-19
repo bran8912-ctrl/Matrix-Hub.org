@@ -60,7 +60,8 @@ const { tour } = Astro.props;
     box-shadow: 0 0 24px rgba(0, 255, 153, 0.25);
     color: #e6fff3;
     font-family: 'Courier New', monospace;
-    max-width: 320px;
+    max-width: min(320px, calc(100vw - 24px));
+    box-sizing: border-box;
   }
   .driver-popover.mh-tour-popover .driver-popover-arrow { display: none; }
   .driver-popover.mh-tour-popover .driver-popover-title {
@@ -213,12 +214,29 @@ const { tour } = Astro.props;
       return true;
     }
 
+    // The tour anchors live inside the wallet islands, which hydrate
+    // asynchronously and can take a while on a slow connection. A single
+    // immediate attempt (the original behaviour) silently gave up in
+    // that window — the button looked dead and the first-visit
+    // auto-launch never fired. Instead, poll for the anchors for up to
+    // ~12s before giving up quietly. The seen-flag is only written by
+    // launch() itself, once a tour actually starts.
+    let waiting = false;
+    function launchWhenReady() {
+      if (waiting) return;
+      if (launch()) return;
+      waiting = true;
+      const deadline = Date.now() + 12000;
+      const timer = window.setInterval(() => {
+        if (launch() || Date.now() > deadline) {
+          waiting = false;
+          window.clearInterval(timer);
+        }
+      }, 400);
+    }
+
     launchBtn.addEventListener("click", () => {
-      if (!launch()) {
-        // The wallet islands may still be hydrating — one retry, then
-        // give up quietly rather than showing a half-empty tour.
-        window.setTimeout(() => launch(), 700);
-      }
+      launchWhenReady();
     });
 
     // First visit only: auto-launch once the page (and its React
@@ -230,7 +248,7 @@ const { tour } = Astro.props;
       seen = false;
     }
     if (!seen) {
-      window.setTimeout(() => launch(), 1400);
+      window.setTimeout(() => launchWhenReady(), 1400);
     }
   })();
 </script>
