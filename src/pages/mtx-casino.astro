@@ -1,115 +1,20 @@
 ---
 import Layout from "../components/Layout.astro";
-import MTXEcosystem from "../components/MTXEcosystem.astro";
-import CasinoGamesPanel from "../components/CasinoGamesPanel.astro";
-// MTXOwnershipPanel is HIDDEN (2026-11-10, legal gating G-02): its
-// ownership/equity/governance claims and fee split are false against the
-// deployed code. The component file stays in the repo for a future rewrite;
-// do not re-enable it until it is rewritten and legal re-checks it.
-import DonateBanner from "../components/DonateBanner.astro";
-import TelegramWidget from "../components/TelegramWidget.astro";
-import MTXStatsWidget from "../components/MTXStatsWidget.tsx";
-import CasinoConnectionTest from "../components/CasinoConnectionTest.astro";
-import CasinoLegalNotice from "../components/CasinoLegalNotice.astro";
 
 export const prerender = true;
-
 export const title = "MTX Casino";
 export const navCategory = "casino";
 ---
 
 <Layout title="MTX Casino - Matrix Hub">
-  <div class="casino-header">
-    <h1 class="matrix-title">MTX CASINO</h1>
-    <CasinoLegalNotice />
-    <p class="matrix-subtitle">
-      Provably fair blockchain casino with MTX token gaming and premium MTX ecosystem features.
+  <meta http-equiv="refresh" content="0; url=/games/casino/" />
+  <div class="container mx-auto p-8">
+    <h1 class="text-3xl font-bold mb-4">MTX Casino</h1>
+    <p class="mb-4">
+      This page has moved. Visit the
+      <a href="/games/casino/" class="underline">casino games hub</a> — Dice is
+      live on Polygon, and the other games are labelled there as their
+      outcomes move on-chain.
     </p>
   </div>
-
-  <!-- MTX Stats Widget -->
-  <div class="stats-widget-container">
-    <MTXStatsWidget client:load />
-  </div>
-
-  <CasinoConnectionTest />
-
-  <!-- MTX Ecosystem Section -->
-  <MTXEcosystem />
-
-  <!-- Casino Games Panel -->
-  <CasinoGamesPanel />
-
-  <!-- MTX Ownership & Casino Economics — HIDDEN 2026-11-10 (legal gating G-02).
-       See the commented import above; do not re-enable until rewritten. -->
-
-  <!-- Donation Banner -->
-  <DonateBanner />
-
-  <!-- Telegram Widget -->
-  <TelegramWidget />
 </Layout>
-
-<style>
-  .casino-header {
-    text-align: center;
-    margin-bottom: 40px;
-  }
-
-  .matrix-title {
-    font-size: 2.8rem;
-    color: var(--theme-primary);
-    text-shadow: 0 0 20px var(--theme-glow);
-    font-family: 'Courier New', monospace;
-    letter-spacing: 4px;
-    margin-bottom: 15px;
-    animation: glow-pulse 2s ease-in-out infinite alternate;
-  }
-
-  @keyframes glow-pulse {
-    from {
-      text-shadow: 0 0 10px var(--theme-glow), 0 0 20px var(--theme-glow);
-    }
-    to {
-      text-shadow: 0 0 20px var(--theme-glow), 0 0 40px var(--theme-glow), 0 0 60px var(--theme-glow);
-    }
-  }
-
-  .matrix-subtitle {
-    font-size: 1.2rem;
-    color: var(--theme-text);
-    text-shadow: 0 0 10px var(--theme-secondary);
-    font-family: 'Courier New', monospace;
-  }
-
-  .stats-widget-container {
-    max-width: 400px;
-    margin: 0 auto 40px auto;
-  }
-
-  @media (max-width: 768px) {
-    .stats-widget-container {
-      max-width: 100%;
-      padding: 0 1rem;
-    }
-    
-    .matrix-title {
-      font-size: 2rem;
-      letter-spacing: 2px;
-    }
-
-    .matrix-subtitle {
-      font-size: 1rem;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .matrix-title {
-      font-size: 1.8rem;
-    }
-
-    .matrix-subtitle {
-      font-size: 0.9rem;
-    }
-  }
-</style>
