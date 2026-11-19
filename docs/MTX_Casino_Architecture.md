@@ -45,8 +45,9 @@ fulfilled.
 - Governance changes to the RNG or reserve are blocked while they could
   invalidate outstanding requests or payout liabilities.
 - The casino can pause new bets without preventing settlement or claims.
-- The contracts and this design require independent security review before
-  handling production funds.
+- Audit status: the contracts passed an internal audit and a full testnet
+  rehearsal on Amoy; they have not yet had an independent external audit
+  (see /security). The casino is live on mainnet.
 
 ---
 
