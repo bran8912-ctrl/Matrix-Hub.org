@@ -57,7 +57,8 @@ export default function ClassroomHome() {
             >
               <div className="mb-2 flex items-center justify-between gap-2">
                 <span className="text-sm font-semibold uppercase tracking-wide text-green-400">
-                  Lesson {i + 1} · Topic {lesson.topic}
+                  Lesson {i + 1}
+                  {lesson.topic !== null ? <> · Topic {lesson.topic}</> : null}
                 </span>
                 <span className={`rounded px-2 py-0.5 text-xs font-semibold ${status.cls}`}>
                   {status.label}
