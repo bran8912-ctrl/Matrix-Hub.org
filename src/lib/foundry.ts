@@ -31,7 +31,7 @@
 //   "updatedAt": "2026-11-18T…Z"
 // }
 //
-// Lesson ids are "lesson-1" … "lesson-9" (see lessons-data.ts).
+// Lesson ids are "lesson-1" … "lesson-12" (see lessons-data.ts).
 // A lesson is "completed" when every slide has been viewed AND every quiz
 // question answered (right or wrong — the quiz is a self-check, not a gate).
 // Phase 1's Passport should read this via getClassroomSummary() below or
