@@ -1,0 +1,155 @@
+---
+import Layout from "../../components/Layout.astro";
+import GlassWall from "../../components/clubhouse/GlassWall";
+
+export const prerender = true;
+
+export const title = "The Glass Wall";
+export const navCategory = "clubhouse";
+---
+
+<Layout title="The Glass Wall - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <h1 class="text-4xl font-bold mb-4 text-green-400">🧊 The Glass Wall</h1>
+    <p class="text-xl text-gray-300 mb-4">
+      The Clubhouse's transparency room. Most project sites ask you to
+      trust their words; this room is built so you don't have to — it{' '}
+      <strong class="text-gray-100">shows the workings, live</strong>, or
+      says plainly when it can't.
+    </p>
+    <p class="text-gray-300 mb-6">
+      Four panels: the receipts (claims that trace to a proof or to a read
+      this page just made), the chain panel (MTX supply, the direct mint
+      rate, minting status, and the casino reserve, read fresh from
+      Polygon), the service status, and the crew log — what our automation
+      runners actually did, published as summaries.
+    </p>
+
+    <!-- The room's one rule, stated up front. -->
+    <div
+      class="bg-green-900/40 border-2 border-green-500 rounded-lg p-4 mb-8 text-green-100"
+    >
+      <strong>The rule of this room:</strong> if a value can't be read, it
+      shows as failed or unavailable — never backfilled with prose, never
+      carried over from an earlier visit. A green tick here means something
+      measured it, just now or in the latest published feed.
+    </div>
+
+    <GlassWall client:only="react" />
+
+    <div class="mt-12 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">
+        Where the facts come from
+      </h2>
+      <p class="text-gray-300 mb-3">
+        The chain figures are read live from the same contracts the{' '}
+        <a href="/security" class="text-green-400 hover:underline">
+          /security
+        </a>{' '}
+        page publishes — the real MTX contract and the CasinoReserve —
+        through the MTX Live Terminal's read path: keyless public Polygon
+        endpoints with failover, an explicit failure state per figure, and
+        nothing cached. The status panel is fed by Upptime monitors (open
+        source, MIT) once HQ finishes wiring that feed; the crew log is
+        published by our own runner tooling as summaries only. MTX is the
+        utility token of the Matrix Hub ecosystem; nothing here is
+        financial advice, and nothing here promises anything about price.
+      </p>
+      <p class="text-gray-300">
+        Want to learn the checking skills yourself? The{' '}
+        <a href="/proving-ground/" class="text-green-400 hover:underline">
+          Proving Ground
+        </a>{' '}
+        teaches them hands-on — this room is where you come to watch them
+        applied.
+      </p>
+    </div>
+
+    <!-- Built from the commons: what this page is actually built from. -->
+    <div class="mt-8 bg-gray-800 border border-gray-600 rounded-lg p-6">
+      <h2 class="text-2xl font-bold text-green-400 mb-3">
+        Built from the commons
+      </h2>
+      <p class="text-gray-300 mb-4">
+        This room stands on open-source software, the way the whole site
+        does:
+      </p>
+      <ul class="space-y-3 text-gray-300">
+        <li>
+          <a
+            href="https://github.com/withastro/astro"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            Astro
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the static site framework
+          this page is built and shipped with.
+        </li>
+        <li>
+          <a
+            href="https://github.com/facebook/react"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            React
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the interactive island
+          the four panels run as.
+        </li>
+        <li>
+          <a
+            href="https://github.com/ethers-io/ethers.js"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            ethers
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the read-only contract
+          calls behind the chain panel and the live receipts.
+        </li>
+        <li>
+          <a
+            href="https://github.com/tailwindlabs/tailwindcss"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            Tailwind CSS
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — the styling, in the
+          site's own theme. The receipt badges follow the{' '}
+          <a
+            href="https://github.com/badges/shields"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline"
+          >
+            Shields
+          </a>{' '}
+          <span class="text-gray-400">(Apache-2.0)</span> badge pattern,
+          rendered locally — no badge images are loaded from anywhere.
+        </li>
+        <li>
+          <a
+            href="https://github.com/CloudCannon/pagefind"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-green-400 hover:underline font-bold"
+          >
+            Pagefind
+          </a>{' '}
+          <span class="text-gray-400">(MIT)</span> — indexes this page into
+          the site search at build time, no server involved.
+        </li>
+      </ul>
+      <p class="text-gray-400 text-sm mt-4">
+        The panels themselves are hand-built for this room — no trackers,
+        nothing loaded from a CDN.
+      </p>
+    </div>
+  </div>
+</Layout>
