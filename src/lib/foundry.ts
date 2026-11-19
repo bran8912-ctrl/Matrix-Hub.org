@@ -31,7 +31,7 @@
 //   "updatedAt": "2026-11-18T…Z"
 // }
 //
-// Lesson ids are "lesson-1" … "lesson-12" (see lessons-data.ts).
+// Lesson ids are "lesson-1" … "lesson-13" (see lessons-data.ts).
 // A lesson is "completed" when every slide has been viewed AND every quiz
 // question answered (right or wrong — the quiz is a self-check, not a gate).
 // Phase 1's Passport should read this via getClassroomSummary() below or
@@ -935,4 +935,160 @@ export function getClassroomSummary(): {
     else if (lp.seen.length > 0) inProgressLessons.push(id);
   }
   return { key: CLASSROOM_STORAGE_KEY, completedLessons, inProgressLessons, perLesson: p.lessons };
+}
+
+// ===========================================================================
+// Studio drafts
+// ===========================================================================
+//
+// ---------------------------------------------------------------------------
+// STUDIO DRAFT CONTRACT
+// ---------------------------------------------------------------------------
+// A work-in-progress Studio edit lives in localStorage under the key:
+//
+//     mh_foundry_draft_v1
+//
+// Shape (JSON):
+// {
+//   "version": 1,
+//   "clip": {                       // clip METADATA only — see below
+//     "name": "my-clip.webm",
+//     "type": "video/webm",
+//     "size": 581329,               // bytes, as the File reported it
+//     "kind": "video" | "audio",
+//     "duration": 11.02             // seconds, as the browser reported it
+//   } | null,                       // null while no clip has been chosen
+//   "trimStart": 1.2,               // seconds, the clip's own timeline
+//   "trimEnd": 9.8,                 // seconds, the clip's own timeline
+//   "cues": [                       // trim-relative, as everywhere else
+//     { "start": 0, "end": 2, "text": "…" }, …
+//   ],
+//   "style": {
+//     "size": "standard" | "large",
+//     "position": "bottom" | "top",
+//     "background": true,
+//     "preset": "classic" | "bold" | "minimal"   // a BurnInPresetId
+//   },
+//   "savedAt": "2026-11-19T…Z"
+// }
+//
+// The media bytes are NEVER stored — not here, not anywhere. A draft is
+// the edit DECISIONS only: on the next visit the studio offers the draft
+// back, and restoring it puts the trim, captions and style in place; the
+// visitor re-selects the clip file and the edit lands on it. The draft
+// lives in this browser on this device only, and the visitor can discard
+// it at any time. Reads are defensive, exactly like the classroom
+// contract above: absent, corrupt or malformed data yields NO draft —
+// the studio simply opens empty, never broken.
+// ---------------------------------------------------------------------------
+
+export const STUDIO_DRAFT_KEY = 'mh_foundry_draft_v1';
+
+export interface StudioDraftClip {
+  name: string;
+  type: string;
+  size: number;
+  kind: 'video' | 'audio';
+  duration: number;
+}
+
+export interface StudioDraftStyle {
+  size: 'standard' | 'large';
+  position: 'bottom' | 'top';
+  background: boolean;
+  preset: BurnInPresetId;
+}
+
+export interface StudioDraft {
+  version: 1;
+  clip: StudioDraftClip | null;
+  trimStart: number;
+  trimEnd: number;
+  cues: CaptionCue[];
+  style: StudioDraftStyle;
+  savedAt: string;
+}
+
+function finiteOr(n: unknown, fallback: number): number {
+  const v = typeof n === 'number' ? n : Number(n);
+  return Number.isFinite(v) ? v : fallback;
+}
+
+/**
+ * Read the saved Studio draft, sanitising field by field. Anything
+ * structurally wrong (unparseable, wrong version, a malformed clip
+ * record) yields null — no draft — rather than a half-trusted object.
+ */
+export function loadStudioDraft(): StudioDraft | null {
+  try {
+    const raw = localStorage.getItem(STUDIO_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed: any = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object' || parsed.version !== 1) return null;
+
+    let clip: StudioDraftClip | null = null;
+    if (parsed.clip !== null && parsed.clip !== undefined) {
+      const c: any = parsed.clip;
+      if (typeof c !== 'object' || typeof c.name !== 'string' || !c.name) return null;
+      clip = {
+        name: c.name,
+        type: typeof c.type === 'string' ? c.type : '',
+        size: Math.max(0, finiteOr(c.size, 0)),
+        kind: c.kind === 'audio' ? 'audio' : 'video',
+        duration: Math.max(0, finiteOr(c.duration, 0)),
+      };
+    }
+
+    const trimStart = Math.max(0, finiteOr(parsed.trimStart, 0));
+    const trimEnd = Math.max(trimStart, finiteOr(parsed.trimEnd, 0));
+
+    const cues: CaptionCue[] = Array.isArray(parsed.cues)
+      ? parsed.cues
+          .filter((c: any) => !!c && typeof c === 'object')
+          .map((c: any) => ({
+            start: finiteOr(c.start, NaN),
+            end: finiteOr(c.end, NaN),
+            text: typeof c.text === 'string' ? c.text.trim() : '',
+          }))
+          .filter((c: CaptionCue) => Number.isFinite(c.start) && Number.isFinite(c.end) && c.end > c.start && !!c.text)
+          .sort((a: CaptionCue, b: CaptionCue) => a.start - b.start)
+      : [];
+
+    const s: any = parsed.style && typeof parsed.style === 'object' ? parsed.style : {};
+    const style: StudioDraftStyle = {
+      size: s.size === 'large' ? 'large' : 'standard',
+      position: s.position === 'top' ? 'top' : 'bottom',
+      background: typeof s.background === 'boolean' ? s.background : true,
+      preset: BURN_IN_PRESETS.some((p) => p.id === s.preset) ? (s.preset as BurnInPresetId) : 'classic',
+    };
+
+    return {
+      version: 1,
+      clip,
+      trimStart,
+      trimEnd,
+      cues,
+      style,
+      savedAt: typeof parsed.savedAt === 'string' ? parsed.savedAt : new Date(0).toISOString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export function saveStudioDraft(draft: Omit<StudioDraft, 'version' | 'savedAt'>): void {
+  try {
+    const full: StudioDraft = { ...draft, version: 1, savedAt: new Date().toISOString() };
+    localStorage.setItem(STUDIO_DRAFT_KEY, JSON.stringify(full));
+  } catch {
+    /* storage unavailable or full — a draft is a convenience, never a gate */
+  }
+}
+
+export function clearStudioDraft(): void {
+  try {
+    localStorage.removeItem(STUDIO_DRAFT_KEY);
+  } catch {
+    /* ignore */
+  }
 }
