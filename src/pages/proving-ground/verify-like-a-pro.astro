@@ -1,0 +1,48 @@
+---
+import Layout from "../../components/Layout.astro";
+import VerifyWalk from "../../components/proving-ground/VerifyWalk";
+
+export const prerender = true;
+
+export const title = "Read a Contract Like a Pro";
+export const navCategory = "proving-ground";
+---
+
+<Layout title="Read a Contract Like a Pro - The Proving Ground - Matrix Hub">
+  <div class="container mx-auto px-4 py-8">
+    <p class="mb-4">
+      <a href="/proving-ground" class="text-green-400 hover:underline">
+        ← Back to the Proving Ground
+      </a>
+    </p>
+
+    <h1 class="text-4xl font-bold mb-4 text-green-400">
+      🔍 Read a Contract Like a Pro
+    </h1>
+    <p class="text-xl text-gray-300 mb-4">
+      "Don't trust, verify" is a slogan until someone shows you the five
+      clicks. This walk is those clicks — on the real PolygonScan pages, with
+      Matrix Hub's own contracts as the worked example.
+    </p>
+    <p class="text-gray-300 mb-8">
+      This is Module 3 of MTX 101's practice field. Open each step's link
+      (they open in a new tab), find what it tells you to find, then tick the
+      step off and move on. By the end you will have checked a contract the
+      way an auditor starts: source, supply, control, and warning signs.
+    </p>
+
+    <VerifyWalk client:only="react" />
+
+    <p class="text-sm text-gray-400 mt-8">
+      Every figure this walk asks you to check is also published on{' '}
+      <a class="text-green-400 hover:underline" href="/security">
+        /security
+      </a>{' '}
+      — the page and the chain should always agree, and now you know how to
+      confirm that yourself. Back to{' '}
+      <a class="text-green-400 hover:underline" href="/proving-ground">
+        the Proving Ground →
+      </a>
+    </p>
+  </div>
+</Layout>
