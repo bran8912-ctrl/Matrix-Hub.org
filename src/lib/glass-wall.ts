@@ -13,10 +13,12 @@
 // that doesn't parse is dropped, a feed that doesn't answer returns
 // null, and the panel shows an honest "feed unreachable" state —
 // distinct from the "not wired yet" state an empty config URL gives.
+import { Contract, JsonRpcProvider, formatUnits } from 'ethers';
 import {
   fetchTerminalSnapshot,
   scanUrl,
   TERMINAL_CONTRACTS,
+  TERMINAL_RPCS,
   type TerminalSnapshot,
 } from './mtxTerminal';
 
@@ -43,7 +45,10 @@ export interface ReceiptBadge {
   href?: string;
 }
 
-export function buildReceipts(snap: TerminalSnapshot | null): ReceiptBadge[] {
+export function buildReceipts(
+  snap: TerminalSnapshot | null,
+  casino?: CasinoLimits | null,
+): ReceiptBadge[] {
   const badges: ReceiptBadge[] = [
     {
       label: 'contracts verified',
@@ -85,8 +90,194 @@ export function buildReceipts(snap: TerminalSnapshot | null): ReceiptBadge[] {
       href: scanUrl(TERMINAL_CONTRACTS.mtx),
     });
   }
+  // The casino badge follows the same rule as every live badge above:
+  // it is built only from the max-payout figure the casino panel's own
+  // read (fetchCasinoLimits, below) returned on THIS page load, and is
+  // omitted entirely when that read failed.
+  if (casino?.maxPayoutMtx != null) {
+    badges.push({
+      label: 'max payout · read live',
+      value: `${casino.maxPayoutMtx} MTX`,
+      tone: 'green',
+      href: scanUrl(CASINO_CORE_ADDRESS),
+    });
+  }
+  // The VRF badge follows the identical rule: it is built only from
+  // snap.vrfLink — the LINK balance the Terminal snapshot's
+  // getSubscription read returned on THIS page load, the same field
+  // the VRF panel below renders (already formatted to 4dp by the
+  // Terminal lib). It is omitted entirely when that read failed or
+  // the field is null; no stored or default figure ever prints here.
+  if (snap.vrfLink !== null) {
+    badges.push({
+      label: 'VRF fuel · read live',
+      value: `${snap.vrfLink} LINK`,
+      tone: 'green',
+      href: scanUrl(TERMINAL_CONTRACTS.vrfCoordinator),
+    });
+  }
   return badges;
 }
+
+// ---------------------------------------------------------------------------
+// Casino — live reads from CasinoCore, the contract every Dice bet is
+// placed under. The four limits below are the contract's own public
+// getters (names and semantics from the verified source in the proof
+// pack, bot-core/security/public-proof-pack-2026-11-12.md §3 + the
+// stuck-bet addendum): minBet(), maxBet(), maxPayoutPerBet() — all in
+// MTX wei — and STUCK_BET_REFUND_TIMEOUT() in seconds. Nothing is
+// hard-coded: a figure appears only when its read just returned it,
+// and each read fails over across the same keyless endpoints, with
+// the same per-read ceiling and one-pass rule, as the Terminal lib.
+// (The Terminal lib's failover helpers are module-private, so the
+// pattern is re-run here in miniature rather than imported.)
+// ---------------------------------------------------------------------------
+
+/** CasinoCore — Dice-only build, verified on PolygonScan (proof pack). */
+export const CASINO_CORE_ADDRESS = '0x8a3dBD4BECcAAC89F818E7cB0246241c40938DcA';
+
+const CASINO_CORE_ABI = [
+  'function minBet() view returns (uint256)',
+  'function maxBet() view returns (uint256)',
+  'function maxPayoutPerBet() view returns (uint256)',
+  'function STUCK_BET_REFUND_TIMEOUT() view returns (uint256)',
+];
+
+export interface CasinoLimits {
+  /** Polygon block height at read time, or null if that read failed. */
+  blockNumber: number | null;
+  /** Minimum bet, formatted MTX (e.g. "1"), or null on failure. */
+  minBetMtx: string | null;
+  /** Maximum bet, formatted MTX (e.g. "1,000"), or null on failure. */
+  maxBetMtx: string | null;
+  /** Max payout per bet, formatted MTX (e.g. "100"), or null. */
+  maxPayoutMtx: string | null;
+  /** Stuck-bet refund timeout exactly as read, in seconds, or null. */
+  stuckTimeoutSeconds: number | null;
+  /** The same timeout rendered for humans (e.g. "1 hour"), or null. */
+  stuckTimeoutLabel: string | null;
+  /** When this read finished (client clock). */
+  fetchedAt: Date;
+}
+
+function fmtMtx(units: bigint): string {
+  const n = Number(formatUnits(units, 18));
+  return n.toLocaleString('en-US', { maximumFractionDigits: 4 });
+}
+
+/** Render a duration in seconds honestly: 3600 → "1 hour". */
+export function fmtDuration(totalSeconds: number): string {
+  const parts: string[] = [];
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) parts.push(`${hours} hour${hours === 1 ? '' : 's'}`);
+  if (minutes > 0) parts.push(`${minutes} minute${minutes === 1 ? '' : 's'}`);
+  if (seconds > 0 || parts.length === 0)
+    parts.push(`${seconds} second${seconds === 1 ? '' : 's'}`);
+  return parts.join(' ');
+}
+
+const CASINO_READ_TIMEOUT_MS = 10_000;
+
+function casinoDelay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function casinoWithTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`RPC read timed out after ${ms} ms`)),
+      ms,
+    );
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
+async function casinoAttempt<T>(
+  providers: JsonRpcProvider[],
+  read: (provider: JsonRpcProvider) => Promise<T>,
+): Promise<T | null> {
+  for (let i = 0; i < providers.length; i += 1) {
+    if (i > 0) await casinoDelay(700);
+    try {
+      return await casinoWithTimeout(read(providers[i]), CASINO_READ_TIMEOUT_MS);
+    } catch {
+      // This endpoint failed or timed out — fall over to the next one.
+    }
+  }
+  return null;
+}
+
+/**
+ * Read the four CasinoCore limits fresh from Polygon. Each getter is
+ * read independently and fails over on its own: one failing call nulls
+ * only its own row (and only after every endpoint failed it), never
+ * the whole panel — the same contract the Terminal snapshot follows.
+ */
+export async function fetchCasinoLimits(): Promise<CasinoLimits> {
+  // staticNetwork pinned for the same reason as in mtxTerminal.ts:
+  // a dead endpoint must fail fast, not retry network detection forever.
+  const providers = TERMINAL_RPCS.map(
+    (url) => new JsonRpcProvider(url, 137, { staticNetwork: true }),
+  );
+  const read = <T>(fn: (provider: JsonRpcProvider) => Promise<T>) =>
+    casinoAttempt(providers, fn);
+  const core = (p: JsonRpcProvider) =>
+    new Contract(CASINO_CORE_ADDRESS, CASINO_CORE_ABI, p);
+
+  const [blockNumber, minBet, maxBet, maxPayout, timeout] = await Promise.all([
+    read((p) => p.getBlockNumber()),
+    read((p) => core(p).minBet() as Promise<bigint>),
+    read((p) => core(p).maxBet() as Promise<bigint>),
+    read((p) => core(p).maxPayoutPerBet() as Promise<bigint>),
+    read((p) => core(p).STUCK_BET_REFUND_TIMEOUT() as Promise<bigint>),
+  ]);
+
+  const timeoutSeconds = timeout !== null ? Number(timeout) : null;
+  return {
+    blockNumber,
+    minBetMtx: minBet !== null ? fmtMtx(minBet) : null,
+    maxBetMtx: maxBet !== null ? fmtMtx(maxBet) : null,
+    maxPayoutMtx: maxPayout !== null ? fmtMtx(maxPayout) : null,
+    stuckTimeoutSeconds: timeoutSeconds,
+    stuckTimeoutLabel:
+      timeoutSeconds !== null ? fmtDuration(timeoutSeconds) : null,
+    fetchedAt: new Date(),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// VRF — the Chainlink VRF subscription that fuels Dice randomness.
+// Unlike CasinoCore above, this read needs NO miniature re-run: the
+// Terminal snapshot already reads the subscription (its header in
+// mtxTerminal.ts documents the uint256-selector fix — getSubscription
+// takes uint256, selector 0xdc311dd3; a bytes32 declaration silently
+// reverts) and exports both figures the panel shows:
+// TerminalSnapshot.vrfLink (LINK balance, 4dp) and
+// TerminalSnapshot.vrfRequests (fulfilled-request count). Both come
+// from the one getSubscription call, so they succeed or fail together;
+// the panel still renders each row's failure state independently, and
+// the coordinator + subscription id live in TERMINAL_CONTRACTS
+// (re-exported above) for the panel's PolygonScan link.
+// ---------------------------------------------------------------------------
+
+/**
+ * The HQ daily watch's alert threshold for the VRF subscription, in
+ * LINK. Exported for the panel's factual context line only — it is
+ * not a status and drives no styling: a healthy balance gets no
+ * alarm colour, and the panel never claims the watch ran or didn't.
+ */
+export const VRF_WATCH_ALERT_THRESHOLD_LINK = 0.1;
 
 // ---------------------------------------------------------------------------
 // Feed fetching — status + crew log. Both fetchers share one rule set:
