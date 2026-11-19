@@ -164,6 +164,84 @@ export const FOUNTAINS: Rect[] = [
   { x: 25, y: 16, w: 2, h: 3 },
 ];
 
+/**
+ * The plaza plinth (enhancement 3): a low stone slab just west of the
+ * gold MTX coin, carrying one medallion socket per Proving Ground
+ * module. Solid, like the fountains.
+ */
+export const PLINTH: Rect = { x: 19, y: 15, w: 3, h: 1 };
+
+export function isPlinth(tx: number, ty: number): boolean {
+  return inRect(tx, ty, PLINTH);
+}
+
+// ---------------------------------------------------------------------------
+// The visitor's own Proving Ground completions (device-local, read-only)
+// ---------------------------------------------------------------------------
+
+/** The three Proving Ground modules, in the Ground's own order. The
+ *  titles match src/components/proving-ground/ProvingGroundHome.tsx. */
+export const PROVING_GROUND_MODULES = [
+  { id: "spot", n: 1, title: "Spot the Fake" },
+  { id: "mint", n: 2, title: "How a Mint Works" },
+  { id: "verify", n: 3, title: "Read a Contract Like a Pro" },
+] as const;
+
+/** The Proving Ground's storage key (schema owned by its lib). */
+export const PROVING_GROUND_KEY = "mh_proving_ground_v1";
+
+export interface ProvingGroundSummary {
+  /** Per-module completion, in PROVING_GROUND_MODULES order. */
+  completed: boolean[];
+  count: number;
+  total: number;
+}
+
+/**
+ * Read the visitor's Proving Ground completions from their own device.
+ *
+ * Deliberately NOT the Proving Ground lib's loader: that lib pulls in
+ * ethers and the confetti vendor, which would break this page's small-
+ * chunk law for the sake of three booleans. This reader is defensive by
+ * design and mirrors the lib's own semantics (module completion = the
+ * module's `completed` flag; the spot trainer's flag means "passed at
+ * either difficulty" in every schema generation):
+ *
+ * - storage absent / disabled / unparseable -> null (no record);
+ * - a record counts as existing only if at least one module entry is an
+ *   object — a bare or unrelated JSON value is not a record;
+ * - a medallion lights ONLY on a stored boolean `true`. Anything else
+ *   (missing module, missing flag, a truthy non-boolean) stays an empty
+ *   socket: state is never invented or coerced into an earn.
+ *
+ * Legacy shapes are safe by construction: the pre-hard-mode record and
+ * the current record both carry `completed` at module level.
+ */
+export function readProvingGroundSummary(): ProvingGroundSummary | null {
+  try {
+    const raw = window.localStorage.getItem(PROVING_GROUND_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    const rec = parsed as Record<string, unknown>;
+    let sawModule = false;
+    const completed = PROVING_GROUND_MODULES.map((m) => {
+      const mod = rec[m.id];
+      if (!mod || typeof mod !== "object" || Array.isArray(mod)) return false;
+      sawModule = true;
+      return (mod as Record<string, unknown>).completed === true;
+    });
+    if (!sawModule) return null;
+    return {
+      completed,
+      count: completed.filter(Boolean).length,
+      total: PROVING_GROUND_MODULES.length,
+    };
+  } catch {
+    return null;
+  }
+}
+
 const PATHS: Rect[] = [
   { x: 22, y: 1, w: 2, h: 32 }, // Main Street — runs clear from the south gate to the north hedge
   { x: 2, y: 11, w: 42, h: 2 }, // North Avenue
@@ -237,6 +315,7 @@ export function isSolidTile(tx: number, ty: number): boolean {
   if (tx === 0 || ty === 0 || tx === COLS - 1 || ty === ROWS - 1) return true; // hedge border
   if (buildingAt(tx, ty)) return true;
   if (isFountain(tx, ty)) return true;
+  if (isPlinth(tx, ty)) return true;
   if (TREES.has(key(tx, ty))) return true;
   return false;
 }
@@ -249,6 +328,22 @@ export const tileCenter = (tx: number, ty: number) => ({
 /** Door trigger point (px) for a building. */
 export function doorPoint(b: Building) {
   return tileCenter(b.doorTile.x, b.doorTile.y);
+}
+
+/** Centre of the plaza plinth (px) — the anchor its preview marker
+ *  projects over and its hover geometry centres on. */
+export function plinthPoint() {
+  return {
+    x: (PLINTH.x + PLINTH.w / 2) * TILE,
+    y: (PLINTH.y + 0.5) * TILE,
+  };
+}
+
+/** Passable plaza point just south of the plinth — where a press on
+ *  the plinth walks you to (the slab itself is solid). */
+export function plinthStandPoint() {
+  const p = plinthPoint();
+  return { x: p.x, y: p.y + TILE };
 }
 
 /** The building whose door the point is near, if any. */
