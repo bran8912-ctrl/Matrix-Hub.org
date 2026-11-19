@@ -28,8 +28,10 @@ fulfill them; subscription health must be monitored.
 
 Chainlink VRF proves that a requested random word was produced according to
 the coordinator's key and proof. It does not audit the casino's bet logic,
-reserve solvency, frontend, or governance configuration. The contracts must
-receive independent security review before production funds are used.
+reserve solvency, frontend, or governance configuration. The casino is live
+on mainnet: the contracts passed an internal audit and a full testnet
+rehearsal on Amoy, but they have not yet had an independent external audit
+(see /security).
 
 ---
 
